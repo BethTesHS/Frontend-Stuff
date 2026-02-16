@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, MapPin, Users, Phone, Star, ExternalLink, AlertCircle } from 'lucide-react';
 import { findAgentApi } from '@/services/api';
 
-// Agent type - using the same structure as the API
+// Agent type definition
 type Agent = {
   id: number;
   name: string;
@@ -34,66 +34,87 @@ type Agent = {
   updated_at?: string;
 };
 
+// Define the shape of our search parameters
+interface SearchConfiguration {
+  location: string;
+  agentName: string;
+  radius: string;
+  agentType: string;
+}
+
 const FindAgent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setLoading } = useLoading();
-  const agentType = searchParams.get('type');
   
-  // Form states
-  const [selectedAgentType, setSelectedAgentType] = useState(agentType || 'both');
-  const [location, setLocation] = useState('');
-  const [agentName, setAgentName] = useState('');
-  const [radius, setRadius] = useState('');
-  
+  // 1. Committed Search Config - The Source of Truth for URL and Fetching
+  // We initialize this strictly from the URL parameters so deep links work immediately.
+  const [searchConfig, setSearchConfig] = useState<SearchConfiguration>(() => ({
+    location: searchParams.get('location') || '',
+    agentName: searchParams.get('agentName') || '',
+    radius: searchParams.get('radius') || '',
+    agentType: searchParams.get('agentType') || searchParams.get('type') || 'both',
+  }));
+
+  // 2. Input State - What the user is currently typing/selecting
+  // Initialized from the config so the form is populated correctly on load.
+  const [inputs, setInputs] = useState<SearchConfiguration>(searchConfig);
+
   // Data states
   const [agents, setAgents] = useState<Agent[]>([]);
   const [error, setError] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   
+  // Ref to track if a request is in flight
   const isLoadingRef = useRef(false);
 
-  // Initialize form from URL params
+  // --- EFFECT 1: URL SYNCHRONIZATION ---
+  // Whenever the active search config changes, update the URL.
+  // This allows users to bookmark or share the URL after filtering.
   useEffect(() => {
-    if (agentType) {
-      setSelectedAgentType(agentType);
-    }
+    const params = new URLSearchParams();
     
-    // Set other params from URL if they exist
-    const locationParam = searchParams.get('location');
-    const agentNameParam = searchParams.get('agentName');
-    const radiusParam = searchParams.get('radius');
+    if (searchConfig.location) params.set('location', searchConfig.location);
+    if (searchConfig.agentName) params.set('agentName', searchConfig.agentName);
+    if (searchConfig.radius) params.set('radius', searchConfig.radius);
+    if (searchConfig.agentType && searchConfig.agentType !== 'both') params.set('agentType', searchConfig.agentType);
     
-    if (locationParam) setLocation(locationParam);
-    if (agentNameParam) setAgentName(agentNameParam);
-    if (radiusParam) setRadius(radiusParam);
-  }, [agentType, searchParams]);
+    setSearchParams(params, { replace: true });
+  }, [searchConfig, setSearchParams]);
 
-  // Load featured agents on mount
+  // --- EFFECT 2: DATA FETCHING ---
+  // Whenever the active search config changes, fetch the appropriate data.
   useEffect(() => {
-    loadFeaturedAgents();
-  }, []);
+    const fetchData = async () => {
+      // Check if we are in "default" state (no active filters)
+      const isDefault = !searchConfig.location && !searchConfig.agentName && !searchConfig.radius && searchConfig.agentType === 'both';
 
+      if (isDefault) {
+        await loadFeaturedAgents();
+      } else {
+        await performSearch(searchConfig);
+      }
+    };
+
+    fetchData();
+  }, [searchConfig]);
+
+  // API Call: Load Featured Agents
   const loadFeaturedAgents = async () => {
     if (isLoadingRef.current) return;
-    
     isLoadingRef.current = true;
     setLoading(true);
     setError('');
 
     try {
-      console.log('Loading featured agents...');
       const response = await findAgentApi.getFeaturedAgents(3);
-      
       if (response.success && response.data) {
         setAgents(response.data.agents);
-        console.log('Featured agents loaded:', response.data.agents);
       } else {
-        throw new Error(response.error || 'Failed to load featured agents');
+        setAgents([]);
       }
     } catch (err) {
       console.error('Error loading featured agents:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load agents');
       setAgents([]);
     } finally {
       setLoading(false);
@@ -101,32 +122,24 @@ const FindAgent = () => {
     }
   };
 
-  const performSearch = async (searchParams: {
-    location?: string;
-    agentName?: string;
-    agentType?: string;
-    radius?: string;
-  }) => {
+  // API Call: Perform Search
+  const performSearch = async (config: SearchConfiguration) => {
     setIsSearching(true);
+    setLoading(true);
     setError('');
 
     try {
-      console.log('Performing agent search with params:', searchParams);
-      
       const response = await findAgentApi.searchAgents({
-        location: searchParams.location,
-        agentName: searchParams.agentName,
-        agentType: searchParams.agentType as 'both' | 'estate' | 'letting' || 'both',
-        radius: searchParams.radius as any,
+        location: config.location,
+        agentName: config.agentName,
+        agentType: config.agentType as 'both' | 'estate' | 'letting',
+        radius: config.radius as any,
         page: 1,
         per_page: 12
       });
 
       if (response.success && response.data) {
         setAgents(response.data.agents);
-        console.log('Search results:', response.data.agents);
-        
-        // Show message if no results
         if (response.data.agents.length === 0) {
           setError('No agents found matching your criteria. Try adjusting your search filters.');
         }
@@ -136,62 +149,41 @@ const FindAgent = () => {
     } catch (err) {
       console.error('Error searching agents:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
-      // Keep existing agents if search fails
+      setAgents([]);
     } finally {
       setIsSearching(false);
+      setLoading(false);
     }
   };
 
-  const filteredAgents = selectedAgentType === 'both' 
-    ? agents 
-    : agents.filter(agent => agent.type === selectedAgentType);
+  // --- EVENT HANDLERS ---
 
-  const handleSearch = () => {
-    // Update URL with search parameters
-    const params = new URLSearchParams();
-    if (location) params.set('location', location);
-    if (agentName) params.set('agentName', agentName);
-    if (selectedAgentType && selectedAgentType !== 'both') params.set('agentType', selectedAgentType);
-    if (radius) params.set('radius', radius);
-    
-    // Perform the search
-    performSearch({
-      location,
-      agentName,
-      agentType: selectedAgentType,
-      radius
-    });
-
-    // Navigate to update URL (optional - for better UX)
-    if (params.toString()) {
-      navigate(`/find-agent?${params.toString()}`, { replace: true });
-    }
+  const handleSearchClick = () => {
+    // Committing the inputs to the searchConfig triggers the useEffects
+    // which update the URL and fetch the data.
+    setSearchConfig(inputs);
   };
 
-  const handleStartSearch = () => {
-    // Navigate to agents list page for the "Start Your Search" button
-    navigate('/agents');
-  };
-
-  const handleViewProfile = (agent: Agent) => {
-    // Navigate to agent profile page
-    navigate(`/public-agent-profile?id=${agent.id}`);
-  };
-
-  const handleContactAgent = (agent: Agent) => {
-    // Navigate to contact page with agent details
-    navigate(`/contact-agent?agentName=${encodeURIComponent(agent.name)}&agentId=${agent.id}&propertyTitle=General+Inquiry`);
-  };
-
-  const clearSearch = () => {
-    setLocation('');
-    setAgentName('');
-    setRadius('');
-    setSelectedAgentType('both');
+  const handleClearSearch = () => {
+    const emptyConfig = {
+      location: '',
+      agentName: '',
+      radius: '',
+      agentType: 'both'
+    };
+    setInputs(emptyConfig);
+    setSearchConfig(emptyConfig);
     setError('');
-    loadFeaturedAgents(); // Reload featured agents
-    navigate('/find-agent', { replace: true }); // Clear URL params
   };
+
+  const updateInput = (key: keyof SearchConfiguration, value: string) => {
+    setInputs(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Navigation handlers
+  const handleStartSearch = () => navigate('/agents');
+  const handleViewProfile = (agent: Agent) => navigate(`/public-agent-profile?id=${agent.id}`);
+  const handleContactAgent = (agent: Agent) => navigate(`/contact-agent?agentName=${encodeURIComponent(agent.name)}&agentId=${agent.id}&propertyTitle=General+Inquiry`);
 
   return (
     <Layout>
@@ -222,6 +214,7 @@ const FindAgent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Location Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <MapPin className="w-4 h-4 inline mr-1" />
@@ -229,25 +222,34 @@ const FindAgent = () => {
                   </label>
                   <Input 
                     placeholder="Enter postcode or area" 
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={inputs.location}
+                    onChange={(e) => updateInput('location', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
                   />
                 </div>
+
+                {/* Agent Name Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Agent Name (Optional)
                   </label>
                   <Input 
                     placeholder="Agent or agency name" 
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
+                    value={inputs.agentName}
+                    onChange={(e) => updateInput('agentName', e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
                   />
                 </div>
+
+                {/* Radius Select */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Search Radius
                   </label>
-                  <Select value={radius} onValueChange={setRadius}>
+                  <Select 
+                    value={inputs.radius} 
+                    onValueChange={(value) => updateInput('radius', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select radius" />
                     </SelectTrigger>
@@ -260,11 +262,16 @@ const FindAgent = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Agent Type Select */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Agent Type
                   </label>
-                  <Select value={selectedAgentType} onValueChange={setSelectedAgentType}>
+                  <Select 
+                    value={inputs.agentType} 
+                    onValueChange={(value) => updateInput('agentType', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -280,17 +287,19 @@ const FindAgent = () => {
               <div className="flex gap-3 mt-6">
                 <Button 
                   className="flex-1" 
-                  onClick={handleSearch}
+                  onClick={handleSearchClick}
                   disabled={isSearching}
                 >
                   <Search className="w-4 h-4 mr-2" />
                   {isSearching ? 'Searching...' : 'Search Agents'}
                 </Button>
                 
-                {(location || agentName || radius || selectedAgentType !== 'both') && (
+                {/* Clear Button - shown if form or results are active */}
+                {(inputs.location || inputs.agentName || inputs.radius || inputs.agentType !== 'both' || 
+                  searchConfig.location || searchConfig.agentName || searchConfig.radius || searchConfig.agentType !== 'both') && (
                   <Button 
                     variant="outline" 
-                    onClick={clearSearch}
+                    onClick={handleClearSearch}
                     disabled={isSearching}
                   >
                     Clear
@@ -318,54 +327,18 @@ const FindAgent = () => {
         </section>
       )}
 
-      {/* How It Works Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">1. Search</h3>
-              <p className="text-gray-600">
-                Enter your location and preferences to find qualified agents in your area.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">2. Compare Agents</h3>
-              <p className="text-gray-600">
-                Review agent profiles, ratings, and specializations to find the perfect match.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-8 h-8 text-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">3. Contact or Book</h3>
-              <p className="text-gray-600">
-                Get in touch directly or book a free property valuation with your chosen agent.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Agents Section */}
+      {/* Agents List Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            {location || agentName || radius || selectedAgentType !== 'both' ? 'Search Results' : 'Featured Agents'}
+            {searchConfig.location || searchConfig.agentName || searchConfig.radius || searchConfig.agentType !== 'both' 
+              ? 'Search Results' 
+              : 'Featured Agents'}
           </h2>
           
-          {filteredAgents.length > 0 ? (
+          {agents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAgents.map((agent) => (
+              {agents.map((agent) => (
                 <Card key={agent.id} className="property-card hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
@@ -428,19 +401,19 @@ const FindAgent = () => {
             <div className="text-center py-12">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {location || agentName || radius || selectedAgentType !== 'both' 
+                {searchConfig.location || searchConfig.agentName || searchConfig.radius || searchConfig.agentType !== 'both'
                   ? 'No agents found' 
                   : 'No featured agents available'
                 }
               </h3>
               <p className="text-gray-600 mb-6">
-                {location || agentName || radius || selectedAgentType !== 'both'
+                {searchConfig.location || searchConfig.agentName || searchConfig.radius || searchConfig.agentType !== 'both'
                   ? 'Try adjusting your search criteria to find more agents.'
                   : 'Check back later for featured agents in your area.'
                 }
               </p>
-              {(location || agentName || radius || selectedAgentType !== 'both') && (
-                <Button variant="outline" onClick={clearSearch}>
+              {(searchConfig.location || searchConfig.agentName || searchConfig.radius || searchConfig.agentType !== 'both') && (
+                <Button variant="outline" onClick={handleClearSearch}>
                   Clear Search
                 </Button>
               )}

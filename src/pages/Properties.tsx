@@ -15,24 +15,42 @@ import { propertyApi } from '@/services/api';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Properties = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const listingType = searchParams.get('listingType') || searchParams.get('type') === 'rent' ? 'rent' : 'sale';
   
+  // Helper to parse filters from URL on initial load
+  const parseFiltersFromUrl = (): SearchFilters => {
+    const f: SearchFilters = {};
+    if (searchParams.get('minPrice')) f.minPrice = Number(searchParams.get('minPrice'));
+    if (searchParams.get('maxPrice')) f.maxPrice = Number(searchParams.get('maxPrice'));
+    if (searchParams.get('bedrooms')) f.bedrooms = Number(searchParams.get('bedrooms'));
+    if (searchParams.get('passportRating')) f.passportRating = Number(searchParams.get('passportRating'));
+    
+    const types = searchParams.getAll('propertyType');
+    if (types.length > 0) f.propertyType = types;
+    
+    const typeParam = searchParams.get('type') || searchParams.get('listingType');
+    if (typeParam === 'sale' || typeParam === 'rent') f.listingType = typeParam;
+
+    return f;
+  };
+
   // Core state
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<SearchFilters>(parseFiltersFromUrl);
   const [showFilters, setShowFilters] = useState(false);
   
   // SEPARATED: Input vs Search
-  const [inputValue, setInputValue] = useState(''); // What user types
-  const [searchLocation, setSearchLocation] = useState(''); // What filters properties
+  const initialLocation = searchParams.get('location') || '';
+  const [inputValue, setInputValue] = useState(initialLocation); // What user types
+  const [searchLocation, setSearchLocation] = useState(initialLocation); // What filters properties
   
-  const [priceRange, setPriceRange] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [priceRange, setPriceRange] = useState(searchParams.get('priceRange') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [propertiesPerPage, setPropertiesPerPage] = useState(10);
+  const [propertiesPerPage, setPropertiesPerPage] = useState(Number(searchParams.get('per_page')) || 10);
   
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<Array<{value: string, label: string, type: string}>>([]); 
@@ -47,6 +65,34 @@ const Properties = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // ==================== URL SYNCHRONIZATION ====================
+  // Update URL whenever search state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    // Core parameters
+    const effectiveType = filters.listingType || listingType;
+    if (effectiveType) params.set('type', effectiveType);
+    
+    if (searchLocation) params.set('location', searchLocation);
+    if (priceRange) params.set('priceRange', priceRange);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (propertiesPerPage !== 10) params.set('per_page', propertiesPerPage.toString());
+
+    // Detailed filters
+    if (filters.minPrice) params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.bedrooms) params.set('bedrooms', filters.bedrooms.toString());
+    if (filters.passportRating) params.set('passportRating', filters.passportRating.toString());
+    
+    if (filters.propertyType) {
+      const types = Array.isArray(filters.propertyType) ? filters.propertyType : [filters.propertyType];
+      types.forEach(t => params.append('propertyType', t));
+    }
+
+    setSearchParams(params, { replace: true });
+  }, [filters, searchLocation, priceRange, currentPage, propertiesPerPage, listingType, setSearchParams]);
 
   // ==================== AUTOCOMPLETE LOGIC ====================
   const fetchAutocompleteSuggestions = useCallback(async (searchText: string) => {
@@ -136,7 +182,7 @@ const Properties = () => {
     }, 800); // 800ms delay - adjust if want faster/slower
 
     return () => clearTimeout(searchTimeout);
-  }, [inputValue]);
+  }, [inputValue, searchLocation]);
 
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback((selected: {value: string, label: string, type: string}) => {
@@ -196,12 +242,13 @@ const Properties = () => {
         const searchParams = {
           page: currentPage,
           per_page: propertiesPerPage,
-          listing_type: listingType === 'sale' || listingType === 'rent' ? listingType : undefined,
+          listing_type: filters.listingType || (listingType === 'sale' || listingType === 'rent' ? listingType : undefined),
           location: searchLocation || undefined,
           property_type: propertyTypeArray,
           min_price: filters.minPrice || minPriceFromRange || undefined,
           max_price: filters.maxPrice || maxPriceFromRange || undefined,
           bedrooms: filters.bedrooms || undefined,
+          passport_rating: filters.passportRating || undefined,
           status: 'active', // Only show active (public) properties
         };
 
@@ -266,6 +313,11 @@ const Properties = () => {
   // ==================== EVENT HANDLERS ====================
   const handleFiltersChange = (newFilters: SearchFilters) => {
     setFilters(newFilters);
+    // If the filters component set a location, update our main location state too
+    if (newFilters.location) {
+      setSearchLocation(newFilters.location);
+      setInputValue(newFilters.location);
+    }
     setCurrentPage(1);
   };
 
@@ -312,12 +364,14 @@ const Properties = () => {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-blue-900 mb-2">
-                {listingType === 'sale' ? 'Houses for Sale' : 'Properties for Rent'}
+                {filters.listingType === 'rent' || (!filters.listingType && listingType === 'rent') 
+                  ? 'Properties for Rent' 
+                  : 'Houses for Sale'}
               </h1>
               <p className="text-gray-600">
-                {listingType === 'sale'
-                  ? 'Find your perfect home to buy with detailed property information'
-                  : 'Find your perfect rental property'
+                {filters.listingType === 'rent' || (!filters.listingType && listingType === 'rent')
+                  ? 'Find your perfect rental property'
+                  : 'Find your perfect home to buy with detailed property information'
                 }
               </p>
             </div>
@@ -414,10 +468,10 @@ const Properties = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="h-12 px-6 flex items-center gap-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white"
+                className={`h-12 px-6 flex items-center gap-2 border-blue-900 ${showFilters ? 'bg-blue-900 text-white' : 'text-blue-900'} hover:bg-blue-900 hover:text-white`}
               >
                 <Filter className="w-4 h-4" />
-                More Filters
+                {showFilters ? 'Hide Filters' : 'More Filters'}
               </Button>
             </div>
       
@@ -456,7 +510,7 @@ const Properties = () => {
               <div key={property.id} className="w-full">
                 <PropertyCard 
                   property={property} 
-                  showSaleDetails={listingType === 'sale'} 
+                  showSaleDetails={filters.listingType === 'sale' || (!filters.listingType && listingType === 'sale')} 
                 />
               </div>
             ))}
@@ -465,13 +519,13 @@ const Properties = () => {
           {/* Empty state */}
           {properties.length === 0 && !loading && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg mb-4">No properties found.</p>
+              <p className="text-gray-500 text-lg mb-4">No properties found matching your criteria.</p>
               <Button
                 variant="outline"
                 onClick={handleClearFilters}
                 className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
               >
-                Clear Filters
+                Clear All Filters
               </Button>
             </div>
           )}

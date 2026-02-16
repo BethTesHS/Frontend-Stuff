@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SearchFilters } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,11 @@ interface PropertyFiltersProps {
 
 const PropertyFilters = ({ filters, onFiltersChange }: PropertyFiltersProps) => {
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
+
+  // Sync with parent filters when they change (e.g. from URL updates or 'Clear Filters')
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
 
   const handleApplyFilters = () => {
     onFiltersChange(localFilters);

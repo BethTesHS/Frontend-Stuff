@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Room, RoomFilters as RoomFiltersType } from '@/types/room';
 import { spareRoomApi } from '@/services/spareRoomApi';
 import RoomCard from '@/components/Rooms/RoomCard';
@@ -18,17 +19,87 @@ import {
 } from 'lucide-react';
 
 const Rooms = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Helper to parse filters from URL on initial load
+  const parseFiltersFromUrl = (): RoomFiltersType => {
+    const f: RoomFiltersType = {};
+    
+    // Numeric filters
+    if (searchParams.get('minRent')) f.min_rent = Number(searchParams.get('minRent'));
+    if (searchParams.get('maxRent')) f.max_rent = Number(searchParams.get('maxRent'));
+    
+    // Array filters
+    const types = searchParams.getAll('roomType');
+    if (types.length > 0) f.room_type = types;
+
+    // Boolean filters
+    if (searchParams.get('furnished') === 'true') f.furnished = true;
+    if (searchParams.get('billsIncluded') === 'true') f.bills_included = true;
+    
+    // Date filter
+    if (searchParams.get('availableFrom')) f.available_from = searchParams.get('availableFrom')!;
+
+    // Preferences
+    const gender = searchParams.get('gender');
+    const smoking = searchParams.get('smoking') === 'true';
+    const pets = searchParams.get('pets') === 'true';
+
+    if (gender || smoking || pets) {
+      f.preferences = {};
+      if (gender) f.preferences.gender = gender as 'male' | 'female' | 'any';
+      if (smoking) f.preferences.smoking = true;
+      if (pets) f.preferences.pets = true;
+    }
+
+    // Location from URL is primarily handled by searchLocation state, 
+    // but we check if it's in filter params too
+    if (searchParams.get('location')) {
+      f.location = searchParams.get('location')!;
+    }
+
+    return f;
+  };
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
-  const [filters, setFilters] = useState<RoomFiltersType>({});
-  const [searchLocation, setSearchLocation] = useState('');
-  const [priceRange, setPriceRange] = useState('');
+  const [filters, setFilters] = useState<RoomFiltersType>(parseFiltersFromUrl);
+  const [searchLocation, setSearchLocation] = useState(searchParams.get('location') || '');
+  const [priceRange, setPriceRange] = useState(searchParams.get('priceRange') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const roomsPerPage = 5;
+
+  // URL Synchronization
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Core params
+    if (searchLocation) params.set('location', searchLocation);
+    if (priceRange) params.set('priceRange', priceRange);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+
+    // Detailed filters
+    if (filters.min_rent) params.set('minRent', filters.min_rent.toString());
+    if (filters.max_rent) params.set('maxRent', filters.max_rent.toString());
+    if (filters.room_type) filters.room_type.forEach(t => params.append('roomType', t));
+    
+    if (filters.furnished) params.set('furnished', 'true');
+    if (filters.bills_included) params.set('billsIncluded', 'true');
+    if (filters.available_from) params.set('availableFrom', filters.available_from);
+
+    // Preferences
+    if (filters.preferences?.gender && filters.preferences.gender !== 'any') {
+      params.set('gender', filters.preferences.gender);
+    }
+    if (filters.preferences?.smoking) params.set('smoking', 'true');
+    if (filters.preferences?.pets) params.set('pets', 'true');
+
+    setSearchParams(params, { replace: true });
+  }, [filters, searchLocation, priceRange, currentPage, setSearchParams]);
 
   // Load rooms from API
   useEffect(() => {
@@ -175,7 +246,11 @@ const Rooms = () => {
 
   const handleFiltersChange = (newFilters: RoomFiltersType) => {
     setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
+    // Sync location if set inside detailed filters
+    if (newFilters.location) {
+      setSearchLocation(newFilters.location);
+    }
+    setCurrentPage(1);
   };
 
   const removeFilter = (filterKey: string) => {
@@ -187,8 +262,10 @@ const Rooms = () => {
       setPriceRange('');
     } else if (filterKey.startsWith('preferences.')) {
       const prefKey = filterKey.split('.')[1];
-      newFilters.preferences = { ...newFilters.preferences };
-      delete newFilters.preferences[prefKey as keyof typeof newFilters.preferences];
+      if (newFilters.preferences) {
+        newFilters.preferences = { ...newFilters.preferences };
+        delete newFilters.preferences[prefKey as keyof typeof newFilters.preferences];
+      }
     } else {
       delete newFilters[filterKey as keyof RoomFiltersType];
     }
