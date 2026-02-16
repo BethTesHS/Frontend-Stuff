@@ -238,7 +238,7 @@ const Properties = () => {
           minPriceFromRange = parseInt(min);
           maxPriceFromRange = max ? parseInt(max) : undefined;
         }
-
+        
         const searchParams = {
           page: currentPage,
           per_page: propertiesPerPage,
@@ -381,7 +381,7 @@ const Properties = () => {
           </div>
         
           {/* Filter Bar */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex flex-col lg:flex-row gap-4 mb-4">
               {/* Search input with autocomplete */}
               <div className="flex-1 relative">
@@ -397,7 +397,7 @@ const Properties = () => {
                       setShowSuggestions(true);
                     }
                   }}
-                  className="pl-10 h-12 pr-10"
+                  className="pl-10 h-12 pr-10 bg-white text-black" 
                   autoComplete="off"
                 />
                 {isLoadingSuggestions && (
@@ -431,7 +431,7 @@ const Properties = () => {
               {/* Price dropdown */}
               <div className="w-full lg:w-48">
                 <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="h-12">
+                  <SelectTrigger className="h-12 bg-white text-black">
                     <div className="flex items-center">
                       <PoundSterlingIcon className="w-4 h-4 mr-2 text-gray-400" />
                       <SelectValue placeholder="Price Range" />
@@ -449,7 +449,7 @@ const Properties = () => {
                 
               <div className="w-full lg:w-40">
                 <Select value={propertiesPerPage.toString()} onValueChange={handlePropertiesPerPageChange}>
-                  <SelectTrigger className="h-12">
+                  <SelectTrigger className="h-12 bg-white text-black">
                     <div className="flex items-center">
                       <span className="text-gray-400 mr-2">View:</span>
                       <SelectValue>{propertiesPerPage} Per Page</SelectValue>
@@ -468,7 +468,7 @@ const Properties = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`h-12 px-6 flex items-center gap-2 border-blue-900 ${showFilters ? 'bg-blue-900 text-white' : 'text-blue-900'} hover:bg-blue-900 hover:text-white`}
+                className={`h-12 px-6 flex items-center gap-2 border-blue-900 ${showFilters ? 'bg-blue-600 text-white border-blue-600' : 'text-blue-900 bg-white'} hover:bg-blue-700 hover:text-white hover:border-blue-700`}
               >
                 <Filter className="w-4 h-4" />
                 {showFilters ? 'Hide Filters' : 'More Filters'}
