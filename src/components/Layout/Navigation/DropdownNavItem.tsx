@@ -34,7 +34,7 @@ const DropdownNavItem = ({
       <Button
         variant="ghost"
         size="sm"
-        className="group flex items-center gap-1 text-blue-900 font-medium hover:text-red-600 transition-colors focus:outline-none focus:ring-0 focus-visible:ring-0 relative p-2"
+        className="group flex items-center gap-1 text-blue-900 font-medium hover:text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-0 focus-visible:ring-0 relative p-2"
         onMouseEnter={() => onMouseEnter(dropdownKey)}
       >
         <span>{label}</span>

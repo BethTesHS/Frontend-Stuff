@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -127,6 +126,30 @@
     --cool-emerald-foreground: 158 84% 85%;
     --cool-cyan: 190 60% 25%;
     --cool-cyan-foreground: 190 95% 87%;
+  }
+
+  /* Utility to force specific elements (like filters) into light mode */
+  .force-light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 217 83% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 11% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 225 11% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 225 11% 96%;
+    --accent-foreground: 0 0% 20%;
+    --border: 214.3 31.8% 91.4%; /* Explicit gray outline for forms */
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 83% 51%;
+    
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
   }
 
   * {

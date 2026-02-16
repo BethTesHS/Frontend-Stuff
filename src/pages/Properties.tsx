@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
 import { propertyApi } from '@/services/api';
 
@@ -59,7 +60,6 @@ const Properties = () => {
   
   // Refs
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout>();
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const Properties = () => {
     // Detailed filters
     if (filters.minPrice) params.set('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString());
-    if (filters.bedrooms) params.set('bedrooms', filters.bedrooms.toString());
+    if (filters.bedrooms) params.set('bedrooms', params.get('bedrooms') || filters.bedrooms.toString());
     if (filters.passportRating) params.set('passportRating', filters.passportRating.toString());
     
     if (filters.propertyType) {
@@ -171,7 +171,7 @@ const Properties = () => {
     };
   }, [inputValue, fetchAutocompleteSuggestions]);
 
-    // AUTO-SEARCH: Update searchLocation after user stops typing
+  // AUTO-SEARCH: Update searchLocation after user stops typing
   useEffect(() => {
     const searchTimeout = setTimeout(() => {
       // Only trigger search if input has changed AND is not empty
@@ -467,11 +467,11 @@ const Properties = () => {
               {/* Filters button */}
               <Button
                 variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`h-12 px-6 flex items-center gap-2 border-blue-900 ${showFilters ? 'bg-blue-600 text-white border-blue-600' : 'text-blue-900 bg-white'} hover:bg-blue-700 hover:text-white hover:border-blue-700`}
+                onClick={() => setShowFilters(true)}
+                className="h-12 px-6 flex items-center gap-2 border-blue-900 text-blue-900 bg-white hover:bg-blue-700 hover:text-white hover:border-blue-700"
               >
                 <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide Filters' : 'More Filters'}
+                More Filters
               </Button>
             </div>
       
@@ -497,12 +497,19 @@ const Properties = () => {
             )}
           </div>
 
-          {/* Advanced filters panel */}
-          {showFilters && (
-            <div className="mb-8">
-              <PropertyFilters filters={filters} onFiltersChange={handleFiltersChange} />
-            </div>
-          )}
+          {/* Advanced filters Slide-out Panel - Utilizing the specific force-light utility */}
+          <Sheet open={showFilters} onOpenChange={setShowFilters}>
+            <SheetContent side="right" className="force-light overflow-y-auto w-full sm:max-w-md shadow-2xl border-l">
+              <SheetHeader className="mb-6">
+                <SheetTitle className="text-xl font-bold">Filter Properties</SheetTitle>
+              </SheetHeader>
+              <PropertyFilters 
+                filters={filters} 
+                onFiltersChange={handleFiltersChange} 
+                onClose={() => setShowFilters(false)}
+              />
+            </SheetContent>
+          </Sheet>
 
           {/* Property Cards */}
           <div className="space-y-6 mb-8">
@@ -523,7 +530,7 @@ const Properties = () => {
               <Button
                 variant="outline"
                 onClick={handleClearFilters}
-                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                className="force-light border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
               >
                 Clear All Filters
               </Button>

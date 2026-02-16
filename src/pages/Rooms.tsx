@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { 
   MapPin,
   DollarSign,
@@ -421,7 +422,7 @@ const Rooms = () => {
               {/* Filters button */}
               <Button
                 variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={() => setShowFilters(true)}
                 className="h-12 px-6 flex items-center gap-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white"
               >
                 <Filter className="w-4 h-4" />
@@ -449,16 +450,19 @@ const Rooms = () => {
             )}
           </div>
 
-          {/* Advanced filters panel */}
-          {showFilters && (
-            <div className="mb-8">
+          {/* Advanced filters Slide-out Panel - Utilizing the specific force-light utility */}
+          <Sheet open={showFilters} onOpenChange={setShowFilters}>
+            <SheetContent side="right" className="force-light overflow-y-auto w-full sm:max-w-md shadow-2xl border-l">
+              <SheetHeader className="mb-6">
+                <SheetTitle className="text-xl font-bold">Filter Rooms</SheetTitle>
+              </SheetHeader>
               <RoomFilters
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
                 onClose={() => setShowFilters(false)}
               />
-            </div>
-          )}
+            </SheetContent>
+          </Sheet>
 
           {/* Room Cards - Single Column */}
           <div className="space-y-6 mb-8">
@@ -478,10 +482,11 @@ const Rooms = () => {
                 Try adjusting your filters or search criteria
               </p>
               <Button
+                variant="outline"
                 onClick={clearAllFilters}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="force-light border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
               >
-                Clear all filters
+                Clear All Filters
               </Button>
             </div>
           )}
