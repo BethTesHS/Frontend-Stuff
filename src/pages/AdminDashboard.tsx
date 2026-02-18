@@ -49,6 +49,9 @@ import {
   MoreVertical
 } from 'lucide-react';
 
+// Determine if we are on localhost
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 // Mock data for admin dashboard
 const pendingVerifications = [
   {
@@ -83,9 +86,71 @@ const pendingVerifications = [
   }
 ];
 
-// Mock user data removed - using API only
-
-// Real admin messages will be loaded from API
+const mockMessagesData = {
+  contacts: [
+    {
+      id: "usr_001",
+      name: "Sarah Jenkins",
+      role: "Tenant",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+      lastMessage: "Thank you, the plumber fixed the issue this morning.",
+      timestamp: "2026-02-18T11:30:00Z",
+      unreadCount: 0,
+      isOnline: true
+    },
+    {
+      id: "usr_002",
+      name: "David Ochieng",
+      role: "Owner",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
+      lastMessage: "When will the background check for the new applicant be ready?",
+      timestamp: "2026-02-18T10:15:00Z",
+      unreadCount: 2,
+      isOnline: false
+    },
+    {
+      id: "usr_003",
+      name: "Amina Yusuf",
+      role: "Buyer",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Amina",
+      lastMessage: "I would like to reschedule my viewing for tomorrow.",
+      timestamp: "2026-02-17T16:45:00Z",
+      unreadCount: 1,
+      isOnline: true
+    },
+    {
+      id: "usr_004",
+      name: "Michael Chang",
+      role: "Agent",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael",
+      lastMessage: "I've uploaded the new property photos to the dashboard.",
+      timestamp: "2026-02-16T09:20:00Z",
+      unreadCount: 0,
+      isOnline: false
+    }
+  ],
+  conversations: {
+    "usr_001": [
+      { id: "msg_101", senderId: "usr_001", text: "Hi Admin, the sink in apartment 4B is leaking again.", timestamp: "2026-02-17T08:00:00Z" },
+      { id: "msg_102", senderId: "admin", text: "Hello Sarah, I'm sorry to hear that. I will dispatch the maintenance team immediately.", timestamp: "2026-02-17T08:15:00Z" },
+      { id: "msg_103", senderId: "admin", text: "They should be there between 9 AM and 11 AM tomorrow.", timestamp: "2026-02-17T08:16:00Z" },
+      { id: "msg_104", senderId: "usr_001", text: "Thank you, the plumber fixed the issue this morning.", timestamp: "2026-02-18T11:30:00Z" }
+    ],
+    "usr_002": [
+      { id: "msg_201", senderId: "usr_002", text: "Good morning. Just following up on the Westlands property.", timestamp: "2026-02-18T10:10:00Z" },
+      { id: "msg_202", senderId: "usr_002", text: "When will the background check for the new applicant be ready?", timestamp: "2026-02-18T10:15:00Z" }
+    ],
+    "usr_003": [
+      { id: "msg_301", senderId: "admin", text: "Hi Amina, confirming your viewing for the Kilimani apartment today at 4 PM.", timestamp: "2026-02-17T10:00:00Z" },
+      { id: "msg_302", senderId: "usr_003", text: "I would like to reschedule my viewing for tomorrow.", timestamp: "2026-02-17T16:45:00Z" }
+    ],
+    "usr_004": [
+      { id: "msg_401", senderId: "usr_004", text: "Hey, the client loved the virtual tour.", timestamp: "2026-02-15T14:30:00Z" },
+      { id: "msg_402", senderId: "admin", text: "That's great news! Do we need to update the listing images?", timestamp: "2026-02-15T14:45:00Z" },
+      { id: "msg_403", senderId: "usr_004", text: "I've uploaded the new property photos to the dashboard.", timestamp: "2026-02-16T09:20:00Z" }
+    ]
+  }
+};
 
 const AdminDashboard = () => {
   // All hooks must be called first, before any conditional logic
@@ -98,7 +163,7 @@ const AdminDashboard = () => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [viewingConversation, setViewingConversation] = useState(false);
-  const [conversationMessages, setConversationMessages] = useState([]);
+  const [conversationMessages, setConversationMessages] = useState<any[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -180,26 +245,45 @@ const AdminDashboard = () => {
   const loadMessagesAndConversations = async () => {
     try {
       setMessagesLoading(true);
-      const { adminApi } = await import('@/services/adminApi');
 
-      console.log('Loading conversations with adminApi...');
-      // Load conversations (which contain messages from external tenants)
-      const conversationsResponse = await adminApi.getConversations({ limit: 50 });
-      console.log('Conversations response:', conversationsResponse);
-      if (conversationsResponse.success) {
-        // Transform conversations to message format for compatibility
-        const messages = conversationsResponse.conversations.map(conv => ({
-          id: conv.id.toString(),
-          from: conv.user_name,
-          email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
-          subject: conv.subject,
-          message: `Conversation with ${conv.unread_count} unread messages`,
-          priority: conv.unread_count > 0 ? 'high' : 'low',
-          timestamp: conv.last_message_at || conv.created_at,
-          status: conv.unread_count > 0 ? 'unread' : 'read',
-          conversation_id: conv.id
+      // Check if Localhost
+      if (isLocalhost) {
+        console.log('Running on localhost. Using mock messages...');
+        const mockMessages = mockMessagesData.contacts.map(contact => ({
+          id: contact.id,
+          from: contact.name,
+          email: `${contact.name.toLowerCase().replace(' ', '.')}@mock-tenant.com`,
+          subject: contact.role, // Just simulating a subject 
+          message: contact.lastMessage,
+          priority: contact.unreadCount > 0 ? 'high' : 'low',
+          timestamp: new Date(contact.timestamp).toLocaleString(),
+          status: contact.unreadCount > 0 ? 'unread' : 'read',
+          conversation_id: contact.id
         }));
-        setAdminMessages(messages);
+        setAdminMessages(mockMessages);
+      } 
+      else {
+        const { adminApi } = await import('@/services/adminApi');
+        
+        console.log('Loading conversations with adminApi...');
+        // Load conversations (which contain messages from external tenants)
+        const conversationsResponse = await adminApi.getConversations({ limit: 50 });
+        console.log('Conversations response:', conversationsResponse);
+        if (conversationsResponse.success) {
+          // Transform conversations to message format for compatibility
+          const messages = conversationsResponse.conversations.map(conv => ({
+            id: conv.id.toString(),
+            from: conv.user_name,
+            email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
+            subject: conv.subject,
+            message: `Conversation with ${conv.unread_count} unread messages`,
+            priority: conv.unread_count > 0 ? 'high' : 'low',
+            timestamp: conv.last_message_at || conv.created_at,
+            status: conv.unread_count > 0 ? 'unread' : 'read',
+            conversation_id: conv.id
+          }));
+          setAdminMessages(messages);
+        }
       }
     } catch (error) {
       console.error('Failed to load messages and conversations:', error);
@@ -210,6 +294,162 @@ const AdminDashboard = () => {
       });
     } finally {
       setMessagesLoading(false);
+    }
+  };
+
+  const handleViewConversation = async (message: any) => {
+    setSelectedMessage(message);
+    
+    if (message.conversation_id) {
+      // Localhost Mock Data logic
+      if (isLocalhost) {
+        const mockConvo = mockMessagesData.conversations[message.conversation_id as keyof typeof mockMessagesData.conversations];
+        if (mockConvo) {
+          const transformedMessages = mockConvo.map(msg => ({
+            id: msg.id,
+            text: msg.text,
+            sender: msg.senderId === 'admin' ? 'admin' : 'user',
+            timestamp: msg.timestamp,
+            senderName: msg.senderId === 'admin' ? 'Admin' : message.from,
+            attachments: []
+          }));
+          setConversationMessages(transformedMessages);
+        } else {
+          setConversationMessages([]);
+        }
+      } else {
+        // Production API logic
+        try {
+          const { adminApi } = await import('@/services/adminApi');
+          const response = await adminApi.getConversationMessages(message.conversation_id);
+          
+          if (response.success) {
+            const transformedMessages = response.messages.map(msg => ({
+              id: msg.id.toString(),
+              text: msg.message_text,
+              sender: msg.sender_type === 'admin' ? 'admin' : 'user',
+              timestamp: msg.created_at,
+              senderName: msg.sender_name,
+              attachments: msg.attachment_url ? [{
+                name: msg.attachment_name,
+                size: msg.attachment_size,
+                type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
+                url: msg.attachment_url
+              }] : []
+            }));
+            setConversationMessages(transformedMessages);
+          }
+        } catch (error) {
+          console.error('Failed to load conversation messages:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load conversation messages",
+            variant: "destructive"
+          });
+        }
+      }
+    }
+    
+    setViewingConversation(true);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() && attachedFiles.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a reply message or attach a file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isLocalhost) {
+      // Simulate sending a message for localhost viewing
+      const newMessage = {
+        id: `mock_reply_${Date.now()}`,
+        text: replyText.trim(),
+        sender: 'admin',
+        timestamp: new Date().toISOString(),
+        senderName: 'Admin',
+        attachments: attachedFiles.map(file => ({
+          name: file.name,
+          size: formatFileSize(file.size),
+          type: file.type.startsWith('image/') ? 'image' : 'document',
+          url: URL.createObjectURL(file)
+        }))
+      };
+
+      setConversationMessages(prev => [...prev, newMessage]);
+      toast({
+        title: "Mock Reply Sent",
+        description: `Reply appended locally for ${selectedMessage?.from}`,
+      });
+      setReplyText('');
+      setAttachedFiles([]);
+      return;
+    }
+
+    // Production API logic 
+    try {
+      const { adminApi } = await import('@/services/adminApi');
+      
+      let attachmentData = null;
+      if (attachedFiles.length > 0) {
+        const file = attachedFiles[0];
+        const uploadResponse = await adminApi.uploadFile(file, selectedMessage?.conversation_id);
+        
+        if (uploadResponse.success) {
+          attachmentData = {
+            attachment_url: uploadResponse.file_url,
+            attachment_name: uploadResponse.file_name,
+            attachment_size: uploadResponse.file_size,
+            attachment_type: uploadResponse.file_type,
+          };
+        }
+      }
+      
+      const messageData = {
+        conversation_id: selectedMessage?.conversation_id,
+        message_text: replyText.trim(),
+        subject: selectedMessage?.subject || 'Admin Reply',
+        ...attachmentData,
+      };
+      
+      const response = await adminApi.sendMessage(messageData);
+      
+      if (response.success) {
+        const newMessage = {
+          id: response.message.id.toString(),
+          text: replyText,
+          sender: 'admin',
+          timestamp: response.message.created_at,
+          senderName: 'Admin',
+          attachments: attachmentData ? [{
+            name: attachmentData.attachment_name,
+            size: formatFileSize(attachmentData.attachment_size),
+            type: attachmentData.attachment_type?.startsWith('image/') ? 'image' : 'document',
+            url: attachmentData.attachment_url
+          }] : []
+        };
+
+        setConversationMessages(prev => [...prev, newMessage]);
+        
+        toast({
+          title: "Reply Sent",
+          description: `Reply sent to ${selectedMessage?.from}`,
+        });
+
+        setReplyText('');
+        setAttachedFiles([]);
+        loadMessagesAndConversations();
+      }
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send reply",
+        variant: "destructive"
+      });
     }
   };
 
@@ -394,84 +634,84 @@ const AdminDashboard = () => {
     setReplyText('');
   };
 
-  const handleSendReply = async () => {
-    if (!replyText.trim() && attachedFiles.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a reply message or attach a file",
-        variant: "destructive"
-      });
-      return;
-    }
+  // const handleSendReply = async () => {
+  //   if (!replyText.trim() && attachedFiles.length === 0) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please enter a reply message or attach a file",
+  //       variant: "destructive"
+  //     });
+  //     return;
+  //   }
 
-    try {
-      const { adminApi } = await import('@/services/adminApi');
+  //   try {
+  //     const { adminApi } = await import('@/services/adminApi');
       
-      let attachmentData = null;
+  //     let attachmentData = null;
       
-      // Upload file if attached
-      if (attachedFiles.length > 0) {
-        const file = attachedFiles[0];
-        const uploadResponse = await adminApi.uploadFile(file, selectedMessage?.conversation_id);
+  //     // Upload file if attached
+  //     if (attachedFiles.length > 0) {
+  //       const file = attachedFiles[0];
+  //       const uploadResponse = await adminApi.uploadFile(file, selectedMessage?.conversation_id);
         
-        if (uploadResponse.success) {
-          attachmentData = {
-            attachment_url: uploadResponse.file_url,
-            attachment_name: uploadResponse.file_name,
-            attachment_size: uploadResponse.file_size,
-            attachment_type: uploadResponse.file_type,
-          };
-        }
-      }
+  //       if (uploadResponse.success) {
+  //         attachmentData = {
+  //           attachment_url: uploadResponse.file_url,
+  //           attachment_name: uploadResponse.file_name,
+  //           attachment_size: uploadResponse.file_size,
+  //           attachment_type: uploadResponse.file_type,
+  //         };
+  //       }
+  //     }
       
-      // Send the message
-      const messageData = {
-        conversation_id: selectedMessage?.conversation_id,
-        message_text: replyText.trim(),
-        subject: selectedMessage?.subject || 'Admin Reply',
-        ...attachmentData,
-      };
+  //     // Send the message
+  //     const messageData = {
+  //       conversation_id: selectedMessage?.conversation_id,
+  //       message_text: replyText.trim(),
+  //       subject: selectedMessage?.subject || 'Admin Reply',
+  //       ...attachmentData,
+  //     };
       
-      const response = await adminApi.sendMessage(messageData);
+  //     const response = await adminApi.sendMessage(messageData);
       
-      if (response.success) {
-        // Add the reply to the conversation
-        const newMessage = {
-          id: response.message.id.toString(),
-          text: replyText,
-          sender: 'admin',
-          timestamp: response.message.created_at,
-          senderName: 'Admin',
-          attachments: attachmentData ? [{
-            name: attachmentData.attachment_name,
-            size: formatFileSize(attachmentData.attachment_size),
-            type: attachmentData.attachment_type?.startsWith('image/') ? 'image' : 'document',
-            url: attachmentData.attachment_url
-          }] : []
-        };
+  //     if (response.success) {
+  //       // Add the reply to the conversation
+  //       const newMessage = {
+  //         id: response.message.id.toString(),
+  //         text: replyText,
+  //         sender: 'admin',
+  //         timestamp: response.message.created_at,
+  //         senderName: 'Admin',
+  //         attachments: attachmentData ? [{
+  //           name: attachmentData.attachment_name,
+  //           size: formatFileSize(attachmentData.attachment_size),
+  //           type: attachmentData.attachment_type?.startsWith('image/') ? 'image' : 'document',
+  //           url: attachmentData.attachment_url
+  //         }] : []
+  //       };
 
-        setConversationMessages(prev => [...prev, newMessage]);
+  //       setConversationMessages(prev => [...prev, newMessage]);
         
-        toast({
-          title: "Reply Sent",
-          description: `Reply sent to ${selectedMessage?.from}`,
-        });
+  //       toast({
+  //         title: "Reply Sent",
+  //         description: `Reply sent to ${selectedMessage?.from}`,
+  //       });
 
-        setReplyText('');
-        setAttachedFiles([]);
+  //       setReplyText('');
+  //       setAttachedFiles([]);
         
-        // Refresh messages list to update status
-        loadMessagesAndConversations();
-      }
-    } catch (error) {
-      console.error('Failed to send reply:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send reply",
-        variant: "destructive"
-      });
-    }
-  };
+  //       // Refresh messages list to update status
+  //       loadMessagesAndConversations();
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to send reply:', error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to send reply",
+  //       variant: "destructive"
+  //     });
+  //   }
+  // };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -509,43 +749,43 @@ const AdminDashboard = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleViewConversation = async (message: any) => {
-    setSelectedMessage(message);
+  // const handleViewConversation = async (message: any) => {
+  //   setSelectedMessage(message);
     
-    if (message.conversation_id) {
-      try {
-        const { adminApi } = await import('@/services/adminApi');
-        const response = await adminApi.getConversationMessages(message.conversation_id);
+  //   if (message.conversation_id) {
+  //     try {
+  //       const { adminApi } = await import('@/services/adminApi');
+  //       const response = await adminApi.getConversationMessages(message.conversation_id);
         
-        if (response.success) {
-          // Transform API messages to component format
-          const transformedMessages = response.messages.map(msg => ({
-            id: msg.id.toString(),
-            text: msg.message_text,
-            sender: msg.sender_type === 'admin' ? 'admin' : 'user',
-            timestamp: msg.created_at,
-            senderName: msg.sender_name,
-            attachments: msg.attachment_url ? [{
-              name: msg.attachment_name,
-              size: msg.attachment_size,
-              type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
-              url: msg.attachment_url
-            }] : []
-          }));
-          setConversationMessages(transformedMessages);
-        }
-      } catch (error) {
-        console.error('Failed to load conversation messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load conversation messages",
-          variant: "destructive"
-        });
-      }
-    }
-    
-    setViewingConversation(true);
-  };
+  //       if (response.success) {
+  //         // Transform API messages to component format
+  //         const transformedMessages = response.messages.map(msg => ({
+  //           id: msg.id.toString(),
+  //           text: msg.message_text,
+  //           sender: msg.sender_type === 'admin' ? 'admin' : 'user',
+  //           timestamp: msg.created_at,
+  //           senderName: msg.sender_name,
+  //           attachments: msg.attachment_url ? [{
+  //             name: msg.attachment_name,
+  //             size: msg.attachment_size,
+  //             type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
+  //             url: msg.attachment_url
+  //           }] : []
+  //         }));
+  //         setConversationMessages(transformedMessages);
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to load conversation messages:', error);
+  //       toast({
+  //         title: "Error",
+  //         description: "Failed to load conversation messages",
+  //         variant: "destructive"
+  //       });
+  //     }
+  //   }
+  
+  //   setViewingConversation(true);
+  // };
 
   const handleBackToMessages = () => {
     setViewingConversation(false);
@@ -1464,27 +1704,37 @@ const AdminDashboard = () => {
                )}
 
                <div className="flex space-x-2">
-                 <Textarea
-                   placeholder="Type your reply..."
-                   value={replyText}
-                   onChange={(e) => setReplyText(e.target.value)}
-                   rows={3}
-                   className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
-                 />
-                 <div className="flex flex-col gap-2">
-                   <Button
-                     onClick={() => fileInputRef.current?.click()}
-                     size="icon"
-                     variant="outline"
-                     className="h-auto dark:border-gray-600 dark:text-gray-300"
-                   >
-                     <Paperclip className="w-4 h-4" />
-                   </Button>
-                   <Button onClick={handleSendReply} className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600">
-                     <Send className="w-4 h-4" />
-                   </Button>
-                 </div>
-               </div>
+                {/* Relative wrapper for the input and inner button */}
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Type your reply..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    // rows={3}
+                    style = {{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
+                    className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
+                  />
+                  
+                  {/* Absolute positioned Attachment button */}
+                  <Button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    size="icon"
+                    variant="ghost" // Changed to ghost for a cleaner look inside the input
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Send button stays on the outside */}
+                <Button 
+                  onClick={handleSendReply} 
+                  className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
 
                <input
                  ref={fileInputRef}
@@ -1523,28 +1773,34 @@ const AdminDashboard = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold text-gray-800 dark:text-gray-200">{message.subject}</h3>
-                      <Badge variant={
-                        message.priority === 'high' ? 'destructive' :
-                        message.priority === 'medium' ? 'default' : 'secondary'
-                      }>
-                        {message.priority.toUpperCase()}
-                      </Badge>
-                      {message.status === 'unread' && (
-                        <Badge variant="outline" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600">
-                          NEW
+                    <div className="flex items-center justify-between gap-2">
+                      {/* THE MAIN ADMIN MESSAGES LIST UI */}
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">
+                          {message.from}
+                        </h3>
+                        
+                        <Badge variant={
+                          message.priority === 'high' ? 'destructive' :
+                          message.priority === 'medium' ? 'default' : 'secondary'
+                        }>
+                          {message.priority.toUpperCase()}
                         </Badge>
-                      )}
+                        {message.status === 'unread' && (
+                          <Badge variant="outline" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600">
+                            NEW
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">{message.timestamp}</p>
+                      
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      From: {message.from} ({message.email})
-                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{message.subject}</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{message.message}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">{message.timestamp}</p>
+                    {/* <p className="text-xs text-gray-500 dark:text-gray-500">{message.timestamp}</p> */}
                   </div>
                   <div className="flex space-x-2">
-                    <Dialog>
+                    {/* <Dialog>
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
@@ -1592,7 +1848,7 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                       </DialogContent>
-                    </Dialog>
+                    </Dialog> */}
                   </div>
                 </div>
               </div>
