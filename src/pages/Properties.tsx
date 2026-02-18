@@ -12,6 +12,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
 import { propertyApi } from '@/services/api';
+import { PROPERTY_PRICE_RANGES, VIEW_PER_PAGE_OPTIONS } from '@/constants/filters';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -124,7 +125,7 @@ const Properties = () => {
           }));
         }
       } else {
-        // LOCATION SEARCH (from your database)
+        // LOCATION SEARCH
         const response = await fetch(`${API_BASE_URL}/api/postcodes/locations/autocomplete?query=${searchText}`);
         const data = await response.json();
         
@@ -179,7 +180,7 @@ const Properties = () => {
         setSearchLocation(inputValue);
         setCurrentPage(1);
       }
-    }, 800); // 800ms delay - adjust if want faster/slower
+    }, 800); // 800ms delay
 
     return () => clearTimeout(searchTimeout);
   }, [inputValue, searchLocation]);
@@ -438,11 +439,9 @@ const Properties = () => {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0-300000">£0 - £300,000</SelectItem>
-                    <SelectItem value="300000-500000">£300,000 - £500,000</SelectItem>
-                    <SelectItem value="500000-750000">£500,000 - £750,000</SelectItem>
-                    <SelectItem value="750000-1000000">£750,000 - £1,000,000</SelectItem>
-                    <SelectItem value="1000000+">£1,000,000+</SelectItem>
+                    {PROPERTY_PRICE_RANGES.map((range) => (
+                      <SelectItem key={range.value} value={range.value}>{range.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -456,10 +455,9 @@ const Properties = () => {
                     </div>
                   </SelectTrigger> 
                   <SelectContent>
-                    <SelectItem value="5">5 Per Page</SelectItem>
-                    <SelectItem value="15">15 Per Page</SelectItem>
-                    <SelectItem value="25">25 Per Page</SelectItem>
-                    <SelectItem value="50">50 Per Page</SelectItem>
+                    {VIEW_PER_PAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -497,7 +495,7 @@ const Properties = () => {
             )}
           </div>
 
-          {/* Advanced filters Slide-out Panel - Utilizing the specific force-light utility */}
+          {/* Advanced filters Slide-out Panel */}
           <Sheet open={showFilters} onOpenChange={setShowFilters}>
             <SheetContent side="right" className="force-light overflow-y-auto w-full sm:max-w-md shadow-2xl border-l">
               <SheetHeader className="mb-6">
