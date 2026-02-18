@@ -89,7 +89,11 @@ class AdminApiService {
       throw new Error(error.error || 'Login failed');
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      ...data,
+      admin: data.admin || data.user,
+    };
   }
 
   async getProfile(): Promise<{ admin: AdminProfile; recent_sessions: AdminSession[] }> {
