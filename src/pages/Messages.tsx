@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Send, User, Search, Phone, Mail, Star } from 'lucide-react';
+import { MessageSquare, Send, User, Search, Phone, Mail, Star, Paperclip, X } from 'lucide-react';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 // Enhanced Messages Data
 const mockMessages = [
@@ -56,6 +56,8 @@ const Messages = () => {
   const [selectedMessage, setSelectedMessage] = useState(mockMessages[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (loading) {
     return (
@@ -77,10 +79,22 @@ const Messages = () => {
   );
 
   const handleSendReply = () => {
-    if (replyText.trim()) {
+    if (replyText.trim() || attachedFiles.length > 0) {
       console.log('Sending reply:', replyText);
+      setAttachedFiles([]);
       setReplyText('');
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setAttachedFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -179,31 +193,31 @@ const Messages = () => {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="flex-1 overflow-y-auto p-6">
+                <CardContent className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900/50">
                   {/* Agent Contact Info */}
-                  <div className="bg-emerald-50 p-4 rounded-lg mb-6 border border-emerald-200">
-                    <h4 className="font-semibold text-emerald-800 mb-3">Contact Information</h4>
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Contact Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="flex items-center space-x-2">
-                        <Phone className="w-4 h-4 text-emerald-600" />
-                        <span className="text-sm text-gray-700">{selectedMessage.phone}</span>
+                        <Phone className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{selectedMessage.phone}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Mail className="w-4 h-4 text-emerald-600" />
-                        <span className="text-sm text-gray-700">{selectedMessage.email}</span>
+                        <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{selectedMessage.email}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Message Content */}
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-4 rounded-lg mb-6">
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
                         <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 mb-2">{selectedMessage.from} - {selectedMessage.role}</p>
-                        <div className="text-sm text-gray-700 space-y-3">
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mb-2">{selectedMessage.from} - {selectedMessage.role}</p>
+                        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
                           <p>
                             Thank you for your interest in the 3-bedroom house on Oak Avenue. 
                             I'd be happy to arrange a viewing for you. I have availability this 
@@ -233,32 +247,78 @@ const Messages = () => {
                 </CardContent>
 
                 {/* Reply Section */}
-                <div className="border-t border-gray-200 p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Reply</h3>
-                  <div className="space-y-4">
-                    <textarea
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
-                      rows={4}
-                      placeholder="Type your reply..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                    />
-                    <div className="flex justify-between items-center">
+                <div className="border-t border-gray-200 dark:border-gray-800 p-6 space-y-3">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Reply</h3>
+                  
+                  {/* File attachments preview */}
+                  {attachedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {attachedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                          <Paperclip className="w-4 h-4 text-gray-500" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{file.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{(file.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeFile(index)}
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2">
+                    {/* Relative wrapper for the input and inner button */}
+                    <div className="relative flex-1">
                       <Input
-                        type="file"
-                        className="max-w-xs"
-                        accept="image/*,.pdf,.doc,.docx"
+                        placeholder="Type your reply..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSendReply();
+                          }
+                        }}
+                        style={{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
                       />
-                      <Button 
-                        onClick={handleSendReply}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                        disabled={!replyText.trim()}
+                      
+                      {/* Absolute positioned Attachment button */}
+                      <Button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        size="icon"
+                        variant="ghost" // Changed to ghost for a cleaner look inside the input
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Reply
+                        <Paperclip className="w-4 h-4" />
                       </Button>
                     </div>
+
+                    {/* Send button stays on the outside */}
+                    <Button 
+                      onClick={handleSendReply} 
+                      disabled={!replyText.trim() && attachedFiles.length === 0}
+                      className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
                   </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx"
+                  />
                 </div>
               </Card>
             </div>

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Search,
   Send,
@@ -140,7 +139,7 @@ export function AgencyMessages() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter') {
       e.preventDefault();
       handleSendMessage();
     }
@@ -225,7 +224,7 @@ export function AgencyMessages() {
                   ? conversation.title 
                   : conversation.participants[0]?.name;
                 
-                const displayAvatar = conversation.participants[0]?.avatar;
+                // const displayAvatar = conversation.participants[0]?.avatar;
                 const isSelected = selectedConversation === conversation.id;
 
                 return (
@@ -239,7 +238,7 @@ export function AgencyMessages() {
                     <div className="flex items-start space-x-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={displayAvatar} />
+                          {/* <AvatarImage src={displayAvatar} /> */}
                           <AvatarFallback>
                             {displayName?.split(' ').map(n => n[0]).join('') || 'U'}
                           </AvatarFallback>
@@ -293,11 +292,11 @@ export function AgencyMessages() {
           {selectedConv ? (
             <>
               {/* Chat Header */}
-              <CardHeader className="border-b">
+              <CardHeader className="border-b border-gray-200 dark:border-gray-800">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={selectedConv.participants[0]?.avatar} />
+                      {/* <AvatarImage src={selectedConv.participants[0]?.avatar} /> */}
                       <AvatarFallback>
                         {(selectedConv.type === 'group' 
                           ? selectedConv.title 
@@ -305,7 +304,7 @@ export function AgencyMessages() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                         {selectedConv.type === 'group' 
                           ? selectedConv.title 
                           : selectedConv.participants[0]?.name}
@@ -323,13 +322,13 @@ export function AgencyMessages() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400">
                       <Phone className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400">
                       <Video className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400">
                       <MoreVertical className="w-4 h-4" />
                     </Button>
                   </div>
@@ -338,7 +337,7 @@ export function AgencyMessages() {
 
               {/* Messages */}
               <CardContent className="p-0 flex flex-col h-[400px]">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
                   {messages.map((message) => {
                     const isMyMessage = message.senderId === 'admin';
                     
@@ -347,24 +346,24 @@ export function AgencyMessages() {
                         key={message.id}
                         className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-[70%] ${isMyMessage ? 'order-2' : 'order-1'}`}>
+                        <div className={`max-w-xs lg:max-w-md ${isMyMessage ? 'order-2' : 'order-1'}`}>
                           {!isMyMessage && (
-                            <p className="text-xs text-muted-foreground mb-1 px-3">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 px-3">
                               {message.senderName}
                             </p>
                           )}
                           <div
-                            className={`rounded-lg px-3 py-2 ${
+                            className={`rounded-lg px-4 py-2 ${
                               isMyMessage
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                                ? 'bg-gray-800 dark:bg-gray-700 text-white'
+                                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
                             }`}
                           >
                             <p className="text-sm">{message.content}</p>
                             <p className={`text-xs mt-1 ${
                               isMyMessage 
-                                ? 'text-primary-foreground/70' 
-                                : 'text-muted-foreground'
+                                ? 'text-gray-300' 
+                                : 'text-gray-500 dark:text-gray-400'
                             }`}>
                               {formatTime(message.timestamp)}
                             </p>
@@ -377,23 +376,36 @@ export function AgencyMessages() {
                 </div>
 
                 {/* Message Input */}
-                <div className="border-t p-4">
-                  <div className="flex items-end space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Paperclip className="w-4 h-4" />
-                    </Button>
-                    <Textarea
-                      placeholder="Type a message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="min-h-[40px] max-h-[120px] resize-none"
-                      rows={1}
-                    />
+                <div className="border-t border-gray-200 dark:border-gray-800 p-4 space-y-3">
+                  <div className="flex space-x-2">
+                    {/* Relative wrapper for the input and inner button */}
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Type a message..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        style={{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
+                      />
+                      
+                      {/* Absolute positioned Attachment button */}
+                      <Button
+                        type="button"
+                        onClick={() => console.log('File attachment handling for agency')}
+                        size="icon"
+                        variant="ghost" // Changed to ghost for a cleaner look inside the input
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Send button stays on the outside */}
                     <Button 
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
-                      size="sm"
+                      className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
                     >
                       <Send className="w-4 h-4" />
                     </Button>

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Paperclip, X, FileText, Image, Download, Loader2, User } from "lucide-react";
@@ -300,17 +300,17 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
 
   return (
     <div className="h-full">
-      <div className="flex h-full rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm">
+      <div className="flex h-full rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800">
             {/* Conversations List */}
-            <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 bg-muted/30 dark:bg-gray-800/30">
-              <div className="p-4 border-b bg-background">
-                <h3 className="font-medium text-foreground">Conversations</h3>
+            <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Conversations</h3>
               </div>
               <ScrollArea className="h-full">
                 <div className="space-y-2 p-2">
                   {groupedConversations.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">No conversations yet</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No conversations yet</p>
                     </div>
                   ) : (
                     groupedConversations.map((groupedConv) => (
@@ -319,8 +319,8 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                         onClick={() => setCurrentGroupedConversation(groupedConv)}
                         className={`p-3 rounded-lg cursor-pointer transition-colors ${
                           currentGroupedConversation?.user_id === groupedConv.user_id
-                            ? 'bg-primary/10 border border-primary/20'
-                            : 'hover:bg-muted/50 border border-transparent'
+                            ? 'bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
                         }`}
                       >
                         <div className="flex items-start space-x-3">
@@ -330,21 +330,18 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">
+                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
                               {groupedConv.user_name || 'Tenant'}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {groupedConv.latest_message?.text || 'No messages yet'}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               {groupedConv.latest_message_at && formatMessageTime(groupedConv.latest_message_at)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {groupedConv.conversations.length} conversation{groupedConv.conversations.length > 1 ? 's' : ''}
                             </p>
                           </div>
                           {groupedConv.total_unread_count > 0 && (
-                            <div className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                               {groupedConv.total_unread_count}
                             </div>
                           )}
@@ -361,7 +358,7 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
               {currentGroupedConversation ? (
                 <>
                   {/* Messages Header */}
-                  <div className="p-4 border-b bg-background">
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
                     <div className="flex items-center space-x-3">
                       <Avatar>
                         <AvatarFallback>
@@ -369,10 +366,10 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-medium text-foreground">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">
                           {currentGroupedConversation.user_name || 'Tenant'}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {currentGroupedConversation.conversations.length} conversation{currentGroupedConversation.conversations.length > 1 ? 's' : ''}
                         </p>
                       </div>
@@ -380,15 +377,15 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                   </div>
 
                   {/* Messages */}
-                  <ScrollArea className="flex-1 p-4 max-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                  <ScrollArea className="flex-1 p-4 max-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 bg-gray-50 dark:bg-gray-900/50">
                     {loading ? (
                       <div className="flex items-center justify-center h-32">
-                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-sm text-muted-foreground">Loading messages...</span>
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
+                        <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading messages...</span>
                       </div>
                     ) : messages.length === 0 ? (
                       <div className="flex items-center justify-center h-32">
-                        <p className="text-sm text-muted-foreground">No messages yet. Start a conversation!</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet. Start a conversation!</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -405,37 +402,37 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                               </AvatarFallback>
                             </Avatar>
                             
-                            <div className={`max-w-[70%] ${isMyMessage(message) ? 'text-right' : 'text-left'}`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium">
+                            <div className={`max-w-xs lg:max-w-md ${isMyMessage(message) ? 'text-right' : 'text-left'}`}>
+                              <div className={`flex items-center gap-2 mb-1 ${isMyMessage(message) ? 'justify-end' : 'justify-start'}`}>
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                   {message.sender_name}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {formatMessageTime(message.created_at)}
                                 </span>
                               </div>
                               
-                              <div className={`p-3 rounded-lg ${
+                              <div className={`px-4 py-2 rounded-lg text-left ${
                                 isMyMessage(message)
-                                  ? 'bg-primary'
-                                  : 'bg-muted text-foreground'
+                                  ? 'bg-gray-800 dark:bg-gray-700 text-white'
+                                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
                               }`}>
                                 {message.message_text && (
-                                  <p className={`text-sm ${isMyMessage(message) ? 'text-white' : 'text-foreground'}`}>
+                                  <p className="text-sm">
                                     {message.message_text}
                                   </p>
                                 )}
                                 
                                 {/* File attachment */}
                                 {message.attachment_url && (
-                                  <div className="mt-2">
+                                  <div className="mt-2 space-y-2">
                                     <div className={`flex items-center gap-2 p-2 rounded border ${
                                       isMyMessage(message)
-                                        ? 'bg-primary-foreground/10 border-primary-foreground/20' 
-                                        : 'bg-background border-border'
+                                        ? 'bg-gray-700/50 border-gray-600/50' 
+                                        : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-600'
                                     }`}>
                                       {getFileIcon(message.attachment_type || 'file')}
-                                      <div className="flex-1 min-w-0">
+                                      <div className="flex-1 min-w-0 text-left">
                                         <p className="text-xs font-medium truncate">{message.attachment_name}</p>
                                         <p className="text-xs opacity-70">{formatFileSize(message.attachment_size || 0)}</p>
                                       </div>
@@ -465,70 +462,72 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                   </ScrollArea>
 
                   {/* Message Input */}
-                  <div className="p-4 border-t bg-background">
+                  <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 space-y-3">
                     {/* File attachments preview */}
                     {attachedFiles.length > 0 && (
-                      <div className="mb-3 p-3 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-foreground mb-2">Attached Files:</p>
-                        <div className="space-y-2">
-                          {attachedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-background rounded border">
-                              <div className="flex items-center space-x-2">
-                                {getFileIcon(file.type)}
-                                <span className="text-sm text-foreground">{file.name}</span>
-                                <span className="text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => removeFile(index)}
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
+                      <div className="space-y-2">
+                        {attachedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            {getFileIcon(file.type)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{file.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</p>
                             </div>
-                          ))}
-                        </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeFile(index)}
+                              className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
 
                     <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <Textarea
+                      {/* Relative wrapper for the input and inner button */}
+                      <div className="relative flex-1">
+                        <Input
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           placeholder="Type your message..."
-                          className="min-h-[80px] resize-none"
+                          style={{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
+                          className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
+                            if (e.key === 'Enter') {
                               e.preventDefault();
                               handleSendMessage();
                             }
                           }}
                         />
-                      </div>
-                      <div className="flex flex-col space-y-2">
+                        
+                        {/* Absolute positioned Attachment button */}
                         <Button
-                          size="sm"
-                          variant="outline"
+                          type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploadingFile}
-                          className="h-10 w-10 p-0"
+                          size="icon"
+                          variant="ghost" // Changed to ghost for a cleaner look inside the input
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         >
-                          <Paperclip className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={handleSendMessage}
-                          disabled={sending || (!newMessage.trim() && attachedFiles.length === 0)}
-                          className="h-10 w-10 p-0"
-                        >
-                          {sending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
+                          {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                         </Button>
                       </div>
+
+                      {/* Send button stays on the outside */}
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={sending || (!newMessage.trim() && attachedFiles.length === 0)}
+                        className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
+                      >
+                        {sending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
 
                     {/* Hidden file input */}
@@ -542,10 +541,10 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
                   <div className="text-center">
-                    <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground">Select a conversation to start messaging</p>
+                    <User className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Select a conversation to start messaging</p>
                   </div>
                 </div>
               )}

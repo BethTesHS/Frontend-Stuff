@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Paperclip, X, FileText, Image, Download, Loader2 } from "lucide-react";
@@ -194,16 +194,12 @@ const TenantMessages = ({ initialMessage, agentToMessage }: TenantMessagesProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Messages</h2>
-      </div>
-
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader className="border-b border-border pb-4 flex-shrink-0">
-          <CardTitle className="text-lg">
+      <Card className="h-[580px] mr-4 ml-4 flex flex-col bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-800 pb-4 flex-shrink-0">
+          <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
             {agentToMessage ? `Message ${agentToMessage.name}` : "Chat with Agent"}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {agentToMessage 
               ? `Send a message to your assigned agent` 
               : "Message your property agent or support team"
@@ -213,15 +209,15 @@ const TenantMessages = ({ initialMessage, agentToMessage }: TenantMessagesProps)
 
         <CardContent className="flex-1 flex flex-col p-0 min-h-0">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4 max-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+          <ScrollArea className="flex-1 p-4 max-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 bg-gray-50 dark:bg-gray-900/50">
             {loading ? (
               <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading messages...</span>
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
+                <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading messages...</span>
               </div>
             ) : messages.length === 0 ? (
               <div className="flex items-center justify-center h-32">
-                <p className="text-sm text-muted-foreground">No messages yet. Start a conversation!</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet. Start a conversation!</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -238,37 +234,37 @@ const TenantMessages = ({ initialMessage, agentToMessage }: TenantMessagesProps)
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div className={`max-w-[70%] ${message.sender_type === 'user' || message.sender_type === 'tenant' ? 'text-right' : 'text-left'}`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium">
+                    <div className={`max-w-xs lg:max-w-md ${message.sender_type === 'user' || message.sender_type === 'tenant' ? 'text-right' : 'text-left'}`}>
+                      <div className={`flex items-center gap-2 mb-1 ${message.sender_type === 'user' || message.sender_type === 'tenant' ? 'justify-end' : 'justify-start'}`}>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                           {message.sender_name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           {formatMessageTime(message.created_at)}
                         </span>
                       </div>
                       
-                      <div className={`p-3 rounded-lg ${
+                      <div className={`px-4 py-2 rounded-lg text-left ${
                         message.sender_type === 'user' || message.sender_type === 'tenant'
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-foreground'
+                          ? 'bg-gray-800 dark:bg-gray-700 text-white' 
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
                       }`}>
                         {message.message_text && <p className="text-sm">{message.message_text}</p>}
                         
                         {/* File attachment */}
                         {message.attachment_url && (
-                          <div className="mt-2">
+                          <div className="mt-2 space-y-2">
                             <div className={`flex items-center gap-2 p-2 rounded border ${
                               message.sender_type === 'user' || message.sender_type === 'tenant'
-                                ? 'bg-primary-foreground/10 border-primary-foreground/20' 
-                                : 'bg-background border-border'
+                                ? 'bg-gray-700/50 border-gray-600/50' 
+                                : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-600'
                             }`}>
                               {message.attachment_type?.startsWith('image/') ? (
                                 <Image className="w-4 h-4" />
                               ) : (
                                 <FileText className="w-4 h-4" />
                               )}
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 text-left">
                                 <p className="text-xs font-medium truncate">{message.attachment_name}</p>
                                 <p className="text-xs opacity-70">{formatFileSize(message.attachment_size || 0)}</p>
                               </div>
@@ -298,22 +294,22 @@ const TenantMessages = ({ initialMessage, agentToMessage }: TenantMessagesProps)
           </ScrollArea>
 
           {/* Send Message */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900 space-y-3">
             {/* File attachments preview */}
             {attachedFiles.length > 0 && (
-              <div className="mb-3 space-y-2">
+              <div className="space-y-2">
                 {attachedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                     {getFileIcon(file.type)}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                      <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{file.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => removeFile(index)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -322,47 +318,48 @@ const TenantMessages = ({ initialMessage, agentToMessage }: TenantMessagesProps)
               </div>
             )}
             
-            <div className="flex gap-2">
-              <Textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={agentToMessage ? `Message ${agentToMessage.name}...` : "Message your agent..."}
-                rows={2}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <div className="flex flex-col gap-2">
-                <Button 
+            <div className="flex space-x-2">
+              {/* Relative wrapper for the input and inner button */}
+              <div className="relative flex-1">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder={agentToMessage ? `Message ${agentToMessage.name}...` : "Message your agent..."}
+                  style={{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
+                  className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                
+                {/* Absolute positioned Attachment button */}
+                <Button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   size="icon"
-                  variant="outline"
-                  className="border-border hover:bg-muted"
+                  variant="ghost" // Changed to ghost for a cleaner look inside the input
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   disabled={uploadingFile || sending}
                 >
-                  {uploadingFile ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Paperclip className="w-4 h-4" />
-                  )}
-                </Button>
-                <Button 
-                  onClick={handleSendMessage}
-                  size="icon"
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={sending || uploadingFile}
-                >
-                  {sending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+                  {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                 </Button>
               </div>
+
+              {/* Send button stays on the outside */}
+              <Button 
+                onClick={handleSendMessage}
+                disabled={sending || uploadingFile || (!newMessage.trim() && attachedFiles.length === 0)}
+                className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
+              >
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
             </div>
             
             <input
