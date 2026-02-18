@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useMemo } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -37,6 +37,8 @@ import {
   MessageSquare,
   Eye,
   Heart,
+  Plus,
+  Users,
   TrendingUp
 } from "lucide-react";
 import { BuyerSidebar } from "@/components/BuyerDashboard/BuyerSidebar";
@@ -45,6 +47,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import AgentMessages from "@/components/AgentDashboard/AgentMessages";
 import NotificationsComponent from "@/components/TenantDashboard/NotificationsComponent";
+import { DAYS_FULL } from '../constants/calendar';
+import { detectConflicts, transformViewingsToEvents } from '../utils/calendarUtils';
+import { FilterToggle } from "@/components/Calendar/FilterToggle";
+import { EventGrid } from "@/components/Calendar/EventGrid";
+import { UpcomingEventCard } from "@/components/Calendar/UpcomingEventCard";
+import { MiniCalendar } from "@/components/Calendar/MiniCalendar";
 
 const BuyerDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['buyer'], false);
@@ -493,45 +501,93 @@ const DashboardContent = ({ user, navigate, stats, statsLoading }: any) => {
 };
 
 const CalendarContent = ({ viewings, viewingsLoading }: any) => {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-foreground mb-2">Scheduled Viewings</h2>
-        <p className="text-sm text-muted-foreground">Manage your upcoming property viewings</p>
-      </div>
+  const [viewMode, setViewMode] = useState('Month');
+  const events = useMemo(() => 
+    detectConflicts(transformViewingsToEvents(viewings || [])), 
+    [viewings]
+  );
 
-      {viewingsLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  return (
+    <div className="flex flex-1 min-h-[600px] bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <aside className="hidden xl:flex w-72 flex-col border-r border-slate-100 p-6 bg-slate-50/30">
+        <button className="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 mb-8">
+          <Plus size={18} strokeWidth={3} /> <span>Request Viewing</span>
+        </button>
+        
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-[11px] font-bold uppercase text-slate-400 tracking-widest mb-4">Quick Filters</h3>
+            <div className="space-y-4">
+              <FilterToggle label="Confirmed" color="bg-blue-500" icon={Home} />
+              <FilterToggle label="Pending" color="bg-orange-500" icon={Users} />
+            </div>
+          </div>
+          <div className="pt-4 border-t border-slate-100">
+             <MiniCalendar />
+          </div>
         </div>
-      ) : viewings.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {viewings.filter((v: any) => v.status === 'confirmed').map((viewing: any) => (
-            <Card key={viewing.id} className="overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">{viewing.property?.title || 'Property Viewing'}</h3>
-                    <p className="text-sm text-muted-foreground">{viewing.property?.address || 'Location TBD'}</p>
+      </aside>
+      <main className="flex-1 flex flex-col min-w-0 bg-white">
+        <div className="p-5 border-b border-slate-50 flex justify-between items-center">
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">February 2026</h2>
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+            {['Day', 'Week', 'Month'].map(m => (
+              <button 
+                key={m} 
+                onClick={() => setViewMode(m)} 
+                className={`px-5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${viewMode === m ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-7 border-t border-l border-slate-100 rounded-tl-xl overflow-hidden shadow-sm">
+            {DAYS_FULL.map(day => (
+              <div key={day} className="py-3 text-[10px] font-black text-slate-400 text-center border-r border-slate-100 bg-slate-50/50 uppercase tracking-wider">
+                {day.substring(0, 3)}
+              </div>
+            ))}
+            {Array.from({ length: 28 }).map((_, i) => {
+              const dayNum = i + 1;
+              const dateKey = `2026-02-${String(dayNum).padStart(2, '0')}`;
+              const dayEvents = events.filter(e => e.date === dateKey);
+              const isToday = dayNum === 18;
+
+              return (
+                <div key={i} className="min-h-[120px] border-r border-b border-slate-100 p-2 hover:bg-slate-50/30 transition-colors group">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className={`text-[11px] font-black w-7 h-7 flex items-center justify-center rounded-full transition-colors 
+                      ${isToday ? 'bg-emerald-600 text-white' : 'text-slate-700 group-hover:text-emerald-600'}`}>
+                      {dayNum}
+                    </span>
                   </div>
-                  <Calendar className="text-primary" size={20} />
+                  
+                  <div className="space-y-1">
+                    {dayEvents.map(event => (
+                      <EventGrid key={event.id} event={event} />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm"><span className="font-medium">Date:</span> {new Date(viewing.viewing_date).toLocaleDateString()}</p>
-                  <p className="text-sm"><span className="font-medium">Time:</span> {viewing.viewing_time}</p>
-                  <p className="text-sm"><span className="font-medium">Type:</span> {viewing.viewing_type || 'in_person'}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      ) : (
-        <Card className="p-8 text-center">
-          <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No Scheduled Viewings</h3>
-          <p className="text-muted-foreground">You don't have any upcoming property viewings scheduled</p>
-        </Card>
-      )}
+      </main>
+      <aside className="hidden lg:block w-80 border-l border-slate-100 p-6 bg-slate-900 overflow-y-auto">
+        <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-8">Upcoming</h3>
+        
+        {events.length > 0 ? (
+          events.map(event => <UpcomingEventCard key={event.id} event={event} />)
+        ) : (
+          <div className="text-center py-20">
+             <Calendar className="text-slate-700 mx-auto mb-3" size={24} />
+             <p className="text-slate-500 text-xs">No scheduled viewings</p>
+          </div>
+        )}
+      </aside>
+
     </div>
   );
 };

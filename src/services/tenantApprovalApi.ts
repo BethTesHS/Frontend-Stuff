@@ -1,3 +1,5 @@
+import { getAuthToken } from '@/utils/tokenStorage';
+
 const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/tenant-verification';
 
 export interface TenantVerificationRequest {
@@ -40,10 +42,10 @@ export const tenantApprovalApi = {
   async getRequests(status?: string, page: number = 1, perPage: number = 50): Promise<TenantRequestsResponse> {
     console.log('tenantApprovalApi.getRequests called with:', { status, page, perPage });
     
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     console.log('Auth token found:', !!token);
     if (!token) {
-      console.error('No authentication token found in localStorage');
+      console.error('No authentication token found');
       throw new Error('No authentication token found');
     }
 
@@ -80,7 +82,7 @@ export const tenantApprovalApi = {
   },
 
   async approveRequest(requestId: number, notes?: string): Promise<{ success: boolean }> {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -104,7 +106,7 @@ export const tenantApprovalApi = {
   },
 
   async rejectRequest(requestId: number, reason: string, notes?: string): Promise<{ success: boolean }> {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }

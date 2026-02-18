@@ -1,3 +1,5 @@
+import { getAuthToken } from '@/utils/tokenStorage';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
 
 export interface SpareRoomData {
@@ -42,12 +44,12 @@ export interface SpareRoomData {
 }
 
 class SpareRoomApiService {
-  private getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
+  private getToken(): string | null {
+    return getAuthToken();
   }
 
   private async request(url: string, options: RequestInit = {}) {
-    const token = this.getAuthToken();
+    const token = this.getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -72,7 +74,7 @@ class SpareRoomApiService {
   }
 
   private async requestFormData(url: string, formData: FormData, method: string = 'POST') {
-    const token = this.getAuthToken();
+    const token = this.getToken();
     const headers: HeadersInit = {};
 
     // Add Authorization header if token exists

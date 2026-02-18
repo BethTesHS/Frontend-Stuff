@@ -36,6 +36,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { tokenStorage } from '@/utils/tokenStorage';
 
 interface AgencyLayoutProps {
   children: React.ReactNode;
@@ -188,10 +189,10 @@ const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children, activeTab, onTabC
   const { agency } = useAgency();
   const navigate = useNavigate();
 
-  // Get user data from localStorage
+  // Get user data from sessionStorage
   const getUserData = () => {
     try {
-      const userData = localStorage.getItem('user');
+      const userData = tokenStorage.getItem('user');
       if (userData) {
         const parsed = JSON.parse(userData);
         console.log('AgencyLayout: Retrieved user data:', parsed);
@@ -225,9 +226,9 @@ const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children, activeTab, onTabC
 
   const handleLogout = () => {
     // Clear agency authentication
-    localStorage.removeItem('agencyToken');
-    localStorage.removeItem('agencyData');
-    localStorage.removeItem('user');
+    tokenStorage.removeItem('agencyToken');
+    tokenStorage.removeItem('agencyData');
+    tokenStorage.removeItem('user');
 
     console.log('AgencyLayout: Cleared all auth data, logging out');
 

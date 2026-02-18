@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { ownerDashboardApi, CalendarEvent } from "@/services/api"
 import { toast } from "sonner"
+import { getAuthToken } from '@/utils/tokenStorage'
 import { format, addDays, startOfMonth, endOfMonth } from "date-fns"
 import {
   Dialog,
@@ -98,7 +99,7 @@ export function OwnerCalendar() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net'}/properties/my-properties`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json',
         },
       });

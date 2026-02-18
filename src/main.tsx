@@ -10,8 +10,12 @@ import { SavedPropertiesProvider } from '@/contexts/SavedPropertiesContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { AgencyProvider, useAgency } from '@/contexts/AgencyContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { migrateFromLocalStorage } from '@/utils/tokenStorage';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
+
+// Migrate any existing auth tokens from localStorage to sessionStorage
+migrateFromLocalStorage();
 import { ProtectedAdminRoute } from '@/components/ProtectedAdminRoute';
 
 // Import all pages

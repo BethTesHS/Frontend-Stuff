@@ -1,5 +1,6 @@
 // services/api.ts
 import { API_BASE_URL, API_ENDPOINTS } from '../constants/apiEndpoints';
+import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken } from '@/utils/tokenStorage';
 
 // API response types
 interface ApiResponse<T = any> {
@@ -324,7 +325,7 @@ const apiRequest = async <T>(
   ];
 
   const isPublicEndpoint = publicEndpoints.includes(endpoint);
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
 
   if (token && !isPublicEndpoint) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -389,13 +390,13 @@ const apiRequest = async <T>(
 
         try {
           // Attempt to refresh the token
-          const refreshToken = localStorage.getItem('refresh_token');
-          if (refreshToken) {
+          const refreshTokenValue = getRefreshToken();
+          if (refreshTokenValue) {
             const refreshResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${refreshToken}`,
+                'Authorization': `Bearer ${refreshTokenValue}`,
               },
             });
 
@@ -403,9 +404,9 @@ const apiRequest = async <T>(
               const refreshData = await refreshResponse.json();
               if (refreshData.success && refreshData.data) {
                 // Update tokens
-                localStorage.setItem('auth_token', refreshData.data.access_token);
+                setAuthToken(refreshData.data.access_token);
                 if (refreshData.data.refresh_token) {
-                  localStorage.setItem('refresh_token', refreshData.data.refresh_token);
+                  setRefreshToken(refreshData.data.refresh_token);
                 }
 
                 console.log('Token refreshed successfully, retrying original request');
@@ -416,17 +417,17 @@ const apiRequest = async <T>(
           }
 
           console.log('Token refresh failed, clearing auth data and redirecting to login');
-          localStorage.removeItem('auth_token');
-          
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('homedUser');
+          tokenStorage.removeItem('auth_token');
+
+          tokenStorage.removeItem('refresh_token');
+          tokenStorage.removeItem('homedUser');
           window.location.href = '/login';
           throw new Error('Session expired. Please log in again.');
         } catch (refreshError) {
           console.error('Token refresh error:', refreshError);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('homedUser');
+          tokenStorage.removeItem('auth_token');
+          tokenStorage.removeItem('refresh_token');
+          tokenStorage.removeItem('homedUser');
           window.location.href = '/login';
           throw new Error('Session expired. Please log in again.');
         }
@@ -517,7 +518,7 @@ export const authApi = {
   },
 
   refreshToken: async (): Promise<ApiResponse<{ access_token: string; refresh_token: string }>> => {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = getRefreshToken();
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -801,8 +802,8 @@ export const profileApi = {
     profile: any;
     user: any;
   }>> => {
-    const token = localStorage.getItem('auth_token');
-    
+    const token = getAuthToken();
+
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PROFILES.SETUP}`, {
       method: 'POST',
       headers: {

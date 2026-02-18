@@ -1,8 +1,9 @@
+import { tokenStorage, getAgencyToken, setAgencyToken } from '@/utils/tokenStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('agencyToken');
+  const token = getAgencyToken();
   return {
     ...(token && { 'Authorization': `Bearer ${token}` }),
   };
@@ -105,7 +106,7 @@ export const agencyApi = {
     
     // Store the token from Flask backend
     if (data.access_token) {
-      localStorage.setItem('agencyToken', data.access_token);
+      setAgencyToken(data.access_token);
     }
     
     // Return the full response from backend
@@ -280,11 +281,11 @@ export const agencyApi = {
 
   // Logout helper
   logout: () => {
-    localStorage.removeItem('agencyToken');
+    tokenStorage.removeItem('agencyToken');
   },
 
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('agencyToken');
+    return !!getAgencyToken();
   },
 };
 

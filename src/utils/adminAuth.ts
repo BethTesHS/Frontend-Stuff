@@ -1,10 +1,11 @@
+import { getAdminToken as _getAdminToken, getAdminProfile as _getAdminProfile, tokenStorage } from './tokenStorage';
+
 export const getAdminToken = (): string | null => {
-  return localStorage.getItem('admin_token');
+  return _getAdminToken();
 };
 
 export const getAdminProfile = () => {
-  const adminData = localStorage.getItem('admin_profile');
-  return adminData ? JSON.parse(adminData) : null;
+  return _getAdminProfile();
 };
 
 export const isAdminAuthenticated = (): boolean => {
@@ -12,6 +13,6 @@ export const isAdminAuthenticated = (): boolean => {
 };
 
 export const clearAdminAuth = () => {
-  localStorage.removeItem('admin_token');
-  localStorage.removeItem('admin_profile');
+  tokenStorage.removeItem('admin_token');
+  tokenStorage.removeItem('admin_profile');
 };

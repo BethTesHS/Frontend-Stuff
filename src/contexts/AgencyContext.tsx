@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { getAgencySlug, isAgencySubdomain } from '@/utils/subdomain';
 import { toast } from 'sonner';
 import { agencyApi } from '@/services/agencyApi';
+import { tokenStorage, getAgencyToken } from '@/utils/tokenStorage';
 
 interface Agency {
   id: string;
@@ -58,7 +59,7 @@ export const AgencyProvider: React.FC<AgencyProviderProps> = ({ children }) => {
       }
 
       // Priority 1: If user is authenticated, get the logged-in agency's profile
-      const agencyToken = localStorage.getItem('agencyToken');
+      const agencyToken = getAgencyToken();
       if (agencyToken) {
         try {
           console.log('AgencyContext: Found agency token, fetching authenticated agency profile');
@@ -80,15 +81,15 @@ export const AgencyProvider: React.FC<AgencyProviderProps> = ({ children }) => {
           
           // If token is invalid, clear it and fall through to public lookup
           if (err.message?.includes('Authentication failed') || err.message?.includes('401')) {
-            localStorage.removeItem('agencyToken');
-            localStorage.removeItem('agencyData');
-            localStorage.removeItem('user');
+            tokenStorage.removeItem('agencyToken');
+            tokenStorage.removeItem('agencyData');
+            tokenStorage.removeItem('user');
           }
         }
       }
 
       // Priority 2: Check if we have complete agency data from login as fallback
-      const storedAgencyData = localStorage.getItem('agencyData');
+      const storedAgencyData = tokenStorage.getItem('agencyData');
       if (storedAgencyData) {
         try {
           const agencyData = JSON.parse(storedAgencyData);
@@ -100,7 +101,7 @@ export const AgencyProvider: React.FC<AgencyProviderProps> = ({ children }) => {
           return;
         } catch (e) {
           console.error('AgencyContext: Error parsing stored agency data:', e);
-          localStorage.removeItem('agencyData');
+          tokenStorage.removeItem('agencyData');
         }
       }
 

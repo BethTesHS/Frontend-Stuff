@@ -11,8 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { MapPin, DollarSign, Filter, X, Home } from 'lucide-react';
-import { ROOM_PRICE_RANGES } from '@/constants/filters';
+import { 
+  MapPin,
+  DollarSign,
+  Filter,
+  X,
+  Home
+} from 'lucide-react';
 
 const Rooms = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -405,11 +410,11 @@ const Rooms = () => {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {ROOM_PRICE_RANGES.map((range) => (
-                      <SelectItem key={range.value} value={range.value}>
-                        {range.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="0-400">£0 - £400</SelectItem>
+                    <SelectItem value="400-600">£400 - £600</SelectItem>
+                    <SelectItem value="600-800">£600 - £800</SelectItem>
+                    <SelectItem value="800-1000">£800 - £1,000</SelectItem>
+                    <SelectItem value="1000+">£1,000+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

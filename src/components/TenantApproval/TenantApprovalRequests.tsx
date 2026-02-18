@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { tenantApprovalApi, TenantVerificationRequest } from '@/services/tenantApprovalApi';
+import { getAuthToken } from '@/utils/tokenStorage';
 
 interface TenantApprovalRequestsProps {
   onApprove?: (requestId: number) => void;
@@ -54,10 +55,8 @@ const TenantApprovalRequests = ({ onApprove, onReject }: TenantApprovalRequestsP
     setLoading(true);
     try {
       // Check what auth tokens we have available
-      const accessToken = localStorage.getItem('access_token');
-      const authToken = localStorage.getItem('auth_token');
-      console.log('Auth tokens check:', { 
-        hasAccessToken: !!accessToken, 
+      const authToken = getAuthToken();
+      console.log('Auth token check:', {
         hasAuthToken: !!authToken
       });
       

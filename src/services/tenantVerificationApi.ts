@@ -1,11 +1,12 @@
 import { TenantVerificationData, PinValidationResponse } from '@/types/tenant-verification';
+import { getAuthToken } from '@/utils/tokenStorage';
 
 const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/tenant';
 
 export const tenantVerificationApi = {
   async checkClaimStatus(data: { access_code?: string; pin_code?: string; full_address?: string }): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) {
         return { success: false, error: 'Authentication required. Please log in again.' };
       }
@@ -35,7 +36,7 @@ export const tenantVerificationApi = {
 
   async shouldRedirectToDashboard(): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) {
         return { success: false, error: 'Authentication required. Please log in again.' };
       }
@@ -99,12 +100,11 @@ export const tenantVerificationApi = {
   async submitVerificationRequest(data: TenantVerificationData, pinValidation?: PinValidationResponse): Promise<{ success: boolean; error?: string }> {
     try {
       // Debug token retrieval
-      const token = localStorage.getItem('auth_token');
-      console.log('Token from localStorage:', token);
-      console.log('All localStorage keys:', Object.keys(localStorage));
-      
+      const token = getAuthToken();
+      console.log('Token from sessionStorage:', token);
+
       if (!token) {
-        console.error('No auth token found in localStorage');
+        console.error('No auth token found in sessionStorage');
         return { success: false, error: 'Authentication required. Please log in again.' };
       }
 

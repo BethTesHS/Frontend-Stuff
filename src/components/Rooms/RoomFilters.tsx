@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ROOM_TYPES, GENDER_PREFERENCES } from '@/constants/filters';
 
 interface RoomFiltersProps {
   filters: RoomFiltersType;
@@ -49,6 +48,13 @@ const RoomFilters = ({ filters, onFiltersChange, onClose }: RoomFiltersProps) =>
     updateFilter('room_type', newTypes.length > 0 ? newTypes : undefined);
   };
 
+  const roomTypes = [
+    { value: 'single', label: 'Single Room' },
+    { value: 'double', label: 'Double Room' },
+    { value: 'ensuite', label: 'Ensuite Room' },
+    { value: 'studio', label: 'Studio Room' }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Price Range */}
@@ -74,7 +80,7 @@ const RoomFilters = ({ filters, onFiltersChange, onClose }: RoomFiltersProps) =>
       <div className="space-y-2">
         <Label>Room Type</Label>
         <div className="flex flex-wrap gap-2">
-          {ROOM_TYPES.map((type) => {
+          {roomTypes.map((type) => {
             const isSelected = localFilters.room_type?.includes(type.value);
             return (
               <div
@@ -152,11 +158,9 @@ const RoomFilters = ({ filters, onFiltersChange, onClose }: RoomFiltersProps) =>
               <SelectValue placeholder="Any" />
             </SelectTrigger>
             <SelectContent>
-              {GENDER_PREFERENCES.map((pref) => (
-                <SelectItem key={pref.value} value={pref.value} className="cursor-pointer">
-                  {pref.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="any" className="cursor-pointer">Any</SelectItem>
+              <SelectItem value="male" className="cursor-pointer">Male only</SelectItem>
+              <SelectItem value="female" className="cursor-pointer">Female only</SelectItem>
             </SelectContent>
           </Select>
         </div>

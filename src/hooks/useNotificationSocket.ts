@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getAuthToken } from '@/utils/tokenStorage';
 
 // Backend API URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
@@ -15,7 +16,7 @@ export const useNotificationSocket = (onNewNotification?: (notification: any) =>
     // Skip socket connection if user is not available
     if (!user) return;
 
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) return;
 
     // Connect to Socket.IO server

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAgency } from '@/contexts/AgencyContext';
+import { tokenStorage, getAgencyToken } from '@/utils/tokenStorage';
 
 export const useAgencyAuthGuard = () => {
   const navigate = useNavigate();
@@ -34,9 +35,9 @@ export const useAgencyAuthGuard = () => {
     }
 
     // Check for agency authentication token
-    const agencyToken = localStorage.getItem('agencyToken');
-    const agencyData = localStorage.getItem('agencyData');
-    const userData = localStorage.getItem('user');
+    const agencyToken = getAgencyToken();
+    const agencyData = tokenStorage.getItem('agencyData');
+    const userData = tokenStorage.getItem('user');
 
     console.log('useAgencyAuthGuard: Checking authentication...', {
       hasToken: !!agencyToken,
@@ -79,9 +80,9 @@ export const useAgencyAuthGuard = () => {
       if (!isValid) {
         console.log('useAgencyAuthGuard: Invalid or missing agency/user data, redirecting to login');
         // Clear invalid data
-        localStorage.removeItem('agencyToken');
-        localStorage.removeItem('agencyData');
-        localStorage.removeItem('user');
+        tokenStorage.removeItem('agencyToken');
+        tokenStorage.removeItem('agencyData');
+        tokenStorage.removeItem('user');
 
         // Preserve the agency parameter in the URL
         const currentUrl = new URL(window.location.href);
@@ -98,9 +99,9 @@ export const useAgencyAuthGuard = () => {
     } catch (error) {
       console.error('useAgencyAuthGuard: Error parsing data:', error);
       // Clear corrupted data
-      localStorage.removeItem('agencyToken');
-      localStorage.removeItem('agencyData');
-      localStorage.removeItem('user');
+      tokenStorage.removeItem('agencyToken');
+      tokenStorage.removeItem('agencyData');
+      tokenStorage.removeItem('user');
 
       // Preserve the agency parameter in the URL
       const currentUrl = new URL(window.location.href);

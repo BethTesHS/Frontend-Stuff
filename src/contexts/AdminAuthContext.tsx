@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { adminApi, type AdminProfile } from '@/services/adminApi';
 import { toast } from 'sonner';
+import { tokenStorage, getAdminToken, setAdminToken, setAdminProfile } from '@/utils/tokenStorage';
 
 // Helper function to decode JWT and get expiration time
 const getTokenExpirationTime = (token: string): number | null => {
@@ -111,11 +112,11 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
       const response = await adminApi.getProfile();
       if (response.admin) {
         setAdmin(response.admin);
-        localStorage.setItem('admin_profile', JSON.stringify(response.admin));
+        setAdminProfile(response.admin);
         console.log('[AdminAuth] Admin session refreshed successfully');
 
         // Check if we got a new token in the response
-        const token = localStorage.getItem('admin_token');
+        const token = getAdminToken();
         if (token) {
           scheduleTokenRefresh(token);
         } else {
@@ -144,7 +145,7 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden && admin) {
-        const token = localStorage.getItem('admin_token');
+        const token = getAdminToken();
         if (token) {
           const expirationTime = getTokenExpirationTime(token);
           if (expirationTime) {
@@ -175,8 +176,8 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
   useEffect(() => {
     const initializeAdminAuth = async () => {
       try {
-        const token = localStorage.getItem('admin_token');
-        const storedAdmin = localStorage.getItem('admin_profile');
+        const token = getAdminToken();
+        const storedAdmin = tokenStorage.getItem('admin_profile');
 
         if (token && storedAdmin) {
           try {
@@ -188,7 +189,7 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
               const response = await adminApi.getProfile();
               if (response.admin) {
                 setAdmin(response.admin);
-                localStorage.setItem('admin_profile', JSON.stringify(response.admin));
+                setAdminProfile(response.admin);
               }
 
               // Schedule automatic refresh
@@ -196,14 +197,14 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
             } catch (error) {
               console.error('[AdminAuth] Token validation failed:', error);
               // Clear invalid auth data
-              localStorage.removeItem('admin_token');
-              localStorage.removeItem('admin_profile');
+              tokenStorage.removeItem('admin_token');
+              tokenStorage.removeItem('admin_profile');
               setAdmin(null);
             }
           } catch (e) {
             console.error('[AdminAuth] Failed to parse stored admin:', e);
-            localStorage.removeItem('admin_profile');
-            localStorage.removeItem('admin_token');
+            tokenStorage.removeItem('admin_profile');
+            tokenStorage.removeItem('admin_token');
             setAdmin(null);
           }
         }
@@ -219,8 +220,8 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
   }, []);
 
   const login = (token: string, profile: AdminProfile, sessionId: string) => {
-    localStorage.setItem('admin_token', token);
-    localStorage.setItem('admin_profile', JSON.stringify(profile));
+    setAdminToken(token);
+    setAdminProfile(profile);
     setAdmin(profile);
 
     // Schedule automatic token refresh
@@ -246,8 +247,8 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
       }
 
       // Clear auth data
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_profile');
+      tokenStorage.removeItem('admin_token');
+      tokenStorage.removeItem('admin_profile');
       setAdmin(null);
 
       toast.success('Logged out successfully');
@@ -262,7 +263,7 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
 
   const value = {
     admin,
-    isAuthenticated: !!admin && !!localStorage.getItem('admin_token'),
+    isAuthenticated: !!admin && !!getAdminToken(),
     loading,
     login,
     logout,

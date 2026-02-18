@@ -9,6 +9,7 @@ import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useAgency } from '@/contexts/AgencyContext';
 import { toast } from 'sonner';
 import { agencyApi } from '@/services/agencyApi';
+import { setAgencyToken, setAgencyUser, setAgencyData } from '@/utils/tokenStorage';
 
 const AgencyLogin = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const AgencyLogin = () => {
         password: formData.password,
       });
 
-      localStorage.setItem('agencyToken', response.access_token);
+      setAgencyToken(response.access_token);
 
       const userData = {
         id: response.agency.id,
@@ -55,8 +56,8 @@ const AgencyLogin = () => {
         phone: response.agency.phone,
         address: response.agency.address
       };
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('agencyData', JSON.stringify(response.agency));
+      setAgencyUser(userData);
+      setAgencyData(response.agency);
 
       console.log('AgencyLogin: Successfully stored user data:', userData);
       console.log('AgencyLogin: Successfully stored agency data:', response.agency);

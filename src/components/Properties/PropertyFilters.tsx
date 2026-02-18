@@ -7,7 +7,6 @@ import { PostcodeInput } from '@/components/ui/postcode-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { PROPERTY_TYPES, LISTING_TYPES, BEDROOM_OPTIONS } from '@/constants/filters';
 
 interface PropertyFiltersProps {
   filters: SearchFilters;
@@ -80,11 +79,8 @@ const PropertyFilters = ({ filters, onFiltersChange, onClose }: PropertyFiltersP
             <SelectValue placeholder="Sale or Rent" />
           </SelectTrigger>
           <SelectContent>
-            {LISTING_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value} className="cursor-pointer">
-                {type.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="sale" className="cursor-pointer">For Sale</SelectItem>
+            <SelectItem value="rent" className="cursor-pointer">For Rent</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -100,11 +96,11 @@ const PropertyFilters = ({ filters, onFiltersChange, onClose }: PropertyFiltersP
             <SelectValue placeholder="Any" />
           </SelectTrigger>
           <SelectContent>
-            {BEDROOM_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="cursor-pointer">
-                {option.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="1" className="cursor-pointer">1+</SelectItem>
+            <SelectItem value="2" className="cursor-pointer">2+</SelectItem>
+            <SelectItem value="3" className="cursor-pointer">3+</SelectItem>
+            <SelectItem value="4" className="cursor-pointer">4+</SelectItem>
+            <SelectItem value="5" className="cursor-pointer">5+</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -113,28 +109,28 @@ const PropertyFilters = ({ filters, onFiltersChange, onClose }: PropertyFiltersP
       <div>
         <Label className="text-base font-medium">Property Type</Label>
         <div className="space-y-2 mt-2">
-          {PROPERTY_TYPES.map((type) => (
-            <div key={type.value} className="flex items-center space-x-2">
+          {['house', 'flat', 'bungalow', 'maisonette'].map((type) => (
+            <div key={type} className="flex items-center space-x-2">
               <Checkbox
-                id={type.value}
-                checked={localFilters.propertyType?.includes(type.value) || false}
+                id={type}
+                checked={localFilters.propertyType?.includes(type) || false}
                 onCheckedChange={(checked) => {
                   const current = localFilters.propertyType || [];
                   if (checked) {
                     setLocalFilters({ 
                       ...localFilters, 
-                      propertyType: [...current, type.value] 
+                      propertyType: [...current, type] 
                     });
                   } else {
                     setLocalFilters({ 
                       ...localFilters, 
-                      propertyType: current.filter(t => t !== type.value) 
+                      propertyType: current.filter(t => t !== type) 
                     });
                   }
                 }}
               />
-              <Label htmlFor={type.value} className="cursor-pointer">
-                {type.label}
+              <Label htmlFor={type} className="capitalize cursor-pointer">
+                {type}
               </Label>
             </div>
           ))}

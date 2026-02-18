@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { profileApi } from '@/services/api';
+import { setHomedUser } from '@/utils/tokenStorage';
 import {
   User, Building, MapPin, Phone, FileText, Briefcase, ArrowLeft, Mail,
   Globe, Calendar, Award, Upload, Image as ImageIcon, Clock, Users
@@ -293,7 +294,7 @@ const ProfileSetup = () => {
 
       if (user) {
         const updatedUser = { ...user, profileComplete: true };
-        localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+        setHomedUser(updatedUser);
       }
       
       clearDraft();

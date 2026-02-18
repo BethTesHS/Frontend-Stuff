@@ -1,4 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from '../constants/apiEndpoints';
+import { tokenStorage, getAdminToken, setAdminProfile } from '@/utils/tokenStorage';
 
 interface AdminLoginRequest {
   username: string;
@@ -59,11 +60,11 @@ interface AdminStatsResponse {
 
 class AdminApiService {
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('admin_token');
-    console.log(' Admin token from localStorage:', token ? `${token.substring(0, 20)}...` : 'null');
-    
+    const token = getAdminToken();
+    console.log(' Admin token from sessionStorage:', token ? `${token.substring(0, 20)}...` : 'null');
+
     if (!token) {
-      console.error(' No admin token found in localStorage');
+      console.error(' No admin token found in sessionStorage');
       throw new Error('No admin token available');
     }
     
@@ -115,7 +116,7 @@ class AdminApiService {
   }
 
   async getAdminDetails(): Promise<{ admin: AdminProfile; recent_sessions: AdminSession[] }> {
-    const token = localStorage.getItem('admin_token');
+    const token = getAdminToken();
 
     if (!token) {
       throw new Error('No admin token found');
@@ -128,8 +129,8 @@ class AdminApiService {
 
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('admin_profile');
+        tokenStorage.removeItem('admin_token');
+        tokenStorage.removeItem('admin_profile');
         throw new Error('Session expired. Please login again.');
       }
       const error = await response.json();
@@ -138,9 +139,9 @@ class AdminApiService {
 
     const data = await response.json();
 
-    // Update localStorage with fresh data
+    // Update sessionStorage with fresh data
     if (data.admin) {
-      localStorage.setItem('admin_profile', JSON.stringify(data.admin));
+      setAdminProfile(data.admin);
     }
 
     return {
@@ -456,7 +457,7 @@ class AdminApiService {
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.UPLOAD_FILE}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        'Authorization': `Bearer ${getAdminToken()}`
       },
       body: formData
     });

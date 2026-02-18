@@ -1,3 +1,5 @@
+import { getAuthToken } from '@/utils/tokenStorage';
+
 // Base API configuration
 const API_BASE_URL = 'https://homedapp1.azurewebsites.net';
 
@@ -17,7 +19,7 @@ const apiRequest = async <T>(
   }
 
   // Add auth token if available
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -169,7 +171,7 @@ export const messagingApi = {
   downloadFile: async (filename: string): Promise<Blob> => {
     const response = await fetch(`${API_BASE_URL}/api/files/${filename}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
       },
     });
     

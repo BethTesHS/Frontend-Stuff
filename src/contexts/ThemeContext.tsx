@@ -10,8 +10,6 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-// Dashboard routes where dark mode should be applied
 const DASHBOARD_ROUTES = [
   '/dashboard',
   '/tenant-dashboard',
@@ -33,7 +31,6 @@ const DASHBOARD_ROUTES = [
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) return savedTheme;
 
@@ -59,7 +56,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ThemeContext.Provider>
   );
 };
-
 
 const ThemeApplier: React.FC<{ theme: Theme }> = ({ theme }) => {
   const location = useLocation();

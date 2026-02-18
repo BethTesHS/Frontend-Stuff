@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { authApi } from '@/services/api';
 import { toast } from 'sonner';
+import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken, setHomedUser } from '@/utils/tokenStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
 
@@ -92,9 +93,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           if (response.success && response.data) {
             const { access_token, refresh_token } = response.data;
-            localStorage.setItem('auth_token', access_token);
+            setAuthToken(access_token);
             if (refresh_token) {
-              localStorage.setItem('refresh_token', refresh_token);
+              setRefreshToken(refresh_token);
             }
 
             // Schedule next refresh
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden && user) {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         if (token) {
           const expirationTime = getTokenExpirationTime(token);
           if (expirationTime) {
@@ -138,9 +139,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
                 if (response.success && response.data) {
                   const { access_token, refresh_token } = response.data;
-                  localStorage.setItem('auth_token', access_token);
+                  setAuthToken(access_token);
                   if (refresh_token) {
-                    localStorage.setItem('refresh_token', refresh_token);
+                    setRefreshToken(refresh_token);
                   }
 
                   scheduleTokenRefresh(access_token);
@@ -167,7 +168,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!user) return;
 
     const checkInterval = setInterval(async () => {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (token) {
         const expirationTime = getTokenExpirationTime(token);
         if (expirationTime) {
@@ -181,9 +182,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
               if (response.success && response.data) {
                 const { access_token, refresh_token } = response.data;
-                localStorage.setItem('auth_token', access_token);
+                setAuthToken(access_token);
                 if (refresh_token) {
-                  localStorage.setItem('refresh_token', refresh_token);
+                  setRefreshToken(refresh_token);
                 }
 
                 scheduleTokenRefresh(access_token);
@@ -205,8 +206,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const storedUser = localStorage.getItem('homedUser');
+        const token = getAuthToken();
+        const storedUser = tokenStorage.getItem('homedUser');
 
         let initialUser: User | null = null;
         if (storedUser) {
@@ -215,7 +216,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             initialUser = parsedUser;
             setUser(parsedUser);
           } catch (e) {
-            localStorage.removeItem('homedUser');
+            tokenStorage.removeItem('homedUser');
           }
         }
 
@@ -224,9 +225,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const expirationTime = getTokenExpirationTime(token);
           if (expirationTime && expirationTime < Date.now()) {
             console.log('Token expired during initialization, clearing auth data');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('homedUser');
+            tokenStorage.removeItem('auth_token');
+            tokenStorage.removeItem('refresh_token');
+            tokenStorage.removeItem('homedUser');
             setUser(null);
             setLoading(false);
             return;
@@ -331,7 +332,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               }
 
               setUser(user);
-              localStorage.setItem('homedUser', JSON.stringify(user));
+              setHomedUser(user);
 
               // Schedule automatic token refresh
               scheduleTokenRefresh(token);
@@ -355,17 +356,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               // Schedule token refresh even if there was an error
               scheduleTokenRefresh(token);
             } else {
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('homedUser');
+              tokenStorage.removeItem('auth_token');
+              tokenStorage.removeItem('refresh_token');
+              tokenStorage.removeItem('homedUser');
               setUser(null);
             }
           }
         }
       } catch (error) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('homedUser');
+        tokenStorage.removeItem('auth_token');
+        tokenStorage.removeItem('refresh_token');
+        tokenStorage.removeItem('homedUser');
         setUser(null);
       } finally {
         setLoading(false);
@@ -382,9 +383,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (response.success && response.data) {
         const { user: userData, profile: profileData, access_token, refresh_token } = response.data;
 
-        localStorage.setItem('auth_token', access_token);
+        setAuthToken(access_token);
         if (refresh_token) {
-          localStorage.setItem('refresh_token', refresh_token);
+          setRefreshToken(refresh_token);
         }
 
         const user: User = {
@@ -401,7 +402,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         };
 
         setUser(user);
-        localStorage.setItem('homedUser', JSON.stringify(user));
+        setHomedUser(user);
 
         // Schedule automatic token refresh after login
         scheduleTokenRefresh(access_token);
@@ -433,7 +434,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                       manualVerificationStatus: 'verified' as const
                     };
                     setUser(updatedUser);
-                    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                    setHomedUser(updatedUser);
                   } else if (has_external_profile) {
                     shouldRedirectTo = '/select-role';
                   } else {
@@ -459,7 +460,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                             manualVerificationStatus: 'verified' as const
                           };
                           setUser(updatedUser);
-                          localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                          setHomedUser(updatedUser);
                         } else {
                           // Platform tenant without verification - still allow dashboard access
                           shouldRedirectTo = '/tenant-dashboard';
@@ -470,7 +471,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                             manualVerificationStatus: 'not_started' as const
                           };
                           setUser(updatedUser);
-                          localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                          setHomedUser(updatedUser);
                         }
                       } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
                         // Platform tenant not verified yet - allow dashboard access
@@ -483,7 +484,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                           manualVerificationStatus: 'not_started' as const
                         };
                         setUser(updatedUser);
-                        localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                        setHomedUser(updatedUser);
                       }
                     } catch (internalError) {
                       // Error checking platform tenant - default to allowing dashboard access
@@ -496,7 +497,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                         manualVerificationStatus: 'not_started' as const
                       };
                       setUser(updatedUser);
-                      localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                      setHomedUser(updatedUser);
                     }
                   }
                 }
@@ -522,7 +523,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                         manualVerificationStatus: 'verified' as const
                       };
                       setUser(updatedUser);
-                      localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                      setHomedUser(updatedUser);
                     } else {
                       // Platform tenant without verification - allow dashboard access
                       shouldRedirectTo = '/tenant-dashboard';
@@ -533,7 +534,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                         manualVerificationStatus: 'not_started' as const
                       };
                       setUser(updatedUser);
-                      localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                      setHomedUser(updatedUser);
                     }
                   } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
                     // Platform tenant not verified - allow dashboard access
@@ -546,7 +547,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                       manualVerificationStatus: 'not_started' as const
                     };
                     setUser(updatedUser);
-                    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                    setHomedUser(updatedUser);
                   }
                 } catch (internalError) {
                   console.log('Internal tenant check error during login:', internalError);
@@ -559,7 +560,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                     manualVerificationStatus: 'not_started' as const
                   };
                   setUser(updatedUser);
-                  localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                  setHomedUser(updatedUser);
                 }
               }
             } catch (externalError) {
@@ -573,7 +574,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 manualVerificationStatus: 'not_started' as const
               };
               setUser(updatedUser);
-              localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+              setHomedUser(updatedUser);
             }
 
           } else if (user.role === 'agent') {
@@ -605,9 +606,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const { user: userData, profile: profileData, access_token, refresh_token } = ssoData;
 
       // Store tokens with correct keys
-      localStorage.setItem('auth_token', access_token);
+      setAuthToken(access_token);
       if (refresh_token) {
-        localStorage.setItem('refresh_token', refresh_token);
+        setRefreshToken(refresh_token);
       }
 
       const user: User = {
@@ -625,7 +626,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Update context state
       setUser(user);
-      localStorage.setItem('homedUser', JSON.stringify(user));
+      setHomedUser(user);
 
       // Schedule automatic token refresh
       scheduleTokenRefresh(access_token);
@@ -658,7 +659,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                     manualVerificationStatus: 'verified' as const
                   };
                   setUser(updatedUser);
-                  localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                  setHomedUser(updatedUser);
                 } else if (has_external_profile) {
                   shouldRedirectTo = '/select-role';
                 } else {
@@ -683,7 +684,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                           manualVerificationStatus: 'verified' as const
                         };
                         setUser(updatedUser);
-                        localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                        setHomedUser(updatedUser);
                       } else {
                         shouldRedirectTo = '/tenant-dashboard';
                         const updatedUser = {
@@ -693,7 +694,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                           manualVerificationStatus: 'not_started' as const
                         };
                         setUser(updatedUser);
-                        localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                        setHomedUser(updatedUser);
                       }
                     } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
                       shouldRedirectTo = '/tenant-dashboard';
@@ -704,7 +705,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                         manualVerificationStatus: 'not_started' as const
                       };
                       setUser(updatedUser);
-                      localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                      setHomedUser(updatedUser);
                     }
                   } catch (internalError) {
                     shouldRedirectTo = '/tenant-dashboard';
@@ -715,7 +716,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                       manualVerificationStatus: 'not_started' as const
                     };
                     setUser(updatedUser);
-                    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                    setHomedUser(updatedUser);
                   }
                 }
               }
@@ -741,7 +742,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                       manualVerificationStatus: 'verified' as const
                     };
                     setUser(updatedUser);
-                    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                    setHomedUser(updatedUser);
                   } else {
                     shouldRedirectTo = '/tenant-dashboard';
                     const updatedUser = {
@@ -751,7 +752,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                       manualVerificationStatus: 'not_started' as const
                     };
                     setUser(updatedUser);
-                    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                    setHomedUser(updatedUser);
                   }
                 } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
                   shouldRedirectTo = '/tenant-dashboard';
@@ -762,7 +763,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                     manualVerificationStatus: 'not_started' as const
                   };
                   setUser(updatedUser);
-                  localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                  setHomedUser(updatedUser);
                 }
               } catch (internalError) {
                 shouldRedirectTo = '/tenant-dashboard';
@@ -773,7 +774,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   manualVerificationStatus: 'not_started' as const
                 };
                 setUser(updatedUser);
-                localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+                setHomedUser(updatedUser);
               }
             }
           } catch (externalError) {
@@ -785,7 +786,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               manualVerificationStatus: 'not_started' as const
             };
             setUser(updatedUser);
-            localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+            setHomedUser(updatedUser);
           }
 
         } else if (user.role === 'agent') {
@@ -820,16 +821,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         refreshTimerRef.current = null;
       }
 
-      // Immediately clear all auth state
-      const keysToRemove = ['auth_token', 'refresh_token', 'homedUser'];
+      // Clear sensitive auth data from sessionStorage
+      tokenStorage.removeItem('auth_token');
+      tokenStorage.removeItem('refresh_token');
+      tokenStorage.removeItem('homedUser');
 
+      // Clear profile drafts from localStorage (non-sensitive, stays in localStorage)
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('profileDraft_')) {
-          keysToRemove.push(key);
+          localStorage.removeItem(key);
         }
       });
-
-      keysToRemove.forEach(key => localStorage.removeItem(key));
 
       // Update state immediately - this triggers re-renders across all components
       setUser(null);
@@ -882,10 +884,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const updatedUser = { ...user, ...cleanedUserData };
     setUser(updatedUser);
-    localStorage.setItem('homedUser', JSON.stringify(updatedUser));
+    setHomedUser(updatedUser);
   };
 
-  const isAuthenticated = !!user && !!localStorage.getItem('auth_token');
+  const isAuthenticated = !!user && !!getAuthToken();
 
   // Show loading state while checking authentication
   if (loading) {

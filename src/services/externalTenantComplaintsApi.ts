@@ -1,3 +1,4 @@
+import { getAuthToken } from '@/utils/tokenStorage';
 
 const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/external-tenant-complaints';
 
@@ -107,7 +108,7 @@ const apiRequest = async <T>(
   }
 
   // Add auth token if available
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }

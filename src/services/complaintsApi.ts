@@ -1,3 +1,4 @@
+import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken } from '@/utils/tokenStorage';
 
 const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api';
 
@@ -94,7 +95,7 @@ const apiRequest = async <T>(
   }
 
 
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -127,13 +128,13 @@ const apiRequest = async <T>(
 
         try {
           // Attempt to refresh the token
-          const refreshToken = localStorage.getItem('refresh_token');
-          if (refreshToken) {
+          const refreshTokenValue = getRefreshToken();
+          if (refreshTokenValue) {
             const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${refreshToken}`,
+                'Authorization': `Bearer ${refreshTokenValue}`,
               },
             });
 
@@ -141,9 +142,9 @@ const apiRequest = async <T>(
               const refreshData = await refreshResponse.json();
               if (refreshData.success && refreshData.data) {
                 // Update tokens
-                localStorage.setItem('auth_token', refreshData.data.access_token);
+                setAuthToken(refreshData.data.access_token);
                 if (refreshData.data.refresh_token) {
-                  localStorage.setItem('refresh_token', refreshData.data.refresh_token);
+                  setRefreshToken(refreshData.data.refresh_token);
                 }
 
                 console.log('Token refreshed successfully, retrying complaints API request');
@@ -154,16 +155,16 @@ const apiRequest = async <T>(
           }
 
           console.log('Token refresh failed in complaints API, clearing auth data');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('homedUser');
+          tokenStorage.removeItem('auth_token');
+          tokenStorage.removeItem('refresh_token');
+          tokenStorage.removeItem('homedUser');
           window.location.href = '/login';
           throw new Error('Session expired. Please log in again.');
         } catch (refreshError) {
           console.error('Token refresh error in complaints API:', refreshError);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('homedUser');
+          tokenStorage.removeItem('auth_token');
+          tokenStorage.removeItem('refresh_token');
+          tokenStorage.removeItem('homedUser');
           window.location.href = '/login';
           throw new Error('Session expired. Please log in again.');
         }

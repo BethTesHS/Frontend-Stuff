@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { propertyApi } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getAuthToken } from '@/utils/tokenStorage';
 
 // Backend API URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
@@ -77,7 +78,7 @@ const TenantDashboard = () => {
       }
 
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         if (!token) {
           setIsExternalTenantCheck(false);
           return;

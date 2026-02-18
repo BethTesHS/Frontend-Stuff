@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAgency } from '@/contexts/AgencyContext';
+import { tokenStorage } from '@/utils/tokenStorage';
 
 interface Admin {
   id: string;
@@ -124,8 +125,8 @@ export function AgencySettings() {
 
   const handleLogout = () => {
     // Mock logout functionality
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    tokenStorage.removeItem('user');
+    tokenStorage.removeItem('agencyToken');
     navigate('/login');
     toast.success('Logged out successfully');
   };

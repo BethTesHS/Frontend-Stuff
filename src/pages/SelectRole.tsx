@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Home, User, Building2, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAuthToken } from '@/utils/tokenStorage';
 import TenantVerification from '@/components/TenantVerification/TenantVerification';
 import ExternalTenantForm from '@/components/TenantVerification/ExternalTenantForm';
 import { profileApi } from '@/services/api';
@@ -46,7 +47,7 @@ const SelectRole = () => {
         console.log('SelectRole: Tenant role detected, checking tenant type');
 
         // For tenants without verified status, we need to check which type they are
-        const authToken = localStorage.getItem('auth_token');
+        const authToken = getAuthToken();
         if (authToken) {
           // Check external tenant status
           fetch(`${API_BASE_URL}/external-tenant/check-profile`, {

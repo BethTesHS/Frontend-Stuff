@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdminProfile } from '@/services/adminApi';
+import { tokenStorage } from '@/utils/tokenStorage';
 
 export const useAdmin = () => {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
@@ -13,8 +14,8 @@ export const useAdmin = () => {
       setIsLoading(true);
       setError(null);
 
-      // Try to get from localStorage first
-      const storedAdmin = localStorage.getItem('admin_profile');
+      // Try to get from sessionStorage first
+      const storedAdmin = tokenStorage.getItem('admin_profile');
       if (storedAdmin) {
         setAdmin(JSON.parse(storedAdmin));
       }
@@ -47,8 +48,8 @@ export const useAdmin = () => {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_profile');
+      tokenStorage.removeItem('admin_token');
+      tokenStorage.removeItem('admin_profile');
       setAdmin(null);
       navigate('/admin-login');
     }

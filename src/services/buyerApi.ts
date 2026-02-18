@@ -1,4 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from '../constants/apiEndpoints';
+import { getAuthToken } from '@/utils/tokenStorage';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -243,7 +244,7 @@ const apiRequest = async <T>(
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }

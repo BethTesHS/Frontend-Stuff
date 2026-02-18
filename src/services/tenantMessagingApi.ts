@@ -1,3 +1,5 @@
+import { getAuthToken } from '@/utils/tokenStorage';
+
 // Tenant Messaging API Service
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
 
@@ -17,7 +19,7 @@ const apiRequest = async <T>(
   }
 
   // Add auth token if available
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
