@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Paperclip, X, FileText, Image, Download, Loader2, User } from "lucide-react";
+import { Send, Paperclip, X, FileText, Image as ImageIcon, Download, Loader2, ArrowLeft, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { tenantMessagingApi, TenantMessage, TenantConversation } from "@/services/tenantMessagingApi";
+import { tenantMessagingApi, TenantMessage } from "@/services/tenantMessagingApi";
 import buyerApi, { Conversation } from "@/services/buyerApi";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { MOCK_MESSAGES_DATA } from '@/constants/adminDashboard';
 
-// Interface for grouped conversations by user
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 interface GroupedConversation {
   user_id: string;
   user_name: string;
@@ -21,6 +24,9 @@ interface GroupedConversation {
   latest_message: any;
   total_unread_count: number;
   property: any;
+  priority?: string;
+  status?: string;
+  subject?: string;
 }
 
 interface MessageContext {
@@ -42,9 +48,9 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
   const [newMessage, setNewMessage] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [messages, setMessages] = useState<TenantMessage[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [groupedConversations, setGroupedConversations] = useState<GroupedConversation[]>([]);
   const [currentGroupedConversation, setCurrentGroupedConversation] = useState<GroupedConversation | null>(null);
+  const [viewingConversation, setViewingConversation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -52,22 +58,25 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
-  // Load conversations on component mount
   useEffect(() => {
     loadConversations();
   }, []);
 
-  // Load messages when grouped conversation changes
   useEffect(() => {
-    if (currentGroupedConversation) {
-      loadMessagesForUser(currentGroupedConversation.user_id);
+    if (currentGroupedConversation && viewingConversation) {
+      if (isLocalhost) {
+        loadMockMessages(currentGroupedConversation.user_id);
+      } else {
+        loadMessagesForUser(currentGroupedConversation.user_id);
+      }
     }
-  }, [currentGroupedConversation]);
+  }, [currentGroupedConversation, viewingConversation]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (viewingConversation) {
+      scrollToBottom();
+    }
+  }, [messages, viewingConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -87,20 +96,24 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
           user_email: conv.agent?.email || '',
           user_type: 'agent',
           conversations: [conv],
-          latest_message_at: conv.last_message_at || '',
-          latest_message: { text: conv.last_message },
+          latest_message_at: conv.last_message_at || new Date().toISOString(),
+          latest_message: { text: conv.last_message || 'Conversation started' },
           total_unread_count: conv.unread_count || 0,
           property: conv.property_id ? {
             id: conv.property_id,
             title: conv.property?.title
-          } : null
+          } : null,
+          priority: (conv.unread_count || 0) > 0 ? 'high' : 'low',
+          status: (conv.unread_count || 0) > 0 ? 'unread' : 'read',
+          subject: conv.subject || conv.property?.title || 'General Chat'
         });
       } else {
         const existing = userMap.get(userId)!;
         existing.conversations.push(conv);
         existing.total_unread_count += conv.unread_count || 0;
+        existing.status = existing.total_unread_count > 0 ? 'unread' : 'read';
+        existing.priority = existing.total_unread_count > 0 ? 'high' : 'low';
 
-        // Keep the most recent message
         if (conv.last_message_at && conv.last_message_at > existing.latest_message_at) {
           existing.latest_message_at = conv.last_message_at;
           existing.latest_message = { text: conv.last_message };
@@ -115,21 +128,46 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
 
   const loadConversations = async () => {
     try {
+      if (isLocalhost) {
+        const mockGroups = MOCK_MESSAGES_DATA.contacts.map(contact => ({
+          user_id: contact.id,
+          user_name: contact.name,
+          user_email: `${contact.name.toLowerCase().replace(' ', '.')}@mock.com`,
+          user_type: contact.role,
+          conversations: [],
+          latest_message_at: new Date(contact.timestamp).toISOString(),
+          latest_message: { text: contact.lastMessage },
+          total_unread_count: contact.unreadCount,
+          property: { id: 'mock', title: 'Mock Property' },
+          priority: contact.unreadCount > 0 ? 'high' : 'low',
+          status: contact.unreadCount > 0 ? 'unread' : 'read',
+          subject: contact.role
+        }));
+        
+        setGroupedConversations(mockGroups);
+
+        if (initialContext && (initialContext.agentId || initialContext.landlordId)) {
+           const targetId = initialContext.agentId || initialContext.landlordId;
+           const targetConversation = mockGroups.find(gc => gc.user_id === targetId);
+           if (targetConversation) {
+             handleViewConversation(targetConversation);
+           }
+        }
+        return;
+      }
+
       const response = await buyerApi.getConversations();
       if (response.success && response.data && Array.isArray(response.data.conversations)) {
-        setConversations(response.data.conversations);
         const grouped = groupConversationsByUser(response.data.conversations);
         setGroupedConversations(grouped);
 
-        // If there's an initialContext, try to find and select the relevant conversation
         if (initialContext && (initialContext.agentId || initialContext.landlordId)) {
           const targetId = initialContext.agentId || initialContext.landlordId;
           const targetConversation = grouped.find(gc => gc.user_id === targetId);
 
           if (targetConversation) {
-            setCurrentGroupedConversation(targetConversation);
+            handleViewConversation(targetConversation);
           } else {
-            // Create a placeholder for new conversation
             const placeholderConversation: GroupedConversation = {
               user_id: targetId || 'new',
               user_name: initialContext.agentName || initialContext.landlordName || 'Contact',
@@ -142,31 +180,49 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
               property: {
                 id: initialContext.propertyId || initialContext.roomId,
                 title: initialContext.propertyTitle || initialContext.roomTitle
-              }
+              },
+              priority: 'low',
+              status: 'read',
+              subject: initialContext.propertyTitle || initialContext.roomTitle || 'Inquiry'
             };
-            setCurrentGroupedConversation(placeholderConversation);
+            handleViewConversation(placeholderConversation);
           }
-        } else if (grouped.length > 0) {
-          // Auto-select first grouped conversation if no initial context
-          setCurrentGroupedConversation(grouped[0]);
         }
       }
     } catch (error) {
-      console.error('Failed to load conversations:', error);
       toast.error('Failed to load conversations');
     }
+  };
+
+  const loadMockMessages = (userId: string) => {
+    setLoading(true);
+    const mockConvo = MOCK_MESSAGES_DATA.conversations[userId as keyof typeof MOCK_MESSAGES_DATA.conversations];
+    if (mockConvo) {
+      const transformedMessages: TenantMessage[] = mockConvo.map((msg: any, index: number) => ({
+        id: index,
+        conversation_id: 1,
+        sender_id: msg.senderId === 'admin' ? user?.id || 'admin' : userId,
+        sender_name: msg.senderId === 'admin' ? 'You' : currentGroupedConversation?.user_name || 'Contact',
+        sender_type: msg.senderId === 'admin' ? 'agent' : 'buyer',
+        message_text: msg.text,
+        created_at: msg.timestamp,
+        is_read_by_tenant: true,
+        is_read_by_agent: true,
+      }));
+      setMessages(transformedMessages);
+    } else {
+      setMessages([]);
+    }
+    setLoading(false);
   };
 
   const loadMessagesForUser = async (userId: string) => {
     setLoading(true);
     try {
-      // Get all messages from all conversations for this user
       const groupedConv = groupedConversations.find(gc => gc.user_id === userId);
       if (!groupedConv) return;
 
       const allMessages: TenantMessage[] = [];
-
-      // Load messages from all conversations for this user
       for (const conv of groupedConv.conversations) {
         const response = await buyerApi.getConversationMessages(conv.id);
         if (response.success && Array.isArray(response.data?.messages)) {
@@ -174,15 +230,24 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
         }
       }
 
-      // Sort messages by timestamp
       allMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       setMessages(allMessages);
     } catch (error) {
-      console.error('Failed to load messages:', error);
       toast.error('Failed to load messages');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewConversation = (groupedConv: GroupedConversation) => {
+    setCurrentGroupedConversation(groupedConv);
+    setViewingConversation(true);
+  };
+
+  const handleBackToMessages = () => {
+    setViewingConversation(false);
+    setCurrentGroupedConversation(null);
+    setMessages([]);
   };
 
   const handleSendMessage = async () => {
@@ -191,14 +256,36 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
       return;
     }
 
-    if (!currentGroupedConversation) {
-      toast.error("Please select a conversation");
+    if (!currentGroupedConversation) return;
+
+    setSending(true);
+
+    if (isLocalhost) {
+      const newMsg: TenantMessage = {
+        id: Date.now(),
+        conversation_id: parseInt(currentGroupedConversation.user_id || '0'),
+        sender_id: user?.id || 'admin',
+        sender_name: user?.firstName ? `${user.firstName} ${user.lastName}` : 'You',
+        sender_type: user?.role || 'agent',
+        message_text: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        is_read_by_tenant: false,
+        is_read_by_agent: true,
+        attachment_url: attachedFiles.length > 0 ? URL.createObjectURL(attachedFiles[0]) : undefined,
+        attachment_name: attachedFiles.length > 0 ? attachedFiles[0].name : undefined,
+        attachment_size: attachedFiles.length > 0 ? attachedFiles[0].size : undefined,
+        attachment_type: attachedFiles.length > 0 ? (attachedFiles[0].type.startsWith('image/') ? 'image' : 'document') : undefined,
+      };
+
+      setMessages(prev => [...prev, newMsg]);
+      setNewMessage("");
+      setAttachedFiles([]);
+      toast.success("Mock message sent successfully!");
+      setSending(false);
       return;
     }
 
-    setSending(true);
     try {
-      // Use the new chat endpoint for replies
       const response = await tenantMessagingApi.sendChatMessage({
         recipient_id: currentGroupedConversation.user_id,
         recipient_type: currentGroupedConversation.user_type || 'buyer',
@@ -208,7 +295,6 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
       });
 
       if (response.success) {
-        // Add new message to the list
         const newMsg: TenantMessage = {
           id: Date.now(),
           conversation_id: parseInt(response.data?.conversation_id || '0'),
@@ -225,17 +311,10 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
         setNewMessage("");
         setAttachedFiles([]);
         toast.success("Message sent successfully!");
-
-        // Refresh conversations to update last message
         loadConversations();
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
-      if (error instanceof Error) {
-        toast.error(error.message || 'Failed to send message');
-      } else {
-        toast.error('Failed to send message');
-      }
+      toast.error('Failed to send message');
     } finally {
       setSending(false);
     }
@@ -253,7 +332,7 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
   };
 
   const getFileIcon = (type: string) => {
-    if (type?.startsWith('image/')) return <Image className="w-4 h-4" />;
+    if (type?.startsWith('image')) return <ImageIcon className="w-4 h-4" />;
     return <FileText className="w-4 h-4" />;
   };
 
@@ -293,264 +372,178 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to download file:', error);
       toast.error('Failed to download file');
     }
   };
 
   return (
-    <div className="h-full">
-      <div className="flex h-full rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800">
-            {/* Conversations List */}
-            <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Conversations</h3>
-              </div>
-              <ScrollArea className="h-full">
-                <div className="space-y-2 p-2">
-                  {groupedConversations.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">No conversations yet</p>
-                    </div>
-                  ) : (
-                    groupedConversations.map((groupedConv) => (
-                      <div
-                        key={groupedConv.user_id}
-                        onClick={() => setCurrentGroupedConversation(groupedConv)}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                          currentGroupedConversation?.user_id === groupedConv.user_id
-                            ? 'bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="text-xs">
-                              {groupedConv.user_name?.charAt(0) || 'T'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-                              {groupedConv.user_name || 'Tenant'}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {groupedConv.latest_message?.text || 'No messages yet'}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {groupedConv.latest_message_at && formatMessageTime(groupedConv.latest_message_at)}
-                            </p>
-                          </div>
-                          {groupedConv.total_unread_count > 0 && (
-                            <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                              {groupedConv.total_unread_count}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
+    <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center text-lg text-gray-800 dark:text-gray-100">
+          {viewingConversation && (
+            <Button variant="ghost" size="sm" onClick={handleBackToMessages} className="mr-2 dark:text-gray-300">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          )}
+          <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
+          {viewingConversation ? `Conversation with ${currentGroupedConversation?.user_name}` : 'Messages'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {viewingConversation ? (
+          <div className="space-y-4">
+            <ScrollArea className="h-[60vh] border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50">
+              {loading ? (
+                <div className="flex items-center justify-center h-32">
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading messages...</span>
                 </div>
-              </ScrollArea>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 flex flex-col">
-              {currentGroupedConversation ? (
-                <>
-                  {/* Messages Header */}
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {currentGroupedConversation.user_name?.charAt(0) || 'T'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                          {currentGroupedConversation.user_name || 'Tenant'}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {currentGroupedConversation.conversations.length} conversation{currentGroupedConversation.conversations.length > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Messages */}
-                  <ScrollArea className="flex-1 p-4 max-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    {loading ? (
-                      <div className="flex items-center justify-center h-32">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
-                        <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading messages...</span>
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-32">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet. Start a conversation!</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex gap-3 ${
-                              isMyMessage(message) ? 'flex-row-reverse' : 'flex-row'
-                            }`}
-                          >
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback className="text-xs">
-                                {isMyMessage(message) ? "AG" : "TN"}
-                              </AvatarFallback>
-                            </Avatar>
-                            
-                            <div className={`max-w-xs lg:max-w-md ${isMyMessage(message) ? 'text-right' : 'text-left'}`}>
-                              <div className={`flex items-center gap-2 mb-1 ${isMyMessage(message) ? 'justify-end' : 'justify-start'}`}>
-                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                  {message.sender_name}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {formatMessageTime(message.created_at)}
-                                </span>
-                              </div>
-                              
-                              <div className={`px-4 py-2 rounded-lg text-left ${
-                                isMyMessage(message)
-                                  ? 'bg-gray-800 dark:bg-gray-700 text-white'
-                                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
-                              }`}>
-                                {message.message_text && (
-                                  <p className="text-sm">
-                                    {message.message_text}
-                                  </p>
-                                )}
-                                
-                                {/* File attachment */}
-                                {message.attachment_url && (
-                                  <div className="mt-2 space-y-2">
-                                    <div className={`flex items-center gap-2 p-2 rounded border ${
-                                      isMyMessage(message)
-                                        ? 'bg-gray-700/50 border-gray-600/50' 
-                                        : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-600'
-                                    }`}>
-                                      {getFileIcon(message.attachment_type || 'file')}
-                                      <div className="flex-1 min-w-0 text-left">
-                                        <p className="text-xs font-medium truncate">{message.attachment_name}</p>
-                                        <p className="text-xs opacity-70">{formatFileSize(message.attachment_size || 0)}</p>
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 w-6 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (message.attachment_url && message.attachment_name) {
-                                            handleDownloadFile(message.attachment_url, message.attachment_name);
-                                          }
-                                        }}
-                                      >
-                                        <Download className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    )}
-                  </ScrollArea>
-
-                  {/* Message Input */}
-                  <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 space-y-3">
-                    {/* File attachments preview */}
-                    {attachedFiles.length > 0 && (
-                      <div className="space-y-2">
-                        {attachedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                            {getFileIcon(file.type)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{file.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => removeFile(index)}
-                              className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex space-x-2">
-                      {/* Relative wrapper for the input and inner button */}
-                      <div className="relative flex-1">
-                        <Input
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
-                          style={{ paddingRight: '2.5rem' }} // Add right padding to prevent text overlap with the button
-                          className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSendMessage();
-                            }
-                          }}
-                        />
-                        
-                        {/* Absolute positioned Attachment button */}
-                        <Button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploadingFile}
-                          size="icon"
-                          variant="ghost" // Changed to ghost for a cleaner look inside the input
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                          {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-                        </Button>
-                      </div>
-
-                      {/* Send button stays on the outside */}
-                      <Button
-                        onClick={handleSendMessage}
-                        disabled={sending || (!newMessage.trim() && attachedFiles.length === 0)}
-                        className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
-                      >
-                        {sending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Hidden file input */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </div>
-                </>
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center h-32">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet. Start a conversation!</p>
+                </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50">
-                  <div className="text-center">
-                    <User className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Select a conversation to start messaging</p>
-                  </div>
+                <div className="space-y-4 pr-4">
+                  {messages.map((message) => (
+                    <div key={message.id} className={`flex ${isMyMessage(message) ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                         isMyMessage(message)
+                           ? 'bg-gray-800 dark:bg-gray-700 text-white'
+                           : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
+                       }`}>
+                         {message.message_text && (
+                           <p className="text-sm">{message.message_text}</p>
+                         )}
+                         {message.attachment_url && (
+                           <div className="mt-2 space-y-2">
+                             <div className={`flex items-center gap-2 p-2 rounded border ${
+                               isMyMessage(message) ? 'bg-gray-700/50 border-gray-600/50' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-600'
+                             }`}>
+                               {getFileIcon(message.attachment_type || 'file')}
+                               <div className="flex-1 min-w-0">
+                                 <p className="text-xs font-medium truncate">{message.attachment_name}</p>
+                                 <p className="text-xs opacity-70">{formatFileSize(message.attachment_size || 0)}</p>
+                               </div>
+                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => {
+                                   e.stopPropagation();
+                                   if (!isLocalhost && message.attachment_url) {
+                                       handleDownloadFile(message.attachment_url, message.attachment_name || 'file');
+                                   } else {
+                                       toast.info(`Downloading ${message.attachment_name}`);
+                                   }
+                               }}>
+                                 <Download className="w-3 h-3" />
+                               </Button>
+                             </div>
+                           </div>
+                         )}
+                         <p className={`text-xs mt-1 ${isMyMessage(message) ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                           {message.sender_name} • {formatMessageTime(message.created_at)}
+                         </p>
+                       </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
-            </div>
-      </div>
-    </div>
+            </ScrollArea>
+
+            <div className="space-y-3">
+               {attachedFiles.length > 0 && (
+                 <div className="space-y-2">
+                   {attachedFiles.map((file, index) => (
+                     <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                       {getFileIcon(file.type)}
+                       <div className="flex-1 min-w-0">
+                         <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{file.name}</p>
+                         <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</p>
+                       </div>
+                       <Button size="sm" variant="ghost" onClick={() => removeFile(index)} className="h-6 w-6 p-0 text-gray-400 hover:text-red-600">
+                         <X className="w-4 h-4" />
+                       </Button>
+                     </div>
+                   ))}
+                 </div>
+               )}
+               <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <Input 
+                    placeholder="Type your message..." 
+                    value={newMessage} 
+                    onChange={(e) => setNewMessage(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    style={{ paddingRight: '2.5rem' }} 
+                    className="flex-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700" 
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    disabled={uploadingFile}
+                    size="icon" 
+                    variant="ghost" 
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={sending || (!newMessage.trim() && attachedFiles.length === 0)} 
+                  className="h-auto bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+              <input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" />
+             </div>
+          </div>
+         ) : (
+           <div className="space-y-4">
+             {groupedConversations.length === 0 ? (
+               <div className="text-center py-8">
+                 <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                 <p className="text-gray-600 dark:text-gray-400">No conversations yet</p>
+               </div>
+              ) :
+              groupedConversations.map((groupedConv) => (
+                <div 
+                  key={groupedConv.user_id} 
+                  onClick={() => handleViewConversation(groupedConv)} 
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                    groupedConv.status === 'unread' 
+                      ? 'bg-gray-100 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-800' 
+                      : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{groupedConv.user_name}</h3>
+                          <Badge variant={groupedConv.priority === 'high' ? 'destructive' : groupedConv.priority === 'medium' ? 'default' : 'secondary'}>
+                            {(groupedConv.priority || 'low').toUpperCase()}
+                          </Badge>
+                          {groupedConv.status === 'unread' && (
+                            <Badge variant="outline" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600">NEW</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">{formatMessageTime(groupedConv.latest_message_at)}</p>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{groupedConv.subject || 'General Chat'}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{groupedConv.latest_message?.text}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

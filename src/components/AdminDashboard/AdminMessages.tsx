@@ -236,7 +236,7 @@ export const AdminMessages = () => {
       <CardContent>
         {viewingConversation ? (
           <div className="space-y-4">
-            <ScrollArea className="h-96 border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50">
+            <ScrollArea className="h-[60vh] border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/50">
               <div className="space-y-4 pr-4">
                 {conversationMessages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
