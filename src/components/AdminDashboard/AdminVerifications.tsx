@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { UserCheck, Mail, Phone, Clock, FileText, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { PENDING_VERIFICATIONS } from '@/constants/adminDashboard';
+import { PENDING_VERIFICATIONS } from '@/constants/mockMessages';
 
 export const AdminVerifications = () => {
   const { toast } = useToast();

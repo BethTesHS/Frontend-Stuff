@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, ArrowLeft, Image as ImageIcon, FileText, Download, X, Paperclip, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_MESSAGES_DATA } from '@/constants/adminDashboard';
+import { MOCK_MESSAGES_DATA } from '@/constants/mockMessages';
 import { messagingApi } from '@/services/messagingApi';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -43,7 +43,7 @@ export function OwnerMessages() {
   const loadMessagesAndConversations = async () => {
     try {
       setMessagesLoading(true);
-      if (isLocalhost) {
+      // if (isLocalhost) {
         const mockMessages = MOCK_MESSAGES_DATA.contacts.map(contact => ({
           id: contact.id,
           from: contact.name,
@@ -57,24 +57,24 @@ export function OwnerMessages() {
           user_id: contact.id
         }));
         setOwnerMessages(mockMessages);
-      } else {
-        const response = await messagingApi.getConversations();
-        if (response.success) {
-          const messages = response.conversations.map(conv => ({
-            id: conv.id.toString(),
-            from: conv.user_name || 'User',
-            email: `${(conv.user_name || 'user').toLowerCase().replace(' ', '.')}@tenant.com`,
-            subject: conv.subject || 'General chat',
-            message: `Conversation with ${conv.unread_count} unread messages`,
-            priority: conv.unread_count > 0 ? 'high' : 'low',
-            timestamp: conv.last_message_at ? new Date(conv.last_message_at).toLocaleString() : new Date().toLocaleString(),
-            status: conv.unread_count > 0 ? 'unread' : 'read',
-            conversation_id: conv.id,
-            user_id: conv.user_id
-          }));
-          setOwnerMessages(messages);
-        }
-      }
+      // } else {
+      //   const response = await messagingApi.getConversations();
+      //   if (response.success) {
+      //     const messages = response.conversations.map(conv => ({
+      //       id: conv.id.toString(),
+      //       from: conv.user_name || 'User',
+      //       email: `${(conv.user_name || 'user').toLowerCase().replace(' ', '.')}@tenant.com`,
+      //       subject: conv.subject || 'General chat',
+      //       message: `Conversation with ${conv.unread_count} unread messages`,
+      //       priority: conv.unread_count > 0 ? 'high' : 'low',
+      //       timestamp: conv.last_message_at ? new Date(conv.last_message_at).toLocaleString() : new Date().toLocaleString(),
+      //       status: conv.unread_count > 0 ? 'unread' : 'read',
+      //       conversation_id: conv.id,
+      //       user_id: conv.user_id
+      //     }));
+      //     setOwnerMessages(messages);
+      //   }
+      // }
     } catch (error) {
       toast({ title: "Error", description: "Failed to load messages", variant: "destructive" });
     } finally {
@@ -85,7 +85,7 @@ export function OwnerMessages() {
   const handleViewConversation = async (message: any) => {
     setSelectedMessage(message);
     if (message.conversation_id) {
-      if (isLocalhost) {
+      // if (isLocalhost) {
         const mockConvo = MOCK_MESSAGES_DATA.conversations[message.conversation_id as keyof typeof MOCK_MESSAGES_DATA.conversations];
         if (mockConvo) {
           const transformedMessages = mockConvo.map(msg => ({
@@ -100,29 +100,29 @@ export function OwnerMessages() {
         } else {
           setConversationMessages([]);
         }
-      } else {
-        try {
-          const response = await messagingApi.getConversationMessages(message.conversation_id);
-          if (response.success) {
-            const transformedMessages = response.messages.map(msg => ({
-              id: msg.id.toString(),
-              text: msg.message_text,
-              sender: msg.sender_id.toString() === user?.id ? 'owner' : 'user',
-              timestamp: msg.created_at,
-              senderName: msg.sender_name,
-              attachments: msg.attachment_url ? [{
-                name: msg.attachment_name,
-                size: formatFileSize(msg.attachment_size || 0),
-                type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
-                url: msg.attachment_url
-              }] : []
-            }));
-            setConversationMessages(transformedMessages);
-          }
-        } catch (error) {
-          toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
-        }
-      }
+      // } else {
+      //   try {
+      //     const response = await messagingApi.getConversationMessages(message.conversation_id);
+      //     if (response.success) {
+      //       const transformedMessages = response.messages.map(msg => ({
+      //         id: msg.id.toString(),
+      //         text: msg.message_text,
+      //         sender: msg.sender_id.toString() === user?.id ? 'owner' : 'user',
+      //         timestamp: msg.created_at,
+      //         senderName: msg.sender_name,
+      //         attachments: msg.attachment_url ? [{
+      //           name: msg.attachment_name,
+      //           size: formatFileSize(msg.attachment_size || 0),
+      //           type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
+      //           url: msg.attachment_url
+      //         }] : []
+      //       }));
+      //       setConversationMessages(transformedMessages);
+      //     }
+      //   } catch (error) {
+      //     toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
+      //   }
+      // }
     }
     setViewingConversation(true);
   };
@@ -135,7 +135,7 @@ export function OwnerMessages() {
 
     setSending(true);
 
-    if (isLocalhost) {
+    // if (isLocalhost) {
       const newMessage = {
         id: `mock_reply_${Date.now()}`,
         text: replyText.trim(),
@@ -155,41 +155,41 @@ export function OwnerMessages() {
       setAttachedFiles([]);
       setSending(false);
       return;
-    }
+    // }
 
-    try {
-      const response = await messagingApi.sendChatMessage({
-        recipient_id: selectedMessage.user_id?.toString() || "0",
-        recipient_type: 'tenant', // Or buyer contextually
-        initial_message: replyText.trim(),
-        conversation_id: selectedMessage.conversation_id?.toString(),
-      });
+    // try {
+    //   const response = await messagingApi.sendChatMessage({
+    //     recipient_id: selectedMessage.user_id?.toString() || "0",
+    //     recipient_type: 'tenant', // Or buyer contextually
+    //     initial_message: replyText.trim(),
+    //     conversation_id: selectedMessage.conversation_id?.toString(),
+    //   });
 
-      if (response.success) {
-        const newMessage = {
-          id: Date.now().toString(),
-          text: replyText.trim(),
-          sender: 'owner',
-          timestamp: new Date().toISOString(),
-          senderName: user?.firstName ? `${user.firstName} ${user.lastName}` : 'You',
-          attachments: attachedFiles.map(file => ({
-            name: file.name,
-            size: formatFileSize(file.size),
-            type: file.type.startsWith('image/') ? 'image' : 'document',
-            url: URL.createObjectURL(file)
-          }))
-        };
-        setConversationMessages(prev => [...prev, newMessage]);
-        toast({ title: "Reply Sent", description: `Reply sent to ${selectedMessage?.from}` });
-        setReplyText('');
-        setAttachedFiles([]);
-        loadMessagesAndConversations();
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to send reply", variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+    //   if (response.success) {
+    //     const newMessage = {
+    //       id: Date.now().toString(),
+    //       text: replyText.trim(),
+    //       sender: 'owner',
+    //       timestamp: new Date().toISOString(),
+    //       senderName: user?.firstName ? `${user.firstName} ${user.lastName}` : 'You',
+    //       attachments: attachedFiles.map(file => ({
+    //         name: file.name,
+    //         size: formatFileSize(file.size),
+    //         type: file.type.startsWith('image/') ? 'image' : 'document',
+    //         url: URL.createObjectURL(file)
+    //       }))
+    //     };
+    //     setConversationMessages(prev => [...prev, newMessage]);
+    //     toast({ title: "Reply Sent", description: `Reply sent to ${selectedMessage?.from}` });
+    //     setReplyText('');
+    //     setAttachedFiles([]);
+    //     loadMessagesAndConversations();
+    //   }
+    // } catch (error) {
+    //   toast({ title: "Error", description: "Failed to send reply", variant: "destructive" });
+    // } finally {
+    //   setSending(false);
+    // }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,6 +237,7 @@ export function OwnerMessages() {
           )}
           <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
           {viewingConversation ? `Conversation with ${selectedMessage?.from}` : 'Messages'}
+          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">(All Messages here are dummy data)</p>
         </CardTitle>
       </CardHeader>
       <CardContent>

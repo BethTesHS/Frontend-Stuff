@@ -10,7 +10,7 @@ import { tenantMessagingApi, TenantMessage } from "@/services/tenantMessagingApi
 import buyerApi, { Conversation } from "@/services/buyerApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_MESSAGES_DATA } from '@/constants/adminDashboard';
+import { MOCK_MESSAGES_DATA } from '@/constants/mockMessages';
 
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -64,11 +64,11 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
 
   useEffect(() => {
     if (currentGroupedConversation && viewingConversation) {
-      if (isLocalhost) {
+      // if (isLocalhost) {
         loadMockMessages(currentGroupedConversation.user_id);
-      } else {
-        loadMessagesForUser(currentGroupedConversation.user_id);
-      }
+      // } else {
+      //   loadMessagesForUser(currentGroupedConversation.user_id);
+      // }
     }
   }, [currentGroupedConversation, viewingConversation]);
 
@@ -128,7 +128,7 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
 
   const loadConversations = async () => {
     try {
-      if (isLocalhost) {
+      // if (isLocalhost) {
         const mockGroups = MOCK_MESSAGES_DATA.contacts.map(contact => ({
           user_id: contact.id,
           user_name: contact.name,
@@ -154,41 +154,41 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
            }
         }
         return;
-      }
+      // }
 
-      const response = await buyerApi.getConversations();
-      if (response.success && response.data && Array.isArray(response.data.conversations)) {
-        const grouped = groupConversationsByUser(response.data.conversations);
-        setGroupedConversations(grouped);
+      // const response = await buyerApi.getConversations();
+      // if (response.success && response.data && Array.isArray(response.data.conversations)) {
+      //   const grouped = groupConversationsByUser(response.data.conversations);
+      //   setGroupedConversations(grouped);
 
-        if (initialContext && (initialContext.agentId || initialContext.landlordId)) {
-          const targetId = initialContext.agentId || initialContext.landlordId;
-          const targetConversation = grouped.find(gc => gc.user_id === targetId);
+      //   if (initialContext && (initialContext.agentId || initialContext.landlordId)) {
+      //     const targetId = initialContext.agentId || initialContext.landlordId;
+      //     const targetConversation = grouped.find(gc => gc.user_id === targetId);
 
-          if (targetConversation) {
-            handleViewConversation(targetConversation);
-          } else {
-            const placeholderConversation: GroupedConversation = {
-              user_id: targetId || 'new',
-              user_name: initialContext.agentName || initialContext.landlordName || 'Contact',
-              user_email: '',
-              user_type: initialContext.agentId ? 'agent' : 'landlord',
-              conversations: [],
-              latest_message_at: new Date().toISOString(),
-              latest_message: null,
-              total_unread_count: 0,
-              property: {
-                id: initialContext.propertyId || initialContext.roomId,
-                title: initialContext.propertyTitle || initialContext.roomTitle
-              },
-              priority: 'low',
-              status: 'read',
-              subject: initialContext.propertyTitle || initialContext.roomTitle || 'Inquiry'
-            };
-            handleViewConversation(placeholderConversation);
-          }
-        }
-      }
+      //     if (targetConversation) {
+      //       handleViewConversation(targetConversation);
+      //     } else {
+      //       const placeholderConversation: GroupedConversation = {
+      //         user_id: targetId || 'new',
+      //         user_name: initialContext.agentName || initialContext.landlordName || 'Contact',
+      //         user_email: '',
+      //         user_type: initialContext.agentId ? 'agent' : 'landlord',
+      //         conversations: [],
+      //         latest_message_at: new Date().toISOString(),
+      //         latest_message: null,
+      //         total_unread_count: 0,
+      //         property: {
+      //           id: initialContext.propertyId || initialContext.roomId,
+      //           title: initialContext.propertyTitle || initialContext.roomTitle
+      //         },
+      //         priority: 'low',
+      //         status: 'read',
+      //         subject: initialContext.propertyTitle || initialContext.roomTitle || 'Inquiry'
+      //       };
+      //       handleViewConversation(placeholderConversation);
+      //     }
+      //   }
+      // }
     } catch (error) {
       toast.error('Failed to load conversations');
     }
@@ -260,7 +260,7 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
 
     setSending(true);
 
-    if (isLocalhost) {
+    // if (isLocalhost) {
       const newMsg: TenantMessage = {
         id: Date.now(),
         conversation_id: parseInt(currentGroupedConversation.user_id || '0'),
@@ -283,41 +283,41 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
       toast.success("Mock message sent successfully!");
       setSending(false);
       return;
-    }
+    // }
 
-    try {
-      const response = await tenantMessagingApi.sendChatMessage({
-        recipient_id: currentGroupedConversation.user_id,
-        recipient_type: currentGroupedConversation.user_type || 'buyer',
-        initial_message: newMessage.trim(),
-        property_id: currentGroupedConversation.property?.id,
-        property_title: currentGroupedConversation.property?.title,
-      });
+    // try {
+    //   const response = await tenantMessagingApi.sendChatMessage({
+    //     recipient_id: currentGroupedConversation.user_id,
+    //     recipient_type: currentGroupedConversation.user_type || 'buyer',
+    //     initial_message: newMessage.trim(),
+    //     property_id: currentGroupedConversation.property?.id,
+    //     property_title: currentGroupedConversation.property?.title,
+    //   });
 
-      if (response.success) {
-        const newMsg: TenantMessage = {
-          id: Date.now(),
-          conversation_id: parseInt(response.data?.conversation_id || '0'),
-          sender_id: user?.id || '',
-          sender_name: user?.firstName + ' ' + user?.lastName || 'You',
-          sender_type: user?.role || 'agent',
-          message_text: newMessage.trim(),
-          created_at: new Date().toISOString(),
-          is_read_by_tenant: false,
-          is_read_by_agent: true,
-        };
+    //   if (response.success) {
+    //     const newMsg: TenantMessage = {
+    //       id: Date.now(),
+    //       conversation_id: parseInt(response.data?.conversation_id || '0'),
+    //       sender_id: user?.id || '',
+    //       sender_name: user?.firstName + ' ' + user?.lastName || 'You',
+    //       sender_type: user?.role || 'agent',
+    //       message_text: newMessage.trim(),
+    //       created_at: new Date().toISOString(),
+    //       is_read_by_tenant: false,
+    //       is_read_by_agent: true,
+    //     };
 
-        setMessages(prev => [...prev, newMsg]);
-        setNewMessage("");
-        setAttachedFiles([]);
-        toast.success("Message sent successfully!");
-        loadConversations();
-      }
-    } catch (error) {
-      toast.error('Failed to send message');
-    } finally {
-      setSending(false);
-    }
+    //     setMessages(prev => [...prev, newMsg]);
+    //     setNewMessage("");
+    //     setAttachedFiles([]);
+    //     toast.success("Message sent successfully!");
+    //     loadConversations();
+    //   }
+    // } catch (error) {
+    //   toast.error('Failed to send message');
+    // } finally {
+    //   setSending(false);
+    // }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,6 +387,7 @@ const AgentMessages = ({ initialContext }: AgentMessagesProps = {}) => {
           )}
           <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
           {viewingConversation ? `Conversation with ${currentGroupedConversation?.user_name}` : 'Messages'}
+          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">(All Messages here are dummy data)</p>
         </CardTitle>
       </CardHeader>
       <CardContent>

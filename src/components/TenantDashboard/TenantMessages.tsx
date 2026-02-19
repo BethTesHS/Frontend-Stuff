@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { tenantMessagingApi, TenantMessage } from "@/services/tenantMessagingApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_MESSAGES_DATA } from '@/constants/adminDashboard';
+import { MOCK_MESSAGES_DATA } from '@/constants/mockMessages';
 
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -45,11 +45,11 @@ export function TenantMessages() {
 
   useEffect(() => {
     if (currentGroupedConversation && viewingConversation) {
-      if (isLocalhost) {
+      // if (isLocalhost) {
         loadMockMessages(currentGroupedConversation.user_id);
-      } else {
-        loadMessagesForUser(currentGroupedConversation.user_id);
-      }
+      // } else {
+      //   loadMessagesForUser(currentGroupedConversation.user_id);
+      // }
     }
   }, [currentGroupedConversation, viewingConversation]);
 
@@ -65,7 +65,7 @@ export function TenantMessages() {
 
   const loadConversations = async () => {
     try {
-      if (isLocalhost) {
+      // if (isLocalhost) {
         const mockGroups = MOCK_MESSAGES_DATA.contacts.map(contact => ({
           user_id: contact.id,
           user_name: contact.name,
@@ -80,46 +80,46 @@ export function TenantMessages() {
         }));
         setGroupedConversations(mockGroups);
         return;
-      }
+      // }
 
       // Fetch actual conversations from backend
-      const response = await tenantMessagingApi.getConversations();
-      if (response.success && Array.isArray(response.conversations)) {
-        // Group logic (similar to agent, but adapted for tenant view)
-        const userMap = new Map<string, GroupedConversation>();
+      // const response = await tenantMessagingApi.getConversations();
+      // if (response.success && Array.isArray(response.conversations)) {
+      //   // Group logic (similar to agent, but adapted for tenant view)
+      //   const userMap = new Map<string, GroupedConversation>();
         
-        response.conversations.forEach((conv: any) => {
-          const recipientId = conv.agent_id?.toString() || conv.owner_id?.toString() || 'admin';
-          const recipientName = conv.agent?.name || conv.owner?.name || 'Support';
+      //   response.conversations.forEach((conv: any) => {
+      //     const recipientId = conv.agent_id?.toString() || conv.owner_id?.toString() || 'admin';
+      //     const recipientName = conv.agent?.name || conv.owner?.name || 'Support';
           
-          if (!userMap.has(recipientId)) {
-            userMap.set(recipientId, {
-              user_id: recipientId,
-              user_name: recipientName,
-              user_type: conv.agent_id ? 'agent' : 'owner',
-              conversations: [conv],
-              latest_message_at: conv.last_message_at || new Date().toISOString(),
-              latest_message: { text: conv.last_message || 'Conversation started' },
-              total_unread_count: conv.unread_count || 0,
-              priority: (conv.unread_count || 0) > 0 ? 'high' : 'low',
-              status: (conv.unread_count || 0) > 0 ? 'unread' : 'read',
-              subject: conv.property?.title || 'General Inquiry'
-            });
-          } else {
-             const existing = userMap.get(recipientId)!;
-             existing.conversations.push(conv);
-             existing.total_unread_count += (conv.unread_count || 0);
-             if (conv.last_message_at && new Date(conv.last_message_at) > new Date(existing.latest_message_at)) {
-                 existing.latest_message_at = conv.last_message_at;
-                 existing.latest_message = { text: conv.last_message };
-             }
-          }
-        });
+      //     if (!userMap.has(recipientId)) {
+      //       userMap.set(recipientId, {
+      //         user_id: recipientId,
+      //         user_name: recipientName,
+      //         user_type: conv.agent_id ? 'agent' : 'owner',
+      //         conversations: [conv],
+      //         latest_message_at: conv.last_message_at || new Date().toISOString(),
+      //         latest_message: { text: conv.last_message || 'Conversation started' },
+      //         total_unread_count: conv.unread_count || 0,
+      //         priority: (conv.unread_count || 0) > 0 ? 'high' : 'low',
+      //         status: (conv.unread_count || 0) > 0 ? 'unread' : 'read',
+      //         subject: conv.property?.title || 'General Inquiry'
+      //       });
+      //     } else {
+      //        const existing = userMap.get(recipientId)!;
+      //        existing.conversations.push(conv);
+      //        existing.total_unread_count += (conv.unread_count || 0);
+      //        if (conv.last_message_at && new Date(conv.last_message_at) > new Date(existing.latest_message_at)) {
+      //            existing.latest_message_at = conv.last_message_at;
+      //            existing.latest_message = { text: conv.last_message };
+      //        }
+      //     }
+      //   });
         
-        setGroupedConversations(Array.from(userMap.values()).sort((a, b) => 
-            new Date(b.latest_message_at).getTime() - new Date(a.latest_message_at).getTime()
-        ));
-      }
+      //   setGroupedConversations(Array.from(userMap.values()).sort((a, b) => 
+      //       new Date(b.latest_message_at).getTime() - new Date(a.latest_message_at).getTime()
+      //   ));
+      // }
     } catch (error) {
       toast.error('Failed to load conversations');
     }
@@ -191,7 +191,7 @@ export function TenantMessages() {
 
     setSending(true);
 
-    if (isLocalhost) {
+    // if (isLocalhost) {
       const newMsg: TenantMessage = {
         id: Date.now(),
         conversation_id: parseInt(currentGroupedConversation.user_id || '0'),
@@ -214,39 +214,39 @@ export function TenantMessages() {
       toast.success("Message sent successfully!");
       setSending(false);
       return;
-    }
+    // }
 
-    try {
-      const response = await tenantMessagingApi.sendChatMessage({
-        recipient_id: currentGroupedConversation.user_id,
-        recipient_type: currentGroupedConversation.user_type || 'agent',
-        initial_message: newMessage.trim()
-      });
+    // try {
+    //   const response = await tenantMessagingApi.sendChatMessage({
+    //     recipient_id: currentGroupedConversation.user_id,
+    //     recipient_type: currentGroupedConversation.user_type || 'agent',
+    //     initial_message: newMessage.trim()
+    //   });
 
-      if (response.success) {
-        const newMsg: TenantMessage = {
-          id: Date.now(),
-          conversation_id: parseInt(response.data?.conversation_id || '0'),
-          sender_id: user?.id || '',
-          sender_name: user?.firstName + ' ' + user?.lastName || 'You',
-          sender_type: 'buyer',
-          message_text: newMessage.trim(),
-          created_at: new Date().toISOString(),
-          is_read_by_tenant: true,
-          is_read_by_agent: false,
-        };
+    //   if (response.success) {
+    //     const newMsg: TenantMessage = {
+    //       id: Date.now(),
+    //       conversation_id: parseInt(response.data?.conversation_id || '0'),
+    //       sender_id: user?.id || '',
+    //       sender_name: user?.firstName + ' ' + user?.lastName || 'You',
+    //       sender_type: 'buyer',
+    //       message_text: newMessage.trim(),
+    //       created_at: new Date().toISOString(),
+    //       is_read_by_tenant: true,
+    //       is_read_by_agent: false,
+    //     };
 
-        setMessages(prev => [...prev, newMsg]);
-        setNewMessage("");
-        setAttachedFiles([]);
-        toast.success("Message sent successfully!");
-        loadConversations();
-      }
-    } catch (error) {
-      toast.error('Failed to send message');
-    } finally {
-      setSending(false);
-    }
+    //     setMessages(prev => [...prev, newMsg]);
+    //     setNewMessage("");
+    //     setAttachedFiles([]);
+    //     toast.success("Message sent successfully!");
+    //     loadConversations();
+    //   }
+    // } catch (error) {
+    //   toast.error('Failed to send message');
+    // } finally {
+    //   setSending(false);
+    // }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,10 +286,10 @@ export function TenantMessages() {
   };
 
   const isMyMessage = (message: TenantMessage) => {
-    if (isLocalhost) {
+    // if (isLocalhost) {
         return message.sender_type === 'buyer';
-    }
-    return user && message.sender_id?.toString() === user.id;
+    // }
+    // return user && message.sender_id?.toString() === user.id;
   };
 
   const handleDownloadFile = async (filename: string, displayName: string) => {
@@ -319,6 +319,7 @@ export function TenantMessages() {
           )}
           <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
           {viewingConversation ? `Conversation with ${currentGroupedConversation?.user_name}` : 'Messages'}
+          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">(All Messages here are dummy data)</p>
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, ArrowLeft, Image as ImageIcon, FileText, Download, X, Paperclip, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { MOCK_MESSAGES_DATA } from '@/constants/adminDashboard';
+import { MOCK_MESSAGES_DATA } from '@/constants/mockMessages';
 
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -28,7 +28,7 @@ export const AdminMessages = () => {
   const loadMessagesAndConversations = async () => {
     try {
       setMessagesLoading(true);
-      if (isLocalhost) {
+    //   if (isLocalhost) {
         const mockMessages = MOCK_MESSAGES_DATA.contacts.map(contact => ({
           id: contact.id,
           from: contact.name,
@@ -41,24 +41,24 @@ export const AdminMessages = () => {
           conversation_id: contact.id
         }));
         setAdminMessages(mockMessages);
-      } else {
-        const { adminApi } = await import('@/services/adminApi');
-        const conversationsResponse = await adminApi.getConversations({ limit: 50 });
-        if (conversationsResponse.success) {
-          const messages = conversationsResponse.conversations.map(conv => ({
-            id: conv.id.toString(),
-            from: conv.user_name,
-            email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
-            subject: conv.subject,
-            message: `Conversation with ${conv.unread_count} unread messages`,
-            priority: conv.unread_count > 0 ? 'high' : 'low',
-            timestamp: conv.last_message_at || conv.created_at,
-            status: conv.unread_count > 0 ? 'unread' : 'read',
-            conversation_id: conv.id
-          }));
-          setAdminMessages(messages);
-        }
-      }
+    //   } else {
+    //     const { adminApi } = await import('@/services/adminApi');
+    //     const conversationsResponse = await adminApi.getConversations({ limit: 50 });
+    //     if (conversationsResponse.success) {
+    //       const messages = conversationsResponse.conversations.map(conv => ({
+    //         id: conv.id.toString(),
+    //         from: conv.user_name,
+    //         email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
+    //         subject: conv.subject,
+    //         message: `Conversation with ${conv.unread_count} unread messages`,
+    //         priority: conv.unread_count > 0 ? 'high' : 'low',
+    //         timestamp: conv.last_message_at || conv.created_at,
+    //         status: conv.unread_count > 0 ? 'unread' : 'read',
+    //         conversation_id: conv.id
+    //       }));
+    //       setAdminMessages(messages);
+    //     }
+    //   }
     } catch (error) {
       toast({ title: "Error", description: "Failed to load messages", variant: "destructive" });
     } finally {
@@ -69,7 +69,7 @@ export const AdminMessages = () => {
   const handleViewConversation = async (message: any) => {
     setSelectedMessage(message);
     if (message.conversation_id) {
-      if (isLocalhost) {
+    //   if (isLocalhost) {
         const mockConvo = MOCK_MESSAGES_DATA.conversations[message.conversation_id as keyof typeof MOCK_MESSAGES_DATA.conversations];
         if (mockConvo) {
           const transformedMessages = mockConvo.map(msg => ({
@@ -84,30 +84,30 @@ export const AdminMessages = () => {
         } else {
           setConversationMessages([]);
         }
-      } else {
-        try {
-          const { adminApi } = await import('@/services/adminApi');
-          const response = await adminApi.getConversationMessages(message.conversation_id);
-          if (response.success) {
-            const transformedMessages = response.messages.map(msg => ({
-              id: msg.id.toString(),
-              text: msg.message_text,
-              sender: msg.sender_type === 'admin' ? 'admin' : 'user',
-              timestamp: msg.created_at,
-              senderName: msg.sender_name,
-              attachments: msg.attachment_url ? [{
-                name: msg.attachment_name,
-                size: msg.attachment_size,
-                type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
-                url: msg.attachment_url
-              }] : []
-            }));
-            setConversationMessages(transformedMessages);
-          }
-        } catch (error) {
-          toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
-        }
-      }
+    //   } else {
+    //     try {
+    //       const { adminApi } = await import('@/services/adminApi');
+    //       const response = await adminApi.getConversationMessages(message.conversation_id);
+    //       if (response.success) {
+    //         const transformedMessages = response.messages.map(msg => ({
+    //           id: msg.id.toString(),
+    //           text: msg.message_text,
+    //           sender: msg.sender_type === 'admin' ? 'admin' : 'user',
+    //           timestamp: msg.created_at,
+    //           senderName: msg.sender_name,
+    //           attachments: msg.attachment_url ? [{
+    //             name: msg.attachment_name,
+    //             size: msg.attachment_size,
+    //             type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
+    //             url: msg.attachment_url
+    //           }] : []
+    //         }));
+    //         setConversationMessages(transformedMessages);
+    //       }
+    //     } catch (error) {
+    //       toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
+    //     }
+    //   }
     }
     setViewingConversation(true);
   };
@@ -118,7 +118,7 @@ export const AdminMessages = () => {
       return;
     }
 
-    if (isLocalhost) {
+    // if (isLocalhost) {
       const newMessage = {
         id: `mock_reply_${Date.now()}`,
         text: replyText.trim(),
@@ -137,53 +137,53 @@ export const AdminMessages = () => {
       setReplyText('');
       setAttachedFiles([]);
       return;
-    }
+    // }
 
-    try {
-      const { adminApi } = await import('@/services/adminApi');
-      let attachmentData = null;
-      if (attachedFiles.length > 0) {
-        const file = attachedFiles[0];
-        const uploadResponse = await adminApi.uploadFile(file, selectedMessage?.conversation_id);
-        if (uploadResponse.success) {
-          attachmentData = {
-            attachment_url: uploadResponse.file_url,
-            attachment_name: uploadResponse.file_name,
-            attachment_size: uploadResponse.file_size,
-            attachment_type: uploadResponse.file_type,
-          };
-        }
-      }
-      const messageData = {
-        conversation_id: selectedMessage?.conversation_id,
-        message_text: replyText.trim(),
-        subject: selectedMessage?.subject || 'Admin Reply',
-        ...attachmentData,
-      };
-      const response = await adminApi.sendMessage(messageData);
-      if (response.success) {
-        const newMessage = {
-          id: response.message.id.toString(),
-          text: replyText,
-          sender: 'admin',
-          timestamp: response.message.created_at,
-          senderName: 'Admin',
-          attachments: attachmentData ? [{
-            name: attachmentData.attachment_name,
-            size: formatFileSize(attachmentData.attachment_size),
-            type: attachmentData.attachment_type?.startsWith('image/') ? 'image' : 'document',
-            url: attachmentData.attachment_url
-          }] : []
-        };
-        setConversationMessages(prev => [...prev, newMessage]);
-        toast({ title: "Reply Sent", description: `Reply sent to ${selectedMessage?.from}` });
-        setReplyText('');
-        setAttachedFiles([]);
-        loadMessagesAndConversations();
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to send reply", variant: "destructive" });
-    }
+    // try {
+    //   const { adminApi } = await import('@/services/adminApi');
+    //   let attachmentData = null;
+    //   if (attachedFiles.length > 0) {
+    //     const file = attachedFiles[0];
+    //     const uploadResponse = await adminApi.uploadFile(file, selectedMessage?.conversation_id);
+    //     if (uploadResponse.success) {
+    //       attachmentData = {
+    //         attachment_url: uploadResponse.file_url,
+    //         attachment_name: uploadResponse.file_name,
+    //         attachment_size: uploadResponse.file_size,
+    //         attachment_type: uploadResponse.file_type,
+    //       };
+    //     }
+    //   }
+    //   const messageData = {
+    //     conversation_id: selectedMessage?.conversation_id,
+    //     message_text: replyText.trim(),
+    //     subject: selectedMessage?.subject || 'Admin Reply',
+    //     ...attachmentData,
+    //   };
+    //   const response = await adminApi.sendMessage(messageData);
+    //   if (response.success) {
+    //     const newMessage = {
+    //       id: response.message.id.toString(),
+    //       text: replyText,
+    //       sender: 'admin',
+    //       timestamp: response.message.created_at,
+    //       senderName: 'Admin',
+    //       attachments: attachmentData ? [{
+    //         name: attachmentData.attachment_name,
+    //         size: formatFileSize(attachmentData.attachment_size),
+    //         type: attachmentData.attachment_type?.startsWith('image/') ? 'image' : 'document',
+    //         url: attachmentData.attachment_url
+    //       }] : []
+    //     };
+    //     setConversationMessages(prev => [...prev, newMessage]);
+    //     toast({ title: "Reply Sent", description: `Reply sent to ${selectedMessage?.from}` });
+    //     setReplyText('');
+    //     setAttachedFiles([]);
+    //     loadMessagesAndConversations();
+    //   }
+    // } catch (error) {
+    //   toast({ title: "Error", description: "Failed to send reply", variant: "destructive" });
+    // }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +231,7 @@ export const AdminMessages = () => {
           )}
           <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
           {viewingConversation ? `Conversation with ${selectedMessage?.from}` : 'Admin Messages'}
+          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">(All Messages here are dummy data)</p>
         </CardTitle>
       </CardHeader>
       <CardContent>
