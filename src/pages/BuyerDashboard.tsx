@@ -508,34 +508,34 @@ const CalendarContent = ({ viewings, viewingsLoading }: any) => {
   );
 
   return (
-    <div className="flex flex-1 min-h-[600px] bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <aside className="hidden xl:flex w-72 flex-col border-r border-slate-100 p-6 bg-slate-50/30">
+    <div className="flex flex-1 min-h-[600px] bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <aside className="hidden xl:flex w-72 flex-col border-r border-slate-100 dark:border-slate-800 p-6 bg-white dark:bg-slate-900">
         <button className="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 mb-8">
           <Plus size={18} strokeWidth={3} /> <span>Request Viewing</span>
         </button>
         
         <div className="space-y-8">
           <div>
-            <h3 className="text-[11px] font-bold uppercase text-slate-400 tracking-widest mb-4">Quick Filters</h3>
+            <h3 className="text-[11px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest mb-4">Quick Filters</h3>
             <div className="space-y-4">
               <FilterToggle label="Confirmed" color="bg-blue-500" icon={Home} />
               <FilterToggle label="Pending" color="bg-orange-500" icon={Users} />
             </div>
           </div>
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
              <MiniCalendar />
           </div>
         </div>
       </aside>
-      <main className="flex-1 flex flex-col min-w-0 bg-white">
-        <div className="p-5 border-b border-slate-50 flex justify-between items-center">
-          <h2 className="text-xl font-black text-slate-800 tracking-tight">February 2026</h2>
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+      <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
+        <div className="p-5 border-b border-slate-50 dark:border-slate-900 flex justify-between items-center">
+          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">February 2026</h2>
+          <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200/50 dark:border-slate-800">
             {['Day', 'Week', 'Month'].map(m => (
               <button 
                 key={m} 
                 onClick={() => setViewMode(m)} 
-                className={`px-5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${viewMode === m ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${viewMode === m ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
               >
                 {m}
               </button>
@@ -543,9 +543,9 @@ const CalendarContent = ({ viewings, viewingsLoading }: any) => {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-7 border-t border-l border-slate-100 rounded-tl-xl overflow-hidden shadow-sm">
+          <div className="grid grid-cols-7 border-t border-l border-slate-100 dark:border-slate-800 rounded-tl-xl overflow-hidden shadow-sm">
             {DAYS_FULL.map(day => (
-              <div key={day} className="py-3 text-[10px] font-black text-slate-400 text-center border-r border-slate-100 bg-slate-50/50 uppercase tracking-wider">
+              <div key={day} className="py-3 text-[10px] font-black text-slate-400 dark:text-slate-500 text-center border-r border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 uppercase tracking-wider">
                 {day.substring(0, 3)}
               </div>
             ))}
@@ -556,10 +556,10 @@ const CalendarContent = ({ viewings, viewingsLoading }: any) => {
               const isToday = dayNum === 18;
 
               return (
-                <div key={i} className="min-h-[120px] border-r border-b border-slate-100 p-2 hover:bg-slate-50/30 transition-colors group">
+                <div key={i} className="min-h-[120px] border-r border-b border-slate-100 dark:border-slate-800 p-2 hover:bg-slate-50/30 dark:hover:bg-slate-900/30 transition-colors group">
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-[11px] font-black w-7 h-7 flex items-center justify-center rounded-full transition-colors 
-                      ${isToday ? 'bg-emerald-600 text-white' : 'text-slate-700 group-hover:text-emerald-600'}`}>
+                      ${isToday ? 'bg-emerald-600 text-white' : 'text-slate-700 group-hover:text-emerald-600 dark:group-hover:text-emerald-500'}`}>
                       {dayNum}
                     </span>
                   </div>
@@ -575,15 +575,15 @@ const CalendarContent = ({ viewings, viewingsLoading }: any) => {
           </div>
         </div>
       </main>
-      <aside className="hidden lg:block w-80 border-l border-slate-100 p-6 bg-slate-900 overflow-y-auto">
-        <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-8">Upcoming</h3>
+      <aside className="hidden lg:block w-80 border-l border-slate-100 dark:border-slate-800 p-6 bg-white dark:bg-slate-900 overflow-y-auto">
+        <h3 className="text-xs font-bold dark:text-white text-black uppercase tracking-widest mb-8">Upcoming Viewings</h3>
         
         {events.length > 0 ? (
           events.map(event => <UpcomingEventCard key={event.id} event={event} />)
         ) : (
           <div className="text-center py-20">
-             <Calendar className="text-slate-700 mx-auto mb-3" size={24} />
-             <p className="text-slate-500 text-xs">No scheduled viewings</p>
+             <Calendar className="text-slate-700 dark:text-slate-800 mx-auto mb-3" size={24} />
+             <p className="text-slate-500 dark:text-slate-600 text-xs">No scheduled viewings</p>
           </div>
         )}
       </aside>
