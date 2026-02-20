@@ -20,7 +20,7 @@ import { TenantAgent } from "@/components/TenantDashboard/TenantAgent";
 import { TenantVerificationContent } from "@/components/TenantDashboard/TenantVerificationContent";
 import { TenantNotificationDropdown } from "@/components/TenantDashboard/TenantNotificationDropdown";
 import MyComplaints from "@/components/TenantDashboard/MyComplaints";
-import TenantMessages from "@/components/TenantDashboard/TenantMessages";
+import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import VerificationStatusCircle from "@/components/TenantDashboard/VerificationStatusCircle";
 
@@ -160,7 +160,7 @@ const TenantDashboard = () => {
     switch (activeTab) {
       case "verification": return <TenantVerificationContent user={user} navigate={navigate} />;
       case "complaints": return <MyComplaints />;
-      case "messages": return <TenantMessages />;
+      case "messages": return <Messages />;
       case "agent": return <TenantAgent user={user} dashboardData={dashboardData} setActiveTab={setActiveTab} />;
       case "notifications": return <NotificationsComponent user={user} />;
       case "profile": return <TenantProfile user={user} />;

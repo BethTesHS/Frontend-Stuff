@@ -12,11 +12,11 @@ import { OwnerNotificationDropdown } from '@/components/OwnerDashboard/OwnerNoti
 import { OwnerOverview } from '@/components/OwnerDashboard/OwnerOverview';
 import { OwnerProperties } from '@/components/OwnerDashboard/OwnerProperties';
 import { OwnerProfile } from '@/components/OwnerDashboard/OwnerProfile';
-import { OwnerMessages } from '@/components/OwnerDashboard/OwnerMessages';
 import { OwnerBookings } from '@/components/OwnerDashboard/OwnerBookings';
 import { OwnerCalendar } from '@/components/OwnerDashboard/OwnerCalendar';
 import NotificationsComponent from '@/components/TenantDashboard/TenantNotifications';
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
+import Messages from "@/components/Messages/Messages";
 
 import { Menu, Search, Sun, Moon, Bell, ChevronLeft, ChevronRight, LogOut, UserCircle, ChevronDown } from 'lucide-react';
 import {
@@ -78,7 +78,7 @@ const OwnerDashboard = () => {
       case 'properties':
         return <OwnerProperties />;
       case 'messages':
-        return <OwnerMessages />;
+        return <Messages />;
       case 'bookings':
         return <OwnerBookings />;
       case 'calendar':

@@ -18,7 +18,7 @@ import { AgentViewings } from '@/components/AgentDashboard/AgentViewings';
 import { AgentInquiries } from '@/components/AgentDashboard/AgentInquiries';
 import { AgentComplaints } from '@/components/AgentDashboard/AgentComplaints';
 import { AgentProfile } from '@/components/AgentDashboard/AgentProfile';
-import AgentMessages from "@/components/AgentDashboard/AgentMessages";
+import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
 
@@ -113,7 +113,7 @@ const AgentDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "properties": return <AgentProperties />;
-      case "messages": return <AgentMessages />;
+      case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;
       case "viewings": return <AgentViewings />;

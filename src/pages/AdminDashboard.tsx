@@ -9,11 +9,11 @@ import { Shield, Moon, Sun, Menu, ChevronLeft, ChevronRight } from 'lucide-react
 import { AdminOverview } from '@/components/AdminDashboard/AdminOverview';
 import { AdminUsers } from '@/components/AdminDashboard/AdminUsers';
 import { AdminVerifications } from '@/components/AdminDashboard/AdminVerifications';
-import { AdminMessages } from '@/components/AdminDashboard/AdminMessages';
 import { AdminSupport } from '@/components/AdminDashboard/AdminSupport';
 import AdminTask from '@/components/AdminDashboard/AdminTask';
 import { AdminNotifications } from '@/components/AdminDashboard/AdminNotifications';
 import { AdminNotificationDropdown } from '@/components/AdminDashboard/AdminNotificationDropdown';
+import Messages from "@/components/Messages/Messages";
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -78,7 +78,7 @@ const AdminDashboard = () => {
       case "verifications": 
         return <AdminVerifications />;
       case "messages": 
-        return <AdminMessages />;
+        return <Messages />;
       case "tasks": return <AdminTask />;
       case "notifications":
         return <AdminNotifications />;

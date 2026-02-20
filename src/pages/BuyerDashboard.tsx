@@ -14,7 +14,7 @@ import { BuyerSavedProperties } from "@/components/BuyerDashboard/BuyerSavedProp
 import { BuyerCalendar } from "@/components/BuyerDashboard/BuyerCalendar";
 import { BuyerHistory } from "@/components/BuyerDashboard/BuyerHistory";
 import { BuyerProfile } from "@/components/BuyerDashboard/BuyerProfile";
-import AgentMessages from "@/components/AgentDashboard/AgentMessages";
+import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 
 import {
@@ -111,7 +111,7 @@ const BuyerDashboard = () => {
         const landlordId = searchParams.get('landlordId');
         const landlordName = searchParams.get('landlordName');
 
-        return <AgentMessages
+        return <Messages
           initialContext={{
             propertyId,
             propertyTitle,
