@@ -28,37 +28,35 @@ export const AdminMessages = () => {
   const loadMessagesAndConversations = async () => {
     try {
       setMessagesLoading(true);
-    //   if (isLocalhost) {
-        const mockMessages = MOCK_MESSAGES_DATA.contacts.map(contact => ({
-          id: contact.id,
-          from: contact.name,
-          email: `${contact.name.toLowerCase().replace(' ', '.')}@mock-tenant.com`,
-          subject: contact.role,
-          message: contact.lastMessage,
-          priority: contact.unreadCount > 0 ? 'high' : 'low',
-          timestamp: new Date(contact.timestamp).toLocaleString(),
-          status: contact.unreadCount > 0 ? 'unread' : 'read',
-          conversation_id: contact.id
-        }));
-        setAdminMessages(mockMessages);
-    //   } else {
-    //     const { adminApi } = await import('@/services/adminApi');
-    //     const conversationsResponse = await adminApi.getConversations({ limit: 50 });
-    //     if (conversationsResponse.success) {
-    //       const messages = conversationsResponse.conversations.map(conv => ({
-    //         id: conv.id.toString(),
-    //         from: conv.user_name,
-    //         email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
-    //         subject: conv.subject,
-    //         message: `Conversation with ${conv.unread_count} unread messages`,
-    //         priority: conv.unread_count > 0 ? 'high' : 'low',
-    //         timestamp: conv.last_message_at || conv.created_at,
-    //         status: conv.unread_count > 0 ? 'unread' : 'read',
-    //         conversation_id: conv.id
-    //       }));
-    //       setAdminMessages(messages);
-    //     }
-    //   }
+      //   if (isLocalhost) {
+      const mockMessages = MOCK_MESSAGES_DATA.contacts.map(contact => ({
+        id: contact.id,
+        from: contact.name,
+        email: `${contact.name.toLowerCase().replace(' ', '.')}@mock-tenant.com`,
+        subject: "Platform Support Inquiry", // Updated to reflect platform system help
+        message: contact.lastMessage,
+        timestamp: new Date(contact.timestamp).toLocaleString(),
+        status: contact.unreadCount > 0 ? 'unread' : 'read',
+        conversation_id: contact.id
+      }));
+      setAdminMessages(mockMessages);
+      //   } else {
+      //     const { adminApi } = await import('@/services/adminApi');
+      //     const conversationsResponse = await adminApi.getConversations({ limit: 50 });
+      //     if (conversationsResponse.success) {
+      //       const messages = conversationsResponse.conversations.map(conv => ({
+      //         id: conv.id.toString(),
+      //         from: conv.user_name,
+      //         email: `${conv.user_name.toLowerCase().replace(' ', '.')}@tenant.com`,
+      //         subject: conv.subject,
+      //         message: `Conversation with ${conv.unread_count} unread messages`,
+      //         timestamp: conv.last_message_at || conv.created_at,
+      //         status: conv.unread_count > 0 ? 'unread' : 'read',
+      //         conversation_id: conv.id
+      //       }));
+      //       setAdminMessages(messages);
+      //     }
+      //   }
     } catch (error) {
       toast({ title: "Error", description: "Failed to load messages", variant: "destructive" });
     } finally {
@@ -69,45 +67,45 @@ export const AdminMessages = () => {
   const handleViewConversation = async (message: any) => {
     setSelectedMessage(message);
     if (message.conversation_id) {
-    //   if (isLocalhost) {
-        const mockConvo = MOCK_MESSAGES_DATA.conversations[message.conversation_id as keyof typeof MOCK_MESSAGES_DATA.conversations];
-        if (mockConvo) {
-          const transformedMessages = mockConvo.map(msg => ({
-            id: msg.id,
-            text: msg.text,
-            sender: msg.senderId === 'admin' ? 'admin' : 'user',
-            timestamp: msg.timestamp,
-            senderName: msg.senderId === 'admin' ? 'Admin' : message.from,
-            attachments: []
-          }));
-          setConversationMessages(transformedMessages);
-        } else {
-          setConversationMessages([]);
-        }
-    //   } else {
-    //     try {
-    //       const { adminApi } = await import('@/services/adminApi');
-    //       const response = await adminApi.getConversationMessages(message.conversation_id);
-    //       if (response.success) {
-    //         const transformedMessages = response.messages.map(msg => ({
-    //           id: msg.id.toString(),
-    //           text: msg.message_text,
-    //           sender: msg.sender_type === 'admin' ? 'admin' : 'user',
-    //           timestamp: msg.created_at,
-    //           senderName: msg.sender_name,
-    //           attachments: msg.attachment_url ? [{
-    //             name: msg.attachment_name,
-    //             size: msg.attachment_size,
-    //             type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
-    //             url: msg.attachment_url
-    //           }] : []
-    //         }));
-    //         setConversationMessages(transformedMessages);
-    //       }
-    //     } catch (error) {
-    //       toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
-    //     }
-    //   }
+      //   if (isLocalhost) {
+      const mockConvo = MOCK_MESSAGES_DATA.conversations[message.conversation_id as keyof typeof MOCK_MESSAGES_DATA.conversations];
+      if (mockConvo) {
+        const transformedMessages = mockConvo.map(msg => ({
+          id: msg.id,
+          text: msg.text,
+          sender: msg.senderId === 'admin' ? 'admin' : 'user',
+          timestamp: msg.timestamp,
+          senderName: msg.senderId === 'admin' ? 'Admin' : message.from,
+          attachments: []
+        }));
+        setConversationMessages(transformedMessages);
+      } else {
+        setConversationMessages([]);
+      }
+      //   } else {
+      //     try {
+      //       const { adminApi } = await import('@/services/adminApi');
+      //       const response = await adminApi.getConversationMessages(message.conversation_id);
+      //       if (response.success) {
+      //         const transformedMessages = response.messages.map(msg => ({
+      //           id: msg.id.toString(),
+      //           text: msg.message_text,
+      //           sender: msg.sender_type === 'admin' ? 'admin' : 'user',
+      //           timestamp: msg.created_at,
+      //           senderName: msg.sender_name,
+      //           attachments: msg.attachment_url ? [{
+      //             name: msg.attachment_name,
+      //             size: msg.attachment_size,
+      //             type: msg.attachment_type?.startsWith('image/') ? 'image' : 'document',
+      //             url: msg.attachment_url
+      //           }] : []
+      //         }));
+      //         setConversationMessages(transformedMessages);
+      //       }
+      //     } catch (error) {
+      //       toast({ title: "Error", description: "Failed to load conversation messages", variant: "destructive" });
+      //     }
+      //   }
     }
     setViewingConversation(true);
   };
@@ -119,24 +117,24 @@ export const AdminMessages = () => {
     }
 
     // if (isLocalhost) {
-      const newMessage = {
-        id: `mock_reply_${Date.now()}`,
-        text: replyText.trim(),
-        sender: 'admin',
-        timestamp: new Date().toISOString(),
-        senderName: 'Admin',
-        attachments: attachedFiles.map(file => ({
-          name: file.name,
-          size: formatFileSize(file.size),
-          type: file.type.startsWith('image/') ? 'image' : 'document',
-          url: URL.createObjectURL(file)
-        }))
-      };
-      setConversationMessages(prev => [...prev, newMessage]);
-      toast({ title: "Mock Reply Sent", description: `Reply appended locally for ${selectedMessage?.from}` });
-      setReplyText('');
-      setAttachedFiles([]);
-      return;
+    const newMessage = {
+      id: `mock_reply_${Date.now()}`,
+      text: replyText.trim(),
+      sender: 'admin',
+      timestamp: new Date().toISOString(),
+      senderName: 'Admin',
+      attachments: attachedFiles.map(file => ({
+        name: file.name,
+        size: formatFileSize(file.size),
+        type: file.type.startsWith('image/') ? 'image' : 'document',
+        url: URL.createObjectURL(file)
+      }))
+    };
+    setConversationMessages(prev => [...prev, newMessage]);
+    toast({ title: "Reply Sent", description: `Reply sent to ${selectedMessage?.from}` });
+    setReplyText('');
+    setAttachedFiles([]);
+    return;
     // }
 
     // try {
@@ -229,8 +227,8 @@ export const AdminMessages = () => {
               <ArrowLeft className="w-4 h-4" />
             </Button>
           )}
-          <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
-          {viewingConversation ? `Conversation with ${selectedMessage?.from}` : 'Admin Messages'}
+          {/* <MessageSquare className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" /> */}
+          {viewingConversation ? `Conversation with ${selectedMessage?.from}` : 'Messages'}
           <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">(All Messages here are dummy data)</p>
         </CardTitle>
       </CardHeader>
@@ -325,18 +323,15 @@ export const AdminMessages = () => {
               ) :
                 adminMessages.map((message) => (
               <div key={message.id} onClick={() => handleViewConversation(message)} className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                  message.status === 'unread' ? 'bg-gray-100 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-800' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/30'
+                  message.status === 'unread' ? 'bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-800' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/30'
                 }`}>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center space-x-2">
                         <h3 className="font-semibold text-gray-800 dark:text-gray-200">{message.from}</h3>
-                        <Badge variant={message.priority === 'high' ? 'destructive' : message.priority === 'medium' ? 'default' : 'secondary'}>
-                          {message.priority.toUpperCase()}
-                        </Badge>
                         {message.status === 'unread' && (
-                          <Badge variant="outline" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600">NEW</Badge>
+                          <Badge variant="outline" className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600">NEW</Badge>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-500">{message.timestamp}</p>
