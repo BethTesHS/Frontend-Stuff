@@ -112,6 +112,9 @@ export const API_ENDPOINTS = {
     USERS: '/admin/users',
     SUSPEND_USER: (userId: string) => `/admin/users/${userId}/suspend`,
     UNSUSPEND_USER: (userId: string) => `/admin/users/${userId}/unsuspend`,
+    
+    TASKS: "/admin/tasks",
+    TASK_ACTION: (taskId: string) => `/admin/tasks/${taskId}/action`,
   },
 
   BUYER: {

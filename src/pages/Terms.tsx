@@ -2,6 +2,7 @@
 import Layout from '@/components/Layout/Layout';
 import { FileText, Scale, Shield, Users, AlertCircle, Gavel } from 'lucide-react';
 
+
 const Terms = () => {
   return (
     <Layout>

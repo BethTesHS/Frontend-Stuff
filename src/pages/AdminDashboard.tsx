@@ -11,6 +11,7 @@ import { AdminUsers } from '@/components/AdminDashboard/AdminUsers';
 import { AdminVerifications } from '@/components/AdminDashboard/AdminVerifications';
 import { AdminMessages } from '@/components/AdminDashboard/AdminMessages';
 import { AdminSupport } from '@/components/AdminDashboard/AdminSupport';
+import AdminTask from '@/components/AdminDashboard/AdminTask';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -76,6 +77,7 @@ const AdminDashboard = () => {
         return <AdminVerifications />;
       case "messages": 
         return <AdminMessages />;
+      case "tasks": return <AdminTask />;
       case "support": 
         return <AdminSupport stats={stats} />;
       default: 

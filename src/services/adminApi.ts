@@ -57,6 +57,22 @@ interface AdminStatsResponse {
   };
   generated_at: string;
 }
+export interface Task {
+  id: string;
+  name: string;
+  status: 'running' | 'pending' | 'completed' | 'failed';
+  duration: string;
+  eta?: string;
+  finishedAt?: string;
+  failedAt?: string;
+  error?: string;
+}
+
+export interface TaskStats {
+  active: number;
+  idle: number;
+  offline: number;
+}
 
 class AdminApiService {
   private getAuthHeaders(): HeadersInit {
@@ -627,6 +643,34 @@ class AdminApiService {
     }
 
     return response.json();
+  }
+
+  // TASK MANAGEMENT ENDPOINTS
+  async getTasks(): Promise<{ tasks: Task[], stats: TaskStats }> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch tasks');
+    return await response.json();
+  }
+
+  // 2. Perform actions on tasks (retry, revoke, delete)
+  async performTaskAction(taskId: string, action: 'retry' | 'revoke' | 'delete'): Promise<void> {
+    const url = action === 'delete' 
+      ? `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}/${taskId}`
+      : `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_ACTION(taskId)}`;
+
+    const response = await fetch(url, {
+      method: action === 'delete' ? 'DELETE' : 'POST',
+      headers: this.getAuthHeaders(),
+      body: action !== 'delete' ? JSON.stringify({ action }) : undefined
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to ${action} task`);
+    }
   }
 }
 
