@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { AdminSidebar } from '@/components/AdminDashboard/AdminSidebar';
-import { Shield, Moon, Sun, Menu, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
+import { Shield, Moon, Sun, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Extracted Sub-Components
 import { AdminOverview } from '@/components/AdminDashboard/AdminOverview';
@@ -12,6 +12,8 @@ import { AdminVerifications } from '@/components/AdminDashboard/AdminVerificatio
 import { AdminMessages } from '@/components/AdminDashboard/AdminMessages';
 import { AdminSupport } from '@/components/AdminDashboard/AdminSupport';
 import AdminTask from '@/components/AdminDashboard/AdminTask';
+import { AdminNotifications } from '@/components/AdminDashboard/AdminNotifications';
+import { AdminNotificationDropdown } from '@/components/AdminDashboard/AdminNotificationDropdown';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -78,6 +80,8 @@ const AdminDashboard = () => {
       case "messages": 
         return <AdminMessages />;
       case "tasks": return <AdminTask />;
+      case "notifications":
+        return <AdminNotifications />;
       case "support": 
         return <AdminSupport stats={stats} />;
       default: 
@@ -147,9 +151,9 @@ const AdminDashboard = () => {
                     <Moon size={20} className="text-gray-600" />
                   )}
                 </button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg relative transition-colors">
-                  <Bell size={20} className="text-gray-600 dark:text-gray-400" />
-                </button>
+                
+                {/* Admin Notification Dropdown Component */}
+                <AdminNotificationDropdown onShowAll={() => handleTabChange('notifications')} />
               </div>
             </div>
           </div>

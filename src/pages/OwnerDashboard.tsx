@@ -9,7 +9,7 @@ import { OwnerSidebar } from '@/components/OwnerDashboard/OwnerSidebar';
 import { OwnerMessages } from '@/components/OwnerDashboard/OwnerMessages';
 import { OwnerBookings } from '@/components/OwnerDashboard/OwnerBookings';
 import { OwnerCalendar } from '@/components/OwnerDashboard/OwnerCalendar';
-import NotificationsComponent from '@/components/TenantDashboard/NotificationsComponent';
+import NotificationsComponent from '@/components/TenantDashboard/TenantNotifications';
 import {
   Home,
   DollarSign,

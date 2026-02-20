@@ -2,13 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Search, Calendar, AlertTriangle, CheckCircle, MessageSquare, User, Filter, Loader2, RefreshCw } from 'lucide-react';
+import { Bell, Search, Calendar, AlertTriangle, CheckCircle, MessageSquare, User, Filter, Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { notificationApi, type Notification, type NotificationListResponse } from '@/services/api';
+import { notificationApi, type Notification } from '@/services/api';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
 
-const NotificationsComponent = ({ user }: { user?: any }) => {
+export const AdminNotifications = () => {
   const { unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
   // State management
@@ -40,7 +40,7 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
         type: filterType,
         search: searchTerm || undefined,
         unread_only: false,
-        user_role: user?.role || 'external_tenant' // External tenants have no role
+        user_role: 'admin' // Force admin role
       });
 
       if (response.success && response.data) {
@@ -62,7 +62,7 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.per_page, filterType, searchTerm, user?.role]);
+  }, [pagination.per_page, filterType, searchTerm]);
 
   // Handle initial load and filter/search changes with debouncing to prevent duplicate requests
   useEffect(() => {
@@ -122,13 +122,6 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
     }
   };
 
-  // Refresh notifications
-  const refreshNotifications = () => {
-    setSearchTerm('');
-    setFilterType('all');
-    fetchNotifications(1);
-  };
-
   const getNotificationIcon = (type: Notification['type']) => {
     const iconClass = "w-6 h-6 text-gray-600 dark:text-gray-400";
     switch (type) {
@@ -172,50 +165,24 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header with integrated search and actions */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6">
-          {/* Title Section */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-xl bg-gray-600 dark:bg-gray-700 flex items-center justify-center mr-3">
-                <Bell className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-                  Notifications
-                </h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Stay updated with all your platform activities
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
+          {/* Title Section equivalent space */}
+          <div className="flex items-center space-x-2">
+            {unreadCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshNotifications}
-                disabled={loading}
-                className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                onClick={markAllNotificationsAsRead}
+                disabled={isMarkingAllRead}
+                className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                {isMarkingAllRead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Mark all read ({unreadCount})
               </Button>
-              {unreadCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={markAllNotificationsAsRead}
-                  disabled={isMarkingAllRead}
-                  className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  {isMarkingAllRead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Mark all read ({unreadCount})
-                </Button>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
@@ -238,6 +205,7 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
                 <option value="resolved">Resolved</option>
                 <option value="viewing">Viewings</option>
                 <option value="inquiry">Inquiries</option>
+                <option value="message">Messages</option>
                 <option value="general">General</option>
               </select>
             </div>
@@ -359,5 +327,3 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
     </div>
   );
 };
-
-export default NotificationsComponent;

@@ -58,7 +58,7 @@ import { Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import AgentMessages from "@/components/AgentDashboard/AgentMessages";
-import NotificationsComponent from "@/components/TenantDashboard/NotificationsComponent";
+import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import { DAYS_FULL } from '../constants/calendar';
 import { detectConflicts, transformViewingsToEvents } from '../utils/calendarUtils';
 import { FilterToggle } from "@/components/Calendar/FilterToggle";

@@ -82,7 +82,7 @@ import {
 } from "@/components/ui/sheet";
 import NotificationDropdown from "@/components/Notifications/NotificationDropdown";
 import AgentMessages from "@/components/AgentDashboard/AgentMessages";
-import NotificationsComponent from "@/components/TenantDashboard/NotificationsComponent";
+import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import TenantApprovalRequests from '@/components/TenantApproval/TenantApprovalRequests';
 import ScheduledViewingsList from '@/components/Schedule/ScheduledViewingsList';
 import AgentRequestsView from '@/components/AgentRequests/AgentRequestsView';

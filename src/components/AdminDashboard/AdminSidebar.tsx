@@ -7,7 +7,8 @@ import {
   X,
   Shield,
   Users,
-  Activity
+  Activity,
+  Bell
 } from "lucide-react"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
 
@@ -34,6 +35,7 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Verifications", value: "verifications", icon: UserCheck },
     { title: "Messages", value: "messages", icon: MessageSquare },
     { title: "Task Monitor", value: "tasks", icon: Activity },
+    { title: "Notifications", value: "notifications", icon: Bell },
     { title: "Support", value: "support", icon: HelpCircle },
   ]
 
@@ -45,20 +47,17 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
   }
 
   const handleLogout = async () => {
-    // Use the AdminAuthContext logout method which handles token cleanup and refresh cancellation
     await logout()
   }
 
   return (
     <aside className={`fixed lg:relative h-screen bg-white dark:bg-gray-900 shadow-lg border-r border-gray-200 dark:border-gray-800 z-50 transition-all duration-300 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isCollapsed ? 'w-20' : 'w-64'}`}>
-      {/* Close Button */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-end lg:hidden flex-shrink-0">
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
           <X className="text-xl" />
         </button>
       </div>
 
-      {/* Admin Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
           <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-700 dark:from-blue-600 dark:to-blue-800 rounded-full flex items-center justify-center">
@@ -78,7 +77,6 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
         )}
       </div>
 
-      {/* Navigation Items - Scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
         {navigationItems.map((item) => (
           <div
@@ -99,7 +97,6 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
         ))}
       </div>
 
-      {/* Logout Button */}
       <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
         <button
           onClick={handleLogout}
