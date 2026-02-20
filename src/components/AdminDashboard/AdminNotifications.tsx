@@ -6,6 +6,7 @@ import { Bell, Search, Calendar, AlertTriangle, CheckCircle, MessageSquare, User
 import { useState, useEffect, useCallback } from 'react';
 import { notificationApi, type Notification } from '@/services/api';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { getAuthToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
 export const AdminNotifications = () => {
@@ -31,6 +32,10 @@ export const AdminNotifications = () => {
 
   // Fetch notifications with useCallback to prevent infinite re-renders
   const fetchNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (!getAuthToken()) {
+      setLoading(false);
+      return;
+    }
     try {
       if (!append) setLoading(true);
 

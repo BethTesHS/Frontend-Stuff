@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { notificationApi, type Notification } from '@/services/api';
+import { getAuthToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
 interface AdminNotificationDropdownProps {
@@ -22,6 +23,7 @@ export const AdminNotificationDropdown = ({ onShowAll }: AdminNotificationDropdo
 
   const fetchNotifications = async () => {
     if (loading) return;
+    if (!getAuthToken()) return;
     setLoading(true);
     try {
       const response = await notificationApi.getNotifications({
