@@ -269,8 +269,8 @@ export default function Messages({ initialContext }: MessagesProps) {
               <ArrowLeft className="w-4 h-4" />
             </Button>
           )}
-          <MessageSquare className="w-5 h-5 mr-2 text-muted-foreground" />
-          {viewingConversation ? `Chat with ${currentGroupedConversation?.user_name}` : 'Messages'}
+          {/* <MessageSquare className="w-5 h-5 mr-2 text-muted-foreground" /> */}
+          {viewingConversation ? `${currentGroupedConversation?.user_name}` : 'Messages'}
           {isLocalhost && <span className="ml-2 text-xs text-muted-foreground font-normal bg-muted px-2 py-1 rounded-full">(Mock Data)</span>}
         </CardTitle>
       </CardHeader>

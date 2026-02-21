@@ -41,12 +41,7 @@ export function TenantSidebar({
 
   const navigationItems: NavigationItem[] = [
     { title: "Dashboard", value: "dashboard", icon: Home },
-    {
-      title: "Verify Tenancy",
-      value: "verification",
-      icon: UserCheck,
-      color: "text-orange-600 dark:text-orange-500",
-      badge: !user?.tenantVerified && user?.isPlatformTenant
+    { title: "Verify Tenancy", value: "verification", icon: UserCheck, badge: !user?.tenantVerified && user?.isPlatformTenant
     },
     { title: "My Complaints", value: "complaints", icon: ClipboardList },
     { title: "Messages", value: "messages", icon: MessageSquare },
