@@ -74,7 +74,7 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-          <div className="w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
           {!isCollapsed && (

@@ -41,8 +41,7 @@ export function TenantSidebar({
 
   const navigationItems: NavigationItem[] = [
     { title: "Dashboard", value: "dashboard", icon: Home },
-    { title: "Verify Tenancy", value: "verification", icon: UserCheck, badge: !user?.tenantVerified && user?.isPlatformTenant
-    },
+    { title: "Verify Tenancy", value: "verification", icon: UserCheck, badge: !user?.tenantVerified && user?.isPlatformTenant },
     { title: "My Complaints", value: "complaints", icon: ClipboardList },
     { title: "Messages", value: "messages", icon: MessageSquare },
     { title: "Agent", value: "agent", icon: UserCheck },
@@ -83,7 +82,7 @@ export function TenantSidebar({
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 rounded-full flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
           {!isCollapsed && (

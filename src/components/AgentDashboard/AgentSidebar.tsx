@@ -13,7 +13,6 @@ import {
   Building
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 
 interface AgentSidebarProps {
@@ -82,7 +81,7 @@ export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-          <div className="w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
           {!isCollapsed && (

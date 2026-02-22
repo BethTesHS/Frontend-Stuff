@@ -1,4 +1,3 @@
-
 import {
   Building2,
   MessageCircle,
@@ -7,16 +6,13 @@ import {
   User,
   Eye,
   Bell,
-  Home,
   LogOut,
   X,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { useState } from "react"
 
 interface OwnerSidebarProps {
   activeTab: string;
@@ -24,6 +20,7 @@ interface OwnerSidebarProps {
   onCollapseChange?: (isCollapsed: boolean) => void;
   isOpen?: boolean;
   onClose?: () => void;
+  isCollapsed?: boolean;
 }
 
 const navigationItems = [
@@ -37,10 +34,16 @@ const navigationItems = [
   { title: "Profile", value: "profile", icon: User },
 ]
 
-export function OwnerSidebar({ activeTab, onTabChange, onCollapseChange, isOpen = true, onClose }: OwnerSidebarProps) {
+export function OwnerSidebar({ 
+  activeTab, 
+  onTabChange, 
+  onCollapseChange, 
+  isOpen = true, 
+  onClose,
+  isCollapsed = false 
+}: OwnerSidebarProps) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const handleTabClick = (tabValue: string) => {
     onTabChange(tabValue)
@@ -79,7 +82,7 @@ export function OwnerSidebar({ activeTab, onTabChange, onCollapseChange, isOpen 
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
-          <div className="w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
           {!isCollapsed && (
