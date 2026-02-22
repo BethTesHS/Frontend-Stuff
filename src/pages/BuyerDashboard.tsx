@@ -160,17 +160,21 @@ const BuyerDashboard = () => {
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <Menu className="text-xl" />
+                  <Menu size={20} className="text-gray-600 dark:text-gray-400" />
                 </button>
 
                 <button
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="hidden lg:block text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  className="hidden lg:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
-                  {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                  {sidebarCollapsed ? (
+                    <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
+                  )}
                 </button>
 
                 <div className="relative hidden md:block">

@@ -147,18 +147,22 @@ const OwnerDashboard = () => {
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() => setSidebarOpen(true)}
-                    className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                    className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   >
-                    <Menu className="text-xl" />
+                    <Menu size={20} className="text-gray-600 dark:text-gray-400" />
                   </button>
 
                   {/* Sidebar Collapse Toggle (Desktop only) */}
                   <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="hidden lg:block text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                    className="hidden lg:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                     title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                   >
-                    {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                    {isSidebarCollapsed ? (
+                      <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
+                    )}
                   </button>
 
                   {/* Search Bar */}
@@ -179,10 +183,14 @@ const OwnerDashboard = () => {
                   {/* Theme Toggle */}
                   <button
                     onClick={toggleTheme}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-                    title="Toggle theme"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                   >
-                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    {theme === 'dark' ? (
+                      <Sun size={20} className="text-yellow-500" />
+                    ) : (
+                      <Moon size={20} className="text-gray-600 dark:text-gray-400" />
+                    )}
                   </button>
 
                   {/* Notifications Dropdown Wrapper */}

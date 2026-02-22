@@ -1,428 +1,253 @@
-import React, { useState, useEffect } from 'react';
-// Removed Card imports - using glass morphism divs instead
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAgency } from '@/contexts/AgencyContext';
-import LoadingSpinner from '@/components/ui/loading-spinner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import AgencyLayout from '@/components/Layout/AgencyLayout';
-import { AgencyAgents } from '@/components/Agency/AgencyAgents';
-import { AgencyMessages } from '@/components/Agency/AgencyMessages';
-import { AgencyProperties } from '@/components/Agency/AgencyProperties';
-import { AgencySettings } from '@/components/Agency/AgencySettings';
-import { AgencyViewings } from '@/components/Agency/AgencyViewings';
-import { AgencyAnalytics } from '@/components/Agency/AgencyAnalytics';
-import { AgencyTenants } from '@/components/Agency/AgencyTenants';
-import { AgencyReports } from '@/components/Agency/AgencyReports';
-import {
-  Building2,
-  Users,
-  Star,
-  TrendingUp,
-  MessageSquare,
-  Calendar,
-  Plus,
-  UserPlus,
-  FileText,
-  Activity,
-  Zap
-} from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  agencyAnalyticsApi,
-  agencyAgentsApi,
-  agencyPropertiesApi,
-  agencyViewingsApi,
-  type DashboardAnalytics
-} from '@/services/agencyApi';
+// src/pages/AgentDashboard.tsx
+import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
-const AgencyDashboard = () => {
-  const { agency, isAgencyMode, loading, error } = useAgency();
-  const location = useLocation();
+import { AgentSidebar } from '@/components/AgentDashboard/AgentSidebar';
+import { AgentNotificationDropdown } from '@/components/AgentDashboard/AgentNotificationDropdown';
+import { AgentOverview } from '@/components/AgentDashboard/AgentOverview';
+import { AgentProperties } from '@/components/AgentDashboard/AgentProperties';
+import { AgentRequests } from '@/components/AgentDashboard/AgentRequests';
+import { AgentApprovals } from '@/components/AgentDashboard/AgentApprovals';
+import { AgentViewings } from '@/components/AgentDashboard/AgentViewings';
+import { AgentInquiries } from '@/components/AgentDashboard/AgentInquiries';
+import { AgentComplaints } from '@/components/AgentDashboard/AgentComplaints';
+import { AgentProfile } from '@/components/AgentDashboard/AgentProfile';
+import Messages from "@/components/Messages/Messages";
+import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
+import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
+
+import {
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  LogOut,
+  Moon,
+  Sun,
+  ChevronDown,
+  User,
+  Settings
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+const AgentDashboard = () => {
+  const { loading, hasAccess, user } = useAuthGuard(['agent'], false);
+  const { logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
-
-  // Handle URL routing for different sections
-  useEffect(() => {
-    const path = location.pathname;
-    if (path === '/agents') setActiveTab('agents');
-    else if (path === '/messages') setActiveTab('messages');
-    else if (path === '/properties') setActiveTab('properties');
-    else if (path === '/viewings') setActiveTab('viewings');
-    else if (path === '/analytics') setActiveTab('analytics');
-    else if (path === '/reports') setActiveTab('reports');
-    else if (path === '/tenants') setActiveTab('tenants');
-    else if (path === '/settings') setActiveTab('settings');
-    else setActiveTab('dashboard');
-  }, [location.pathname]);
+  const location = useLocation();
+  const isMobile = useIsMobile();
+  const { theme, toggleTheme } = useTheme();
+  
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!isAgencyMode || !agency) return;
+    if (!isMobile) {
+      setSidebarOpen(true);
+    } else {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
 
-      setDashboardLoading(true);
-      setDashboardError(null);
-
-      try {
-        const analytics = await agencyAnalyticsApi.getDashboard('30d');
-        setDashboardData(analytics);
-      } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-        setDashboardError(err instanceof Error ? err.message : 'Failed to load dashboard data');
-      } finally {
-        setDashboardLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [agency, isAgencyMode]);
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.message) {
+      toast.success(state.message);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   const handleTabChange = (tab: string) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const agencyParam = urlParams.get('agency');
-    
-    let routePath = '/dashboard';
-    if (tab === 'properties') routePath = '/properties';
-    else if (tab === 'agents') routePath = '/agents';
-    else if (tab === 'messages') routePath = '/messages';
-    else if (tab === 'viewings') routePath = '/viewings';
-    else if (tab === 'analytics') routePath = '/analytics';
-    else if (tab === 'reports') routePath = '/reports';
-    else if (tab === 'tenants') routePath = '/tenants';
-    else if (tab === 'settings') routePath = '/settings';
-    
-    const newPath = agencyParam ? `${routePath}?agency=${agencyParam}` : routePath;
-    navigate(newPath);
+    if (tab === 'post-spare-room') {
+      navigate('/post-spare-room');
+      return;
+    }
+    if (tab === 'add-property') {
+      navigate('/list-property');
+      return;
+    }
+
+    flushSync(() => {
+      setActiveTab(tab);
+    });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading Agent Dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  if (error || !isAgencyMode) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Alert className="max-w-md">
-          <AlertDescription>
-            {error || 'This page is only accessible from an agency subdomain.'}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+  if (!hasAccess) {
+    return null;
   }
-
-  if (!agency) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Alert className="max-w-md">
-          <AlertDescription>
-            Agency not found. Please check the URL and try again.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const agencyStats = {
-    totalProperties: dashboardData?.total_properties || 0,
-    totalAgents: dashboardData?.total_agents || 0,
-    totalViewings: dashboardData?.total_viewings || 0,
-    totalTenants: dashboardData?.total_tenants || 0,
-    totalRevenue: dashboardData?.total_revenue || 0,
-    period: dashboardData?.period || '30d'
-  };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'agents':
-        return <AgencyAgents />;
-      case 'messages':
-        return <AgencyMessages />;
-      case 'properties':
-        return <AgencyProperties />;
-      case 'viewings':
-        return <AgencyViewings />;
-      case 'analytics':
-        return <AgencyAnalytics />;
-      case 'reports':
-        return <AgencyReports />;
-      case 'tenants':
-        return <AgencyTenants />;
-      case 'settings':
-        return <AgencySettings />;
-      default:
-        return (
-          <div className="space-y-6">
-            {dashboardError && (
-              <Alert variant="destructive">
-                <AlertDescription>{dashboardError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-primary/10">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2">
-                    Welcome back to {agency?.name}
-                  </h1>
-                  <p className="text-muted-foreground text-base">
-                    Here's what's happening with your agency today
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTabChange('viewings')}
-                    className="rounded-xl shadow-sm hover:shadow"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Viewing
-                  </Button>
-                  <Button
-                    onClick={() => handleTabChange('properties')}
-                    className="rounded-xl shadow-sm hover:shadow-md"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Property
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            {dashboardLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="glass-card p-6 rounded-xl">
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                      <div className="h-8 bg-muted rounded w-3/4"></div>
-                      <div className="h-3 bg-muted rounded w-full"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="glass-stat-card p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
-                  <div className="flex flex-row items-center justify-between space-y-0 pb-3 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Total Properties</h3>
-                    <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold mb-1">{agencyStats.totalProperties}</div>
-                    <p className="text-sm text-muted-foreground">
-                      Properties managed
-                    </p>
-                  </div>
-                </div>
-
-                <div className="glass-stat-card p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
-                  <div className="flex flex-row items-center justify-between space-y-0 pb-3 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Active Agents</h3>
-                    <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold mb-1">{agencyStats.totalAgents}</div>
-                    <p className="text-sm text-muted-foreground">
-                      Team members
-                    </p>
-                  </div>
-                </div>
-
-                <div className="glass-stat-card p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
-                  <div className="flex flex-row items-center justify-between space-y-0 pb-3 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Total Viewings</h3>
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold mb-1">{agencyStats.totalViewings}</div>
-                    <p className="text-sm text-muted-foreground">
-                      Last {agencyStats.period}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="glass-stat-card p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
-                  <div className="flex flex-row items-center justify-between space-y-0 pb-3 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Total Revenue</h3>
-                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold mb-1">
-                      £{agencyStats.totalRevenue.toLocaleString()}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Last {agencyStats.period}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Recent Activity & Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-5">
-              <div className="glass-card p-6 rounded-xl">
-                <div className="pb-4 mb-4">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold">
-                    <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    Recent Activity
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">New property viewing booked</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">3 Bed House in Kensington</p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">Today</Badge>
-                  </div>
-                  <div className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">Agent added new listing</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Sarah Wilson - 2 Bed Flat</p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">Yesterday</Badge>
-                  </div>
-                  <div className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">Property sold</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">4 Bed House - £2.1M</p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">2 days ago</Badge>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-xl">
-                <div className="pb-4 mb-4">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold">
-                    <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    Quick Actions
-                  </h3>
-                </div>
-                <div className="space-y-3">
-                  <Button
-                    className="w-full justify-start h-11 rounded-lg shadow-sm hover:shadow"
-                    variant="outline"
-                    onClick={() => handleTabChange('properties')}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Property
-                  </Button>
-                  <Button
-                    className="w-full justify-start h-11 rounded-lg shadow-sm hover:shadow"
-                    variant="outline"
-                    onClick={() => handleTabChange('agents')}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Invite Agent
-                  </Button>
-                  <Button className="w-full justify-start h-11 rounded-lg shadow-sm hover:shadow" variant="outline">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Schedule Viewing
-                  </Button>
-                  <Button className="w-full justify-start h-11 rounded-lg shadow-sm hover:shadow" variant="outline">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generate Report
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Performance Overview */}
-            <div className="grid md:grid-cols-3 gap-5">
-              <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-card to-card/50">
-                <div className="mb-4">
-                  <h3 className="text-base font-semibold">This Month</h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                    <span className="text-sm text-muted-foreground">Properties Sold</span>
-                    <span className="font-bold text-lg">12</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                    <span className="text-sm text-muted-foreground">New Listings</span>
-                    <span className="font-bold text-lg">8</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                    <span className="text-sm text-muted-foreground">Viewings Booked</span>
-                    <span className="font-bold text-lg">45</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-card to-card/50">
-                <div className="mb-4">
-                  <h3 className="text-base font-semibold">Top Performing Agent</h3>
-                </div>
-                <div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center ring-2 ring-primary/20">
-                      <span className="text-base font-bold text-primary-foreground">JS</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-base">John Smith</p>
-                      <p className="text-sm text-muted-foreground">5 sales this month</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-card to-card/50">
-                <div className="mb-4">
-                  <h3 className="text-base font-semibold">Revenue Goal</h3>
-                </div>
-                <div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Target</span>
-                      <span className="font-bold text-base">£50,000</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Achieved</span>
-                      <span className="font-bold text-base text-green-600 dark:text-green-400">£45,000</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                        <div className="bg-gradient-to-r from-primary to-blue-600 h-3 rounded-full w-[90%] transition-all duration-500"></div>
-                      </div>
-                      <p className="text-xs text-muted-foreground text-center font-medium">90% of monthly target</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      case "properties": return <AgentProperties />;
+      case "messages": return <Messages />;
+      case "requests": return <AgentRequests />;
+      case "approvals": return <AgentApprovals />;
+      case "viewings": return <AgentViewings />;
+      case "inquiries": return <AgentInquiries />;
+      case "complaints": return <AgentComplaints />;
+      case "spare-rooms": return <SpareRoomListings userRole="agent" />;
+      case "notifications": return <NotificationsComponent user={user} />;
+      case "profile": return <AgentProfile user={user} />;
+      default: return <AgentOverview user={user} />;
     }
   };
 
   return (
-    <AgencyLayout activeTab={activeTab} onTabChange={handleTabChange}>
-      {renderContent()}
-    </AgencyLayout>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+      {sidebarOpen && isMobile && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <AgentSidebar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+      />
+
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <Menu size={20} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  {sidebarCollapsed ? (
+                    <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
+                <div className="relative hidden md:block">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="text-gray-400 dark:text-gray-500" size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search properties, clients..."
+                    className="pl-10 pr-4 py-2 w-64 lg:w-80 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <AgentNotificationDropdown onShowAll={() => handleTabChange('notifications')} />
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                      <div className="w-10 h-10 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold">
+                          {user?.firstName?.[0] || 'B'}{user?.lastName?.[0] || 'J'}
+                        </span>
+                      </div>
+                      <div className="hidden md:block text-left">
+                        <p className="font-medium text-gray-800 dark:text-gray-200">{user?.firstName || ''} {user?.lastName || ''}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Agent</p>
+                      </div>
+                      <ChevronDown size={16} className="hidden md:block text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <DropdownMenuLabel className="text-gray-900 dark:text-gray-100">My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                    <DropdownMenuItem onClick={() => setActiveTab('profile')} className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" /> Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)} className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" /> Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
+          {renderContent()}
+        </main>
+      </div>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-gray-100">Settings</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              Customize your dashboard preferences
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Appearance</h3>
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center space-x-3">
+                  {theme === 'dark' ? <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" /> : <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />}
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Theme</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {theme === 'dark' ? 'Dark mode' : 'Light mode'}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={toggleTheme} variant="outline" size="sm" className="bg-white dark:bg-gray-800">
+                  {theme === 'dark' ? <><Sun className="h-4 w-4 mr-2" /> Light</> : <><Moon className="h-4 w-4 mr-2" /> Dark</>}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
-export default AgencyDashboard;
+export default AgentDashboard;

@@ -10,7 +10,7 @@ import { getAuthToken } from '@/utils/tokenStorage';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Menu, ChevronLeft, ChevronRight, HelpCircle, Sun, Moon } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 // Sub-components
 import { TenantSidebar } from "@/components/TenantDashboard/TenantSidebar";
@@ -172,11 +172,6 @@ const TenantDashboard = () => {
     <div className="min-h-screen flex w-full">
       {isMobile && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-40 lg:hidden bg-background shadow-lg">
-              <Menu className="w-5 h-5" />
-            </Button>
-          </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
             <TenantSidebar activeTab={activeTab} onTabChange={setActiveTab} isOpen={true} onClose={() => setSidebarOpen(false)} isCollapsed={false} user={user} />
           </SheetContent>
@@ -184,50 +179,74 @@ const TenantDashboard = () => {
       )}
 
       {!isMobile && (
-        <>
-          <TenantSidebar activeTab={activeTab} onTabChange={setActiveTab} isOpen={sidebarOpen} isCollapsed={sidebarCollapsed} user={user} />
-          <Button variant="ghost" size="icon" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="fixed left-64 top-6 bg-background border border-border shadow-lg z-10 transition-all duration-300" style={{ left: sidebarCollapsed ? '5rem' : '16rem' }}>
-            {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </Button>
-        </>
+        <TenantSidebar activeTab={activeTab} onTabChange={setActiveTab} isOpen={sidebarOpen} isCollapsed={sidebarCollapsed} user={user} />
       )}
 
-      <main className="flex-1 overflow-auto">
-        <div className="flex flex-col h-full">
-          <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-8 py-4 bg-white dark:bg-gray-900">
-            <div className="flex flex-col gap-1">
-              {activeTab === "dashboard" ? (
-                <>
-                  <h1 className="text-gray-800 dark:text-gray-100 tracking-light text-2xl font-bold leading-tight">
-                    Welcome back, {user?.name || "Tenant"}
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    {dashboardData?.status === 'active' ? 'Manage your tenancy and property' : 'Find your perfect home and manage your platform experience'}
-                  </p>
-                </>
-              ) : (
-                <h2 className="text-gray-800 dark:text-gray-100 text-xl font-bold leading-tight tracking-[-0.015em]">
-                  {getTabTitle(activeTab)}
-                </h2>
-              )}
-            </div>
-            <div className="flex items-center gap-4">
-              {user?.isPlatformTenant && (
-                <VerificationStatusCircle isVerified={user?.tenantVerified || false} isPending={user?.manualVerificationStatus === 'pending'} size="md" showLabel={true} />
-              )}
-              <button onClick={toggleTheme} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-                {theme === 'dark' ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-600" />}
-              </button>
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header matched with Admin UI */}
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 flex-shrink-0">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
               
-              <TenantNotificationDropdown onShowAll={() => setActiveTab('notifications')} userRole={user?.role || 'tenant'} />
-              
-              <Button variant="ghost" size="icon" className="bg-muted hover:bg-muted/80">
-                <HelpCircle className="w-5 h-5 text-muted-foreground" />
-              </Button>
-            </div>
-          </header>
+              {/* Left Side: Menu buttons and Title */}
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <Menu size={20} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {sidebarCollapsed ? (
+                    <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
 
-          <div className="flex-1 p-6 bg-background">{renderContent()}</div>
+                <div className="flex flex-col gap-1">
+                  {activeTab === "dashboard" ? (
+                    <>
+                      <h1 className="text-gray-800 dark:text-gray-100 tracking-light text-2xl font-bold leading-tight">
+                        Welcome back, {user?.name || "Tenant"}
+                      </h1>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm hidden sm:block">
+                        {dashboardData?.status === 'active' ? 'Manage your tenancy and property' : 'Find your perfect home and manage your platform experience'}
+                      </p>
+                    </>
+                  ) : (
+                    <h2 className="text-gray-800 dark:text-gray-100 text-xl font-bold leading-tight tracking-[-0.015em]">
+                      {getTabTitle(activeTab)}
+                    </h2>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Side: Theme toggle and notifications */}
+              <div className="flex items-center gap-4">
+                {user?.isPlatformTenant && (
+                  <VerificationStatusCircle isVerified={user?.tenantVerified || false} isPending={user?.manualVerificationStatus === 'pending'} size="md" showLabel={true} />
+                )}
+                <button onClick={toggleTheme} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                  {theme === 'dark' ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-600" />}
+                </button>
+                
+                <TenantNotificationDropdown onShowAll={() => setActiveTab('notifications')} userRole={user?.role || 'tenant'} />
+                
+                <Button variant="ghost" size="icon" className="bg-muted hover:bg-muted/80 hidden sm:flex">
+                  <HelpCircle className="w-5 h-5 text-muted-foreground" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+          {renderContent()}
         </div>
       </main>
     </div>
