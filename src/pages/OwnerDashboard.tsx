@@ -135,6 +135,7 @@ const OwnerDashboard = () => {
           onCollapseChange={setIsSidebarCollapsed}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed} /* <--- Add this line */
         />
 
         {/* Main Content */}
