@@ -1,36 +1,59 @@
-import { parse, addHours, areIntervalsOverlapping } from 'date-fns';
+import { parseISO, areIntervalsOverlapping } from "date-fns";
 
-export const transformViewingsToEvents = (viewings: any[]) => {
-  return viewings.map(v => ({
-    id: v.id,
-    title: v.property?.title || 'Viewing',
-    type: 'viewing',
-    date: v.viewing_date.split('T')[0],
-    startTime: v.viewing_time,
-    location: v.property?.address,
-    clientName: v.agent?.full_name || v.agent?.name || 'Agent',
-    status: v.status || 'pending'
-  }));
+export const transformViewingsToEvents = (apiEvents: any[]) => {
+  return apiEvents.map((event) => {
+    const start = event.start_datetime
+      ? parseISO(event.start_datetime)
+      : new Date();
+    const end = event.end_datetime
+      ? parseISO(event.end_datetime)
+      : new Date(start.getTime() + 3600000);
+
+    return {
+      id: event.id,
+      title: event.title || "Viewing",
+      type: event.event_type || "viewing",
+      date: event.date || event.start_datetime?.split("T")[0],
+      startTime:
+        event.startTime ||
+        event.start_datetime?.split("T")[1]?.substring(0, 5) ||
+        "00:00",
+      startISO: start,
+      endISO: end,
+      location: event.location || "Property Location",
+      clientName: event.notes || "Agent",
+      status:
+        event.status === "scheduled" || event.status === "completed"
+          ? "confirmed"
+          : event.status === "cancelled"
+            ? "cancelled"
+            : "pending",
+    };
+  });
 };
 
 export const detectConflicts = (events: any[]) => {
   return events.map((event, i) => {
-    const startStr = `${event.date} ${event.startTime}`;
-    const startA = parse(startStr, 'yyyy-MM-dd hh:mm a', new Date());
-    const endA = addHours(startA, 1);
+    if (!event.start_datetime && !event.startISO)
+      return { ...event, hasConflict: false };
+
+    const startA = event.startISO || parseISO(event.start_datetime);
+    const endA = event.endISO || parseISO(event.end_datetime);
 
     const hasConflict = events.some((otherEvent, j) => {
       if (i === j) return false;
-      if (event.date !== otherEvent.date) return false;
 
-      const otherStartStr = `${otherEvent.date} ${otherEvent.startTime}`;
-      const startB = parse(otherStartStr, 'yyyy-MM-dd hh:mm a', new Date());
-      const endB = addHours(startB, 1);
+      const startB = otherEvent.startISO || parseISO(otherEvent.start_datetime);
+      const endB = otherEvent.endISO || parseISO(otherEvent.end_datetime);
 
-      return areIntervalsOverlapping(
-        { start: startA, end: endA },
-        { start: startB, end: endB }
-      );
+      try {
+        return areIntervalsOverlapping(
+          { start: startA, end: endA },
+          { start: startB, end: endB },
+        );
+      } catch (e) {
+        return false;
+      }
     });
 
     return { ...event, hasConflict };

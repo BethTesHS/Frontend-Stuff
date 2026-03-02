@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     MY_PROPERTIES: '/properties/my-properties',
     FEATURED: '/properties/featured',
     SEARCH: '/properties/search',
+    DRAFT: '/properties/draft',
     UPDATE: (id: number) => `/properties/${id}/update`,
     UPLOAD_IMAGES: (id: number) => `/properties/${id}/upload-images`,
     SET_PRIMARY_IMAGE: (id: number, imageId: number) => `/properties/${id}/set-primary-image/${imageId}`,

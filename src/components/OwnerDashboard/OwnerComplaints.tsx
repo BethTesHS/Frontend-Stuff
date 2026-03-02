@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { complaintsApi, type Complaint } from '@/services/complaintsApi';
 import { toast } from 'sonner';
 
@@ -55,7 +56,7 @@ const urgencyColor: Record<string, string> = {
   low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
 };
 
-export const AgentComplaints = () => {
+export function OwnerComplaints() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterOption>('all');
@@ -65,7 +66,7 @@ export const AgentComplaints = () => {
     const fetchComplaints = async () => {
       try {
         setLoading(true);
-        // Fetch agent's assigned complaints
+        // Fetch all complaints visible to owner (their properties)
         const response = await complaintsApi.getAgentComplaints();
         const complaintsList = Array.isArray(response.complaints)
           ? response.complaints
@@ -100,10 +101,10 @@ export const AgentComplaints = () => {
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center">
           <AlertTriangle className="w-8 h-8 mr-3 text-red-600" />
-          Tenant Complaints
+          Property Complaints
         </h1>
         <p className="text-muted-foreground text-base">
-          Monitor and manage all tenant complaints across your assigned properties
+          Monitor and manage all tenant complaints across your properties
         </p>
       </div>
 
@@ -147,7 +148,7 @@ export const AgentComplaints = () => {
             <h3 className="text-lg font-semibold text-foreground mb-1">No complaints found</h3>
             <p className="text-muted-foreground text-sm">
               {filter === 'all'
-                ? 'You have no assigned complaints at the moment.'
+                ? 'Your properties have no complaints at the moment.'
                 : filter === 'open'
                 ? 'No open complaints.'
                 : filter === 'in_progress'
@@ -325,4 +326,4 @@ export const AgentComplaints = () => {
       </div>
     </div>
   );
-};
+}

@@ -73,14 +73,14 @@ export const TenantVerificationContent = ({ user, navigate }: any) => {
       </Alert>
 
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-200 dark:border-gray-800 p-6">
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h3 className="text-2xl font-bold text-foreground mb-2">
             Verify Your Tenancy
           </h3>
           <p className="text-muted-foreground">
             Complete the verification process below to unlock all features and start managing your tenancy.
           </p>
-        </div>
+        </div> */}
 
         <TenantVerification
           onComplete={handleVerificationComplete}

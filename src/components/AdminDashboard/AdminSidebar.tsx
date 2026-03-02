@@ -8,7 +8,8 @@ import {
   Shield,
   Users,
   Activity,
-  Bell
+  Bell,
+  Calendar
 } from "lucide-react"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
 
@@ -35,6 +36,7 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Verifications", value: "verifications", icon: UserCheck },
     { title: "Messages", value: "messages", icon: MessageSquare },
     { title: "Task Monitor", value: "tasks", icon: Activity },
+    { title: "Calendar", value: "calendar", icon: Calendar },
     { title: "Notifications", value: "notifications", icon: Bell },
     { title: "Support", value: "support", icon: HelpCircle },
   ]

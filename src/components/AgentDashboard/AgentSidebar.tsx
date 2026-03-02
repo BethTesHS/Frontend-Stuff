@@ -4,13 +4,14 @@ import {
   MessageCircle,
   AlertTriangle,
   Bell,
-  UserCog,
   LogOut,
   HelpCircle,
   Home,
   DoorClosed,
   X,
-  Building
+  Building,
+  ClipboardList,
+  Wrench
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
@@ -42,10 +43,11 @@ export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Requests", value: "requests", icon: Bell },
     { title: "Approvals", value: "approvals", icon: UserCheck },
     { title: "Viewings", value: "viewings", icon: Calendar },
+    {title: "Tenancies", value: "tenancies", icon: ClipboardList},
     { title: "Inquiries", value: "inquiries", icon: HelpCircle },
     { title: "Complaints", value: "complaints", icon: AlertTriangle },
+    { title: "Maintenance", value: "maintenance", icon: Wrench },
     { title: "Notifications", value: "notifications", icon: Bell },
-    { title: "Profile", value: "profile", icon: UserCog },
   ]
 
   const handleTabClick = (tabValue: string) => {
@@ -80,7 +82,11 @@ export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
 
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
+        >
           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-600 dark:from-gray-600 dark:to-gray-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
@@ -93,9 +99,9 @@ export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
             </div>
           )}
         </div>
-        {!isCollapsed && (
+        {/* {!isCollapsed && (
           <p className="mt-4 text-gray-600 dark:text-gray-400 text-sm">Here's what's happening with your business today</p>
-        )}
+        )} */}
       </div>
 
       {/* Navigation Items - Scrollable */}

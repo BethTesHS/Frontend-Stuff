@@ -788,6 +788,25 @@ export const propertyApi = {
       body: JSON.stringify({ status }),
     });
   },
+
+  saveDraft: async (propertyData: any): Promise<ApiResponse<{ draft: any }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.DRAFT, {
+      method: 'POST',
+      body: JSON.stringify(propertyData),
+    });
+  },
+
+  getDraft: async (): Promise<ApiResponse<{ draft: any }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.DRAFT, {
+      method: 'GET',
+    });
+  },
+
+  deleteDraft: async (): Promise<ApiResponse<{ message: string }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.DRAFT, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export const profileApi = {

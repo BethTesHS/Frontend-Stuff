@@ -4,9 +4,10 @@ import {
   MessageSquare,
   ClipboardList,
   Bell,
-  User,
   LogOut,
-  X
+  X,
+  Wrench,
+  Calendar
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Badge } from "@/components/ui/badge"
@@ -43,10 +44,12 @@ export function TenantSidebar({
     { title: "Dashboard", value: "dashboard", icon: Home },
     { title: "Verify Tenancy", value: "verification", icon: UserCheck, badge: !user?.tenantVerified && user?.isPlatformTenant },
     { title: "My Complaints", value: "complaints", icon: ClipboardList },
+    { title: "Maintenance", value: "maintenance", icon: Wrench },
     { title: "Messages", value: "messages", icon: MessageSquare },
     { title: "Agent", value: "agent", icon: UserCheck },
+    { title: "Calendar", value: "calendar", icon: Calendar },
+    { title: "Tenancy", value: "tenancy", icon: ClipboardList },
     { title: "Notifications", value: "notifications", icon: Bell },
-    { title: "Profile", value: "profile", icon: User },
   ]
 
   const handleTabClick = (tabValue: string) => {
@@ -81,7 +84,11 @@ export function TenantSidebar({
 
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
+        >
           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>

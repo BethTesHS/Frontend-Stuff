@@ -1,23 +1,46 @@
 // src/components/OwnerDashboard/OwnerProperties.tsx
 import { Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Plus } from 'lucide-react';
+import { PropertyManagementList } from '../Properties/PropertyManagementList';
+import SelectAgent from '@/pages/SelectAgent';
 
-export const OwnerProperties = () => {
+
+interface OwnerPropertiesProps {
+  onOpenListModal: () => void;
+  isSelectingAgent: boolean;
+  setIsSelectingAgent: (val: boolean) => void;
+  pendingPropertyData: any;
+}
+
+export const OwnerProperties = ({ onOpenListModal, isSelectingAgent, setIsSelectingAgent, pendingPropertyData }: OwnerPropertiesProps) => {
+
+  if (isSelectingAgent) {
+    return (
+      <SelectAgent
+        propertyData={pendingPropertyData}
+        onBack={() => setIsSelectingAgent(false)}
+      />
+    );
+  }
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">My Properties</h2>
-        <Link to="/my-properties">
-          <Button className="bg-primary hover:bg-primary/90">
-            View All Properties
-          </Button>
-        </Link>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">My Properties</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage your property listings
+          </p>
+        </div>
+        <Button
+          onClick={onOpenListModal}
+          className="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all active:scale-95"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Property
+        </Button>
       </div>
-      <div className="text-center py-8">
-        <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">Property management content will be displayed here</p>
-      </div>
+      <PropertyManagementList />
     </div>
   );
 };

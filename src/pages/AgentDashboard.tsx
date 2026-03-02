@@ -17,10 +17,12 @@ import { AgentApprovals } from '@/components/AgentDashboard/AgentApprovals';
 import { AgentViewings } from '@/components/AgentDashboard/AgentViewings';
 import { AgentInquiries } from '@/components/AgentDashboard/AgentInquiries';
 import { AgentComplaints } from '@/components/AgentDashboard/AgentComplaints';
+import { AgentMaintenance } from '@/components/AgentDashboard/AgentMaintenance';
 import { AgentProfile } from '@/components/AgentDashboard/AgentProfile';
 import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
+import { AgentTenancy } from "@/components/AgentDashboard/AgentTenancy";
 
 import {
   Menu,
@@ -50,6 +52,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import ListProperty from "@/pages/ListProperty";
 
 const AgentDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['agent'], false);
@@ -63,6 +66,7 @@ const AgentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [listPropertyOpen, setListPropertyOpen] = useState(false);
 
   useEffect(() => {
     if (!isMobile) {
@@ -86,7 +90,7 @@ const AgentDashboard = () => {
       return;
     }
     if (tab === 'add-property') {
-      navigate('/list-property');
+      setListPropertyOpen(true);
       return;
     }
 
@@ -112,14 +116,16 @@ const AgentDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "properties": return <AgentProperties />;
+      case "properties": return <AgentProperties onOpenListModal={() => setListPropertyOpen(true)} />;
       case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;
       case "viewings": return <AgentViewings />;
       case "inquiries": return <AgentInquiries />;
       case "complaints": return <AgentComplaints />;
+      case "maintenance": return <AgentMaintenance />;
       case "spare-rooms": return <SpareRoomListings userRole="agent" />;
+      case "tenancies": return <AgentTenancy />;
       case "notifications": return <NotificationsComponent user={user} />;
       case "profile": return <AgentProfile user={user} />;
       default: return <AgentOverview user={user} />;
@@ -207,7 +213,7 @@ const AgentDashboard = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
+        <main className={`flex-1 bg-gray-50 dark:bg-gray-950 ${activeTab === 'messages' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
           {renderContent()}
         </main>
       </div>
@@ -241,6 +247,12 @@ const AgentDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <ListProperty 
+        isOpen={listPropertyOpen} 
+        onClose={() => setListPropertyOpen(false)} 
+        user={user}
+        isAgencyMode={false} 
+      />
     </div>
   );
 };

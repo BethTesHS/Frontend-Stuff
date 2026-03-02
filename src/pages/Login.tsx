@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout/Layout';
 import { handleGoogleAuth } from '@/services/googleAuth';
@@ -15,6 +15,7 @@ const Login = () => {
   });
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,14 +129,21 @@ const Login = () => {
                 <div className="relative">
                   <input
                     id="password"
-                    type="password"
+                    type= {showPassword ? 'text' : 'password'}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg h-12 px-4 text-gray-800 focus:ring-2 focus:ring-blue-900 focus:outline-none"
                     placeholder="Enter your password"
                   />
-                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 

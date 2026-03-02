@@ -14,6 +14,7 @@ import AdminTask from '@/components/AdminDashboard/AdminTask';
 import { AdminNotifications } from '@/components/AdminDashboard/AdminNotifications';
 import { AdminNotificationDropdown } from '@/components/AdminDashboard/AdminNotificationDropdown';
 import Messages from "@/components/Messages/Messages";
+import { AdminCalendar } from '@/components/AdminDashboard/AdminCalendar';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -80,6 +81,7 @@ const AdminDashboard = () => {
       case "messages": 
         return <Messages />;
       case "tasks": return <AdminTask />;
+      case "calendar": return <AdminCalendar />
       case "notifications":
         return <AdminNotifications />;
       case "support": 
@@ -160,7 +162,7 @@ const AdminDashboard = () => {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
+        <main className={`flex-1 bg-gray-50 dark:bg-gray-950 ${activeTab === 'messages' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
           {renderContent()}
         </main>
       </div>

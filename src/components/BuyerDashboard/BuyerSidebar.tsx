@@ -2,7 +2,6 @@ import {
   Calendar,
   MessageCircle,
   Bell,
-  UserCog,
   LogOut,
   Home,
   X,
@@ -38,7 +37,6 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Calendar", value: "calendar", icon: Calendar },
     { title: "Notifications", value: "notifications", icon: Bell },
     { title: "History", value: "history", icon: History },
-    { title: "Profile", value: "profile", icon: UserCog },
   ]
 
   const handleTabClick = (tabValue: string) => {
@@ -73,7 +71,11 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
 
       {/* User Profile */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
+        >
           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
@@ -86,9 +88,9 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
             </div>
           )}
         </div>
-        {!isCollapsed && (
+        {/* {!isCollapsed && (
           <p className="mt-4 text-gray-600 dark:text-gray-400 text-sm">Find your dream property</p>
-        )}
+        )} */}
       </div>
 
       {/* Navigation Items - Scrollable */}

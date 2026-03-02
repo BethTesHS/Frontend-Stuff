@@ -40,7 +40,6 @@ const ExternalTenantSidebar = ({ activeTab, setActiveTab, user }: ExternalTenant
     { id: "history", label: "History", icon: Clock, color: "text-purple-500" },
     { id: "messages", label: "Messages", icon: MessageCircle, color: "text-pink-500" },
     { id: "spare-rooms", label: "My Spare Room", icon: Home, color: "text-emerald-500" },
-    { id: "profile", label: "Profile", icon: User, color: "text-green-500" },
   ];
 
   return (
@@ -98,7 +97,11 @@ const ExternalTenantSidebar = ({ activeTab, setActiveTab, user }: ExternalTenant
               Log Out
             </Button>
           )}
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-muted/60 to-muted/40 border border-border/40 shadow-sm">
+          <div
+            className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-muted/60 to-muted/40 border border-border/40 shadow-sm cursor-pointer hover:bg-muted/60 transition-colors"
+            onClick={() => setActiveTab("profile")}
+            title="View Profile"
+          >
             <div className="bg-gradient-to-br from-primary/20 to-primary-glow/20 rounded-full size-8 flex items-center justify-center border border-primary/20">
               <User className="w-4 h-4 text-primary" />
             </div>

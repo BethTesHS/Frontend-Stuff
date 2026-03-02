@@ -1,18 +1,156 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  FileText,
+  Plus,
+  AlertTriangle,
+  MapPin,
+  MessageSquare,
+  Clock,
+  CheckCircle2,
+  ListFilter,
+  Wrench,
+  Droplets,
+  Zap,
+  Thermometer,
+  Home,
+  Bug,
+  Shield,
+  Settings,
+  Volume2,
+} from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ComplaintCard } from '@/components/Complaints/ComplaintCard';
-import { ComplaintEmptyState } from '@/components/Complaints/ComplaintEmptyState';
-import { ComplaintStats } from '@/components/Complaints/ComplaintStats';
 import { useComplaintNotifications } from '@/hooks/useComplaintNotifications';
 import { ComplaintResolutionNotification } from '@/components/Complaints/ComplaintResolutionNotification';
 import { complaintsApi, Complaint as ApiComplaint, ComplaintStats as ApiComplaintStats } from '@/services/complaintsApi';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
-const MyComplaints = () => {
+type FilterOption = 'all' | 'active' | 'resolved';
+
+const filterOptions: { label: string; value: FilterOption; icon: any }[] = [
+  { label: 'All', value: 'all', icon: ListFilter },
+  { label: 'Active', value: 'active', icon: Clock },
+  { label: 'Resolved', value: 'resolved', icon: CheckCircle2 },
+];
+
+const issueIcons: Record<string, any> = {
+  'Plumbing Issues': Droplets,
+  'Electrical Problems': Zap,
+  'Heating/Cooling': Thermometer,
+  'Structural Issues': Home,
+  'Pest Control': Bug,
+  'Security Issues': Shield,
+  'Appliance Malfunction': Settings,
+  'Noise Complaints': Volume2,
+  'Window/Door Issues': Home,
+};
+
+function getIssueIcon(issueType: string) {
+  return issueIcons[issueType] || Wrench;
+}
+
+const urgencyColor: Record<string, string> = {
+  urgent: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  high: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+};
+
+interface MessagesContext {
+  subject: string;
+  agentName?: string;
+}
+
+interface ComplaintRowProps {
+  complaint: ApiComplaint;
+  onGoToMessages: (context: MessagesContext) => void;
+}
+
+const ComplaintRow = ({ complaint, onGoToMessages }: ComplaintRowProps) => {
+  const IssueIcon = getIssueIcon(complaint.issue_type);
+
+  const isOpen = complaint.status === 'open';
+  const isActive = complaint.status === 'in_progress';
+
+  const statusLabel = isOpen ? 'Open' : isActive ? 'In Progress' : 'Resolved';
+  const statusColor = isOpen
+    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    : isActive
+    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+
+  const StatusIcon = isOpen ? AlertTriangle : isActive ? Clock : CheckCircle2;
+
+  const handleMessageAgent = () => {
+    const agentNote = complaint.notes?.find(n => n.added_by !== complaint.tenant_name);
+    onGoToMessages({
+      subject: `${complaint.issue_type} - ${complaint.ticket_number}`,
+      agentName: agentNote?.added_by,
+    });
+  };
+
+  return (
+    <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="flex-shrink-0 w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+              <IssueIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">
+                {complaint.issue_type}
+              </h3>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs text-muted-foreground truncate">
+                  {complaint.house_number}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <Badge className={`text-xs ${statusColor}`}>
+              <StatusIcon className="w-3 h-3 mr-1" />
+              {statusLabel}
+            </Badge>
+            <Badge variant="outline" className={`text-xs ${urgencyColor[complaint.urgency ?? 'low'] ?? ''}`}>
+              {complaint.urgency ?? 'low'}
+            </Badge>
+          </div>
+        </div>
+
+        <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{complaint.description}</p>
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            #{complaint.ticket_number} &middot; Submitted{' '}
+            {new Date(complaint.created_at).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMessageAgent}
+            className="text-xs flex items-center gap-1 h-7 px-2"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            Message Agent
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MyComplaints = ({ onGoToMessages }: { onGoToMessages?: (context: MessagesContext) => void }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<ApiComplaint[]>([]);
@@ -24,6 +162,7 @@ const MyComplaints = () => {
     closed: 0
   });
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterOption>('all');
   const { notification, dismissNotification, submitReview } = useComplaintNotifications();
   const isVerified = user?.tenantVerified || false;
 
@@ -31,10 +170,10 @@ const MyComplaints = () => {
     try {
       setLoading(true);
       const response = await complaintsApi.getMyComplaints();
-      
+
       // Handle different response structures
       let complaintsData: ApiComplaint[] = [];
-      
+
       if (Array.isArray(response.complaints)) {
         complaintsData = response.complaints;
       } else if (response.data && Array.isArray(response.data.complaints)) {
@@ -42,9 +181,9 @@ const MyComplaints = () => {
       } else if (Array.isArray(response)) {
         complaintsData = response;
       }
-      
+
       setComplaints(complaintsData);
-      
+
       if (response.stats || (response.data && response.data.stats)) {
         const fetchedStats = response.stats || response.data.stats;
         setStats(fetchedStats);
@@ -61,17 +200,23 @@ const MyComplaints = () => {
     fetchComplaints();
   }, []);
 
-  // Use stats from API or calculate from local data
-  const totalComplaints = stats.total || complaints.length;
-  const openComplaints = stats.open || complaints.filter(c => c.status === 'open').length;
-  const inProgressComplaints = stats.in_progress || complaints.filter(c => c.status === 'in_progress').length;
-  const closedComplaints = stats.resolved || complaints.filter(c => c.status === 'resolved').length;
+  const filtered = complaints.filter(c => {
+    if (filter === 'active') return c.status === 'open' || c.status === 'in_progress';
+    if (filter === 'resolved') return c.status === 'resolved' || c.status === 'closed';
+    return true;
+  });
+
+  const counts = {
+    all: stats.total || complaints.length,
+    active: (stats.open + stats.in_progress) || complaints.filter(c => c.status === 'open' || c.status === 'in_progress').length,
+    resolved: (stats.resolved + (stats.closed ?? 0)) || complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length,
+  };
 
   return (
     <div className="space-y-6">
       {/* Verification Alert */}
       {!isVerified && (
-        <Alert className="border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-900/30">
+        <Alert className="border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20">
           <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           <AlertDescription className="text-orange-800 dark:text-orange-200">
             Please verify your tenancy to submit and manage complaints.
@@ -79,18 +224,37 @@ const MyComplaints = () => {
         </Alert>
       )}
 
-      {/* Header */}
+      {/* Filter tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent mb-2 flex items-center">
-            <FileText className="w-8 h-8 mr-3 text-emerald-600" />
-            My Complaints
-          </h1>
-          <p className="text-muted-foreground text-base">
-            Track the status of all your property maintenance complaints
-          </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {filterOptions.map(opt => {
+            const Icon = opt.icon;
+            const active = filter === opt.value;
+            return (
+              <Button
+                key={opt.value}
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter(opt.value)}
+                className={`flex items-center gap-1.5 ${
+                  active
+                    ? 'bg-gradient-to-r from-emerald-500 to-blue-600 text-white border-none'
+                    : ''
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {opt.label}
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 px-1.5 py-0 text-[10px] ${active ? 'bg-white/20 text-white' : ''}`}
+                >
+                  {counts[opt.value]}
+                </Badge>
+              </Button>
+            );
+          })}
         </div>
-
+        
         <Button
           onClick={() => navigate('/submit-complaint')}
           disabled={!isVerified}
@@ -101,56 +265,33 @@ const MyComplaints = () => {
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="bg-gradient-to-r from-emerald-50/50 to-blue-50/50 rounded-xl p-6">
-        <ComplaintStats
-          totalComplaints={totalComplaints}
-          openComplaints={openComplaints}
-          inProgressComplaints={inProgressComplaints}
-          closedComplaints={closedComplaints}
-        />
-      </div>
-
-      {/* Complaints List */}
-      <div className="bg-card rounded-xl border shadow-sm">
-        <div className="p-6 border-b">
-          <h3 className="text-xl font-bold text-foreground">Your Complaints</h3>
-        </div>
-        
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-            </div>
-          ) : complaints.length === 0 ? (
-            <div className="bg-muted/50 rounded-xl p-8">
-              <ComplaintEmptyState />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {complaints.map((complaint) => (
-                <div key={complaint.id} className="bg-muted/20 rounded-xl p-1 hover:bg-muted/40 transition-all duration-300">
-                  <ComplaintCard complaint={{
-                    id: complaint.id.toString(),
-                    ticketNumber: complaint.ticket_number || `TC-${complaint.id}`,
-                    tenantId: complaint.tenant_id,
-                    tenantName: complaint.tenant_name,
-                    tenantEmail: complaint.tenant_email,
-                    houseNumber: complaint.house_number,
-                    issueType: complaint.issue_type,
-                    description: complaint.description,
-                    status: complaint.status === 'resolved' ? 'closed' : complaint.status as 'open' | 'in_progress' | 'closed',
-                    createdAt: complaint.created_at,
-                    agentId: complaint.agent_id || '',
-                    propertyId: `property-${complaint.id}`,
-                    imageUrl: complaint.images?.[0]?.url,
-                    closedAt: complaint.resolved_at
-                  }} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* List */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-card border rounded-xl p-12 text-center">
+            <FileText className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
+            <h3 className="text-lg font-semibold text-foreground mb-1">No complaints</h3>
+            <p className="text-muted-foreground text-sm">
+              {filter === 'all'
+                ? 'When you file a complaint, it will appear here.'
+                : filter === 'active'
+                ? 'No open or in-progress complaints at the moment.'
+                : 'No resolved complaints yet.'}
+            </p>
+          </div>
+        ) : (
+          filtered.map(complaint => (
+            <ComplaintRow
+              key={complaint.id}
+              complaint={complaint}
+              onGoToMessages={onGoToMessages ?? (() => {})}
+            />
+          ))
+        )}
       </div>
 
       {/* Complaint Resolution Notification */}

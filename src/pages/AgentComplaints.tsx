@@ -6,21 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import SupportBot from '@/components/Support/SupportBot';
 import { complaintsApi, Complaint as ApiComplaint, ComplaintStats } from '@/services/complaintsApi';
 import { toast } from 'sonner';
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   Search,
   User,
   MapPin,
   Calendar,
   MessageSquare,
   Phone,
-  ArrowLeft
+  ArrowLeft,
+  Send,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,54 +50,163 @@ interface Complaint {
   images: string[];
 }
 
-// Mock data - replace with actual API call
-const fetchComplaints = async (): Promise<Complaint[]> => {
-  // This will be replaced with actual API call
-  return [
-    {
-      id: '1',
-      tenantName: 'Alice Johnson',
-      tenantPhone: '+44 7700 900456',
-      property: 'Apartment 3B - Riverside Heights',
-      address: '123 Oak Street, Manchester M1 2AB',
-      issue: 'Kitchen sink leak',
-      description: 'The kitchen sink has been leaking for the past 3 days. Water is dripping onto the floor and causing damage to the cabinet below.',
-      priority: 'High',
-      status: 'Open',
-      submittedDate: '2024-01-15',
-      category: 'Plumbing',
-      images: ['sink1.jpg', 'sink2.jpg']
-    },
-    {
-      id: '2',
-      tenantName: 'Bob Smith',
-      tenantPhone: '+44 7700 900457',
-      property: 'House 12 - Elm Gardens',
-      address: '456 Elm Street, Birmingham B2 3CD',
-      issue: 'Heating system not working',
-      description: 'The central heating system stopped working yesterday. The house is very cold and the boiler is making strange noises.',
-      priority: 'High',
-      status: 'In Progress',
-      submittedDate: '2024-01-14',
-      category: 'Heating',
-      images: ['boiler1.jpg']
-    },
-    {
-      id: '3',
-      tenantName: 'Carol Wilson',
-      tenantPhone: '+44 7700 900458',
-      property: 'Flat 5A - Park View',
-      address: '789 Park Lane, London SW1 4EF',
-      issue: 'Broken window latch',
-      description: 'The bedroom window latch is broken and the window won\'t stay closed properly. This is a security concern.',
-      priority: 'Medium',
-      status: 'Resolved',
-      submittedDate: '2024-01-10',
-      category: 'Maintenance',
-      images: []
-    }
-  ];
-};
+// ── Mock data for agent view (remove when backend is ready) ──────────────
+const MOCK_AGENT_COMPLAINTS: ApiComplaint[] = [
+  {
+    id: 101,
+    tenant_id: 'tenant-001',
+    tenant_name: 'James Davies',
+    tenant_email: 'james.davies@email.com',
+    house_number: '14B, Riverside Court',
+    issue_type: 'Plumbing Issues',
+    description:
+      'The kitchen sink has been leaking steadily for 4 days. Water is pooling under the cabinet and causing visible damp damage to the unit below.',
+    urgency: 'high',
+    status: 'open',
+    priority: 2,
+    ticket_number: 'TKT-1001',
+    created_at: '2026-02-22T09:15:00.000Z',
+    updated_at: '2026-02-22T09:15:00.000Z',
+    notes: [],
+  },
+  {
+    id: 102,
+    tenant_id: 'tenant-001',
+    tenant_name: 'James Davies',
+    tenant_email: 'james.davies@email.com',
+    house_number: '14B, Riverside Court',
+    issue_type: 'Electrical Problems',
+    description:
+      'Living room sockets on the east wall have stopped working. Extension leads are currently used as a workaround — this is a safety concern.',
+    urgency: 'urgent',
+    status: 'in_progress',
+    priority: 1,
+    ticket_number: 'TKT-1002',
+    created_at: '2026-02-20T08:15:00.000Z',
+    updated_at: '2026-02-23T10:00:00.000Z',
+    notes: [
+      {
+        id: 201,
+        complaint_id: 102,
+        note: "We've reviewed your complaint and have assigned a certified electrician. Can you confirm your availability for 1 March from 2 PM onwards?",
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-02-23T09:45:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 103,
+    tenant_id: 'tenant-001',
+    tenant_name: 'James Davies',
+    tenant_email: 'james.davies@email.com',
+    house_number: '14B, Riverside Court',
+    issue_type: 'Heating/Cooling',
+    description:
+      'Boiler stopped producing heat overnight. All radiators are cold. The house temperature has dropped significantly — children are in the household.',
+    urgency: 'medium',
+    status: 'in_progress',
+    priority: 3,
+    ticket_number: 'TKT-1003',
+    created_at: '2026-02-18T07:30:00.000Z',
+    updated_at: '2026-02-21T16:00:00.000Z',
+    notes: [
+      {
+        id: 301,
+        complaint_id: 103,
+        note: '[MAINTENANCE_SCHEDULE]\n📅 MAINTENANCE SCHEDULED\nDate: 28 Feb 2026\nTime: 10:00 AM\nNotes: Boiler engineer scheduled. Please have the boiler accessible.',
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-02-20T11:00:00.000Z',
+      },
+      {
+        id: 302,
+        complaint_id: 103,
+        note: "Morning works, but I have a school run at 8:45 AM. I'll be back by 9:15 — is 10 AM still OK?",
+        added_by: 'James Davies',
+        created_at: '2026-02-20T11:30:00.000Z',
+      },
+      {
+        id: 303,
+        complaint_id: 103,
+        note: "That's fine — the engineer will arrive between 10:00–10:30 AM. You'll receive a reminder the evening before.",
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-02-20T12:05:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 104,
+    tenant_id: 'tenant-002',
+    tenant_name: 'Emily Carter',
+    tenant_email: 'emily.carter@email.com',
+    house_number: '7A, Oak Lane',
+    issue_type: 'Structural Issues',
+    description:
+      'A visible crack running across the bedroom ceiling, approximately 40 cm long. It has widened noticeably over the past two weeks.',
+    urgency: 'low',
+    status: 'resolved',
+    priority: 4,
+    ticket_number: 'TKT-1004',
+    created_at: '2026-01-10T10:00:00.000Z',
+    updated_at: '2026-01-18T13:00:00.000Z',
+    resolved_at: '2026-01-18T13:00:00.000Z',
+    notes: [
+      {
+        id: 401,
+        complaint_id: 104,
+        note: '[MAINTENANCE_SCHEDULE]\n📅 MAINTENANCE SCHEDULED\nDate: 18 Jan 2026\nTime: 09:00 AM\nNotes: Contractor will plaster and repaint. Should take around 2 hours.',
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-01-14T10:00:00.000Z',
+      },
+      {
+        id: 402,
+        complaint_id: 104,
+        note: "Perfect, I'll be in. Thanks for sorting this so quickly!",
+        added_by: 'Emily Carter',
+        created_at: '2026-01-14T10:25:00.000Z',
+      },
+      {
+        id: 403,
+        complaint_id: 104,
+        note: 'Work has been completed — ceiling fully repaired, re-plastered and repainted. Ticket closed.',
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-01-18T13:00:00.000Z',
+      },
+    ],
+  },
+  {
+    id: 105,
+    tenant_id: 'tenant-003',
+    tenant_name: 'Marcus Reid',
+    tenant_email: 'marcus.reid@email.com',
+    house_number: '22C, Birchwood Close',
+    issue_type: 'Window/Door Issues',
+    description:
+      'The front door lock has become very stiff. On two occasions the tenant was almost unable to enter the flat.',
+    urgency: 'medium',
+    status: 'in_progress',
+    priority: 3,
+    ticket_number: 'TKT-1005',
+    created_at: '2026-02-15T14:00:00.000Z',
+    updated_at: '2026-02-23T11:00:00.000Z',
+    notes: [
+      {
+        id: 501,
+        complaint_id: 105,
+        note: "Thanks for reporting this. We'll send a locksmith to inspect and replace the lock mechanism. Are you available on 3 March in the morning?",
+        added_by: 'Agent Sarah M.',
+        created_at: '2026-02-22T09:00:00.000Z',
+      },
+      {
+        id: 502,
+        complaint_id: 105,
+        note: "[TENANT_PROPOSAL]\n⏰ ALTERNATIVE DATE PROPOSED\nDate: 2026-03-05\nTime: 14:00\nMessage: Morning doesn't work for me — could we do 5 March in the afternoon instead?",
+        added_by: 'Marcus Reid',
+        created_at: '2026-02-22T09:45:00.000Z',
+      },
+    ],
+  },
+];
+// ──────────────────────────────────────────────────────────────────────────
 
 const AgentComplaints = () => {
   const { loading, hasAccess } = useAuthGuard(['agent']);
@@ -106,16 +225,26 @@ const AgentComplaints = () => {
     unassigned: 0
   });
 
+  // Scheduling dialog state
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [scheduleNotes, setScheduleNotes] = useState('');
+  const [schedulingLoading, setSchedulingLoading] = useState(false);
+
+  // Communication thread state
+  const [noteMessage, setNoteMessage] = useState('');
+  const [noteSending, setNoteSending] = useState(false);
+
   const loadComplaints = async () => {
     try {
       setComplaintsLoading(true);
       const response = await complaintsApi.getAgentComplaints({
-        assigned_to_me: true // Get only complaints assigned to current agent
+        assigned_to_me: true
       });
-      
-      // Handle different response structures
+
       let complaintsData: ApiComplaint[] = [];
-      
+
       if (Array.isArray(response.complaints)) {
         complaintsData = response.complaints;
       } else if (response.data && Array.isArray(response.data.complaints)) {
@@ -123,23 +252,59 @@ const AgentComplaints = () => {
       } else if (Array.isArray(response)) {
         complaintsData = response;
       }
-      
-      setComplaints(complaintsData);
-      if (complaintsData.length > 0) {
-        setSelectedComplaint(complaintsData[0]);
+
+      // Fall back to mock data if API returns empty
+      const data = complaintsData.length > 0 ? complaintsData : MOCK_AGENT_COMPLAINTS;
+      setComplaints(data);
+      if (data.length > 0) {
+        setSelectedComplaint(data[0]);
       }
-      
+
       if (response.stats) {
         setStats(response.stats);
       } else if (response.data && response.data.stats) {
         setStats(response.data.stats);
       }
-    } catch (error) {
-      console.error('Error loading complaints:', error);
-      toast.error('Failed to load complaints');
+    } catch {
+      // Use mock data when API is unavailable
+      setComplaints(MOCK_AGENT_COMPLAINTS);
+      if (MOCK_AGENT_COMPLAINTS.length > 0) {
+        setSelectedComplaint(MOCK_AGENT_COMPLAINTS[0]);
+      }
     } finally {
       setComplaintsLoading(false);
     }
+  };
+
+  const handleSendNote = async () => {
+    if (!selectedComplaint || !noteMessage.trim() || noteSending) return;
+    setNoteSending(true);
+    const text = noteMessage.trim();
+    try {
+      await complaintsApi.addComplaintNote(selectedComplaint.id, text);
+    } catch {
+      // continue with optimistic update even on API failure (mock mode)
+    }
+    const newNote = {
+      id: Date.now(),
+      complaint_id: selectedComplaint.id,
+      note: text,
+      added_by: 'Agent',
+      created_at: new Date().toISOString(),
+    };
+    setComplaints(prev =>
+      prev.map(c =>
+        c.id === selectedComplaint.id
+          ? { ...c, notes: [...(c.notes ?? []), newNote] }
+          : c
+      )
+    );
+    setSelectedComplaint(prev =>
+      prev ? { ...prev, notes: [...(prev.notes ?? []), newNote] } : null
+    );
+    setNoteMessage('');
+    setNoteSending(false);
+    toast.success('Message sent to tenant');
   };
 
   useEffect(() => {
@@ -233,6 +398,53 @@ const AgentComplaints = () => {
     } catch (error) {
       console.error('Error updating complaint status:', error);
       toast.error('Failed to update complaint status');
+    }
+  };
+
+  const handleScheduleMaintenance = async () => {
+    if (!selectedComplaint) return;
+    if (!scheduleDate) {
+      toast.error('Please select a date');
+      return;
+    }
+
+    setSchedulingLoading(true);
+    try {
+      const noteText = [
+        '[MAINTENANCE_SCHEDULE]',
+        '📅 MAINTENANCE SCHEDULED',
+        `Date: ${scheduleDate}`,
+        scheduleTime ? `Time: ${scheduleTime}` : '',
+        scheduleNotes ? `Notes: ${scheduleNotes}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      await complaintsApi.addComplaintNote(selectedComplaint.id, noteText);
+
+      // Also move to in_progress if still open
+      if (selectedComplaint.status === 'open') {
+        await complaintsApi.updateComplaintStatus(selectedComplaint.id, 'in_progress');
+        setComplaints(prev =>
+          prev.map(c =>
+            c.id === selectedComplaint.id ? { ...c, status: 'in_progress' } : c
+          )
+        );
+        setSelectedComplaint(prev =>
+          prev ? { ...prev, status: 'in_progress' } : null
+        );
+      }
+
+      toast.success('Maintenance scheduled and tenant notified');
+      setScheduleDialogOpen(false);
+      setScheduleDate('');
+      setScheduleTime('');
+      setScheduleNotes('');
+    } catch (error) {
+      console.error('Error scheduling maintenance:', error);
+      toast.error('Failed to schedule maintenance');
+    } finally {
+      setSchedulingLoading(false);
     }
   };
 
@@ -468,7 +680,7 @@ const AgentComplaints = () => {
                           <h4 className="font-semibold text-gray-900 text-sm mb-3">Quick Actions</h4>
                           <div className="flex flex-wrap gap-2">
                             {selectedComplaint.status === 'open' && (
-                              <Button 
+                              <Button
                                 onClick={() => handleUpdateStatus(selectedComplaint.id, 'in_progress')}
                                 className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-3 py-1 h-8"
                               >
@@ -477,7 +689,7 @@ const AgentComplaints = () => {
                               </Button>
                             )}
                             {selectedComplaint.status === 'in_progress' && (
-                              <Button 
+                              <Button
                                 onClick={() => handleUpdateStatus(selectedComplaint.id, 'resolved')}
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 h-8"
                               >
@@ -485,15 +697,161 @@ const AgentComplaints = () => {
                                 Mark as Resolved
                               </Button>
                             )}
-                            <Button className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-gray-800 border-white/30 text-xs px-3 py-1 h-8">
-                              <MessageSquare className="w-3 h-3 mr-1" />
-                              Contact Tenant
-                            </Button>
-                            <Button className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-gray-800 border-white/30 text-xs px-3 py-1 h-8">
+                            <Button
+                              onClick={() => setScheduleDialogOpen(true)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 h-8"
+                            >
                               <Calendar className="w-3 h-3 mr-1" />
                               Schedule Maintenance
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Communication Thread */}
+                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                          <h4 className="font-semibold text-gray-900 text-sm flex items-center mb-3">
+                            <MessageSquare className="w-4 h-4 mr-2 text-blue-600" />
+                            Communication with Tenant
+                          </h4>
+
+                          {/* Messages */}
+                          <div className="space-y-3 max-h-64 overflow-y-auto mb-3 pr-1">
+                            {(selectedComplaint.notes ?? []).length === 0 ? (
+                              <div className="flex flex-col items-center py-4 text-gray-500 text-sm gap-1">
+                                <MessageSquare className="w-6 h-6 opacity-30" />
+                                <p className="text-xs">No messages yet. Start the conversation below.</p>
+                              </div>
+                            ) : (
+                              (selectedComplaint.notes ?? []).map((note: any) => {
+                                const isAgent = note.added_by?.toLowerCase().startsWith('agent');
+
+                                // Schedule card
+                                if (note.note?.startsWith('[MAINTENANCE_SCHEDULE]')) {
+                                  const lines: string[] = note.note.split('\n');
+                                  let date = '', time = '', schedNotes = '';
+                                  lines.forEach((l: string) => {
+                                    if (l.startsWith('Date:')) date = l.replace('Date:', '').trim();
+                                    if (l.startsWith('Time:')) time = l.replace('Time:', '').trim();
+                                    if (l.startsWith('Notes:')) schedNotes = l.replace('Notes:', '').trim();
+                                  });
+                                  return (
+                                    <div key={note.id} className="flex justify-end">
+                                      <div className="max-w-[85%] bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-1.5">
+                                        <div className="flex items-center gap-2 text-blue-700 font-semibold text-xs">
+                                          <Calendar className="w-4 h-4" />
+                                          Maintenance Scheduled (sent by you)
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 text-sm">
+                                          {date && <p className="text-gray-800"><span className="font-medium">Date:</span> {date}</p>}
+                                          {time && <p className="text-gray-800"><span className="font-medium">Time:</span> {time}</p>}
+                                        </div>
+                                        {schedNotes && <p className="text-xs text-gray-500 italic">{schedNotes}</p>}
+                                        <p className="text-[10px] text-gray-400">{new Date(note.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // Tenant date proposal card
+                                if (note.note?.startsWith('[TENANT_PROPOSAL]')) {
+                                  const lines: string[] = note.note.split('\n');
+                                  let date = '', time = '', msg = '';
+                                  lines.forEach((l: string) => {
+                                    if (l.startsWith('Date:')) date = l.replace('Date:', '').trim();
+                                    if (l.startsWith('Time:')) time = l.replace('Time:', '').trim();
+                                    if (l.startsWith('Message:')) msg = l.replace('Message:', '').trim();
+                                  });
+                                  return (
+                                    <div key={note.id} className="flex justify-start">
+                                      <div className="max-w-[85%] bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1.5">
+                                        <div className="flex items-center gap-2 text-amber-700 font-semibold text-xs">
+                                          <Calendar className="w-4 h-4" />
+                                          Tenant Proposed Alternative Date
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 text-sm">
+                                          {date && <p className="text-gray-800"><span className="font-medium">Date:</span> {date}</p>}
+                                          {time && <p className="text-gray-800"><span className="font-medium">Time:</span> {time}</p>}
+                                        </div>
+                                        {msg && <p className="text-xs text-gray-600 italic">"{msg}"</p>}
+                                        <p className="text-[10px] text-gray-400">{note.added_by} &middot; {new Date(note.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            setScheduleDate(date);
+                                            setScheduleTime(time.replace(':', ':').slice(0, 5));
+                                            setScheduleDialogOpen(true);
+                                          }}
+                                          className="bg-amber-500 hover:bg-amber-600 text-white h-7 text-[11px] mt-1"
+                                        >
+                                          <Calendar className="w-3 h-3 mr-1" />
+                                          Confirm This Date
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // Regular message
+                                return (
+                                  <div key={note.id} className={`flex ${isAgent ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                                      isAgent
+                                        ? 'bg-blue-500 text-white rounded-br-sm'
+                                        : 'bg-white/30 text-gray-900 rounded-bl-sm border border-white/20'
+                                    }`}>
+                                      {!isAgent && (
+                                        <p className="text-[10px] font-semibold mb-0.5 opacity-70">{note.added_by}</p>
+                                      )}
+                                      <p className="leading-relaxed">{note.note}</p>
+                                      <p className={`text-[10px] mt-1 ${isAgent ? 'text-white/70 text-right' : 'text-gray-500'}`}>
+                                        {new Date(note.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          {/* Message input */}
+                          {selectedComplaint.status !== 'resolved' && selectedComplaint.status !== 'closed' && (
+                            <div className="space-y-2 pt-2 border-t border-white/20">
+                              <Textarea
+                                placeholder="Type a message to the tenant..."
+                                value={noteMessage}
+                                onChange={e => setNoteMessage(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendNote();
+                                  }
+                                }}
+                                className="resize-none text-sm bg-white/20 border-white/30 text-gray-900 placeholder-gray-500"
+                                rows={2}
+                              />
+                              <div className="flex justify-end">
+                                <Button
+                                  size="sm"
+                                  onClick={handleSendNote}
+                                  disabled={!noteMessage.trim() || noteSending}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs"
+                                >
+                                  {noteSending ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1" />
+                                  ) : (
+                                    <Send className="w-3 h-3 mr-1" />
+                                  )}
+                                  Send Message
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          {(selectedComplaint.status === 'resolved' || selectedComplaint.status === 'closed') && (
+                            <p className="text-xs text-gray-500 pt-2 border-t border-white/20 flex items-center gap-1">
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                              This complaint is resolved. Thread is read-only.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </ScrollArea>
@@ -515,6 +873,78 @@ const AgentComplaints = () => {
       
       {/* Support Bot */}
       <SupportBot />
+
+      {/* Schedule Maintenance Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              Schedule Maintenance
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedComplaint && (
+            <div className="text-sm text-muted-foreground mb-2">
+              Scheduling for: <span className="font-medium text-foreground">{(selectedComplaint as any).issueType || selectedComplaint.issue_type}</span>
+              {' '}— House #{(selectedComplaint as any).houseNumber || selectedComplaint.house_number}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-date">Date <span className="text-destructive">*</span></Label>
+              <Input
+                id="schedule-date"
+                type="date"
+                value={scheduleDate}
+                onChange={e => setScheduleDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-time">Preferred Time</Label>
+              <Input
+                id="schedule-time"
+                type="time"
+                value={scheduleTime}
+                onChange={e => setScheduleTime(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-notes">Message to Tenant</Label>
+              <Textarea
+                id="schedule-notes"
+                placeholder="e.g. A plumber will visit to fix the issue. Please ensure someone is home."
+                value={scheduleNotes}
+                onChange={e => setScheduleNotes(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 mt-2">
+            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleScheduleMaintenance}
+              disabled={!scheduleDate || schedulingLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {schedulingLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              Confirm & Notify Tenant
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

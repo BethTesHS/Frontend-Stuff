@@ -73,37 +73,57 @@ export interface TaskStats {
   idle: number;
   offline: number;
 }
+export interface CreateTaskPayload {
+  title: string;
+  duration: {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
+  priority: "low" | "medium" | "high";
+  retryOnFailure: boolean;
+}
 
 class AdminApiService {
   private getAuthHeaders(): HeadersInit {
     const token = getAdminToken();
-    console.log(' Admin token from sessionStorage:', token ? `${token.substring(0, 20)}...` : 'null');
+    console.log(
+      " Admin token from sessionStorage:",
+      token ? `${token.substring(0, 20)}...` : "null",
+    );
 
     if (!token) {
-      console.error(' No admin token found in sessionStorage');
-      throw new Error('No admin token available');
+      console.error(" No admin token found in sessionStorage");
+      throw new Error("No admin token available");
     }
-    
+
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     };
-    console.log('Authorization header being sent:', headers.Authorization.substring(0, 30) + '...');
+    console.log(
+      "Authorization header being sent:",
+      headers.Authorization.substring(0, 30) + "...",
+    );
     return headers;
   }
 
   async login(credentials: AdminLoginRequest): Promise<AdminLoginResponse> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGIN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGIN}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
       },
-      body: JSON.stringify(credentials)
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Login failed');
+      throw new Error(error.error || "Login failed");
     }
 
     const data = await response.json();
@@ -113,44 +133,56 @@ class AdminApiService {
     };
   }
 
-  async getProfile(): Promise<{ admin: AdminProfile; recent_sessions: AdminSession[] }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.PROFILE}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+  async getProfile(): Promise<{
+    admin: AdminProfile;
+    recent_sessions: AdminSession[];
+  }> {
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.PROFILE}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to get profile');
+      throw new Error(error.error || "Failed to get profile");
     }
 
     const data = await response.json();
     return {
       admin: data.admin,
-      recent_sessions: data.recent_sessions
+      recent_sessions: data.recent_sessions,
     };
   }
 
-  async getAdminDetails(): Promise<{ admin: AdminProfile; recent_sessions: AdminSession[] }> {
+  async getAdminDetails(): Promise<{
+    admin: AdminProfile;
+    recent_sessions: AdminSession[];
+  }> {
     const token = getAdminToken();
 
     if (!token) {
-      throw new Error('No admin token found');
+      throw new Error("No admin token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.PROFILE}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.PROFILE}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       if (response.status === 401) {
-        tokenStorage.removeItem('admin_token');
-        tokenStorage.removeItem('admin_profile');
-        throw new Error('Session expired. Please login again.');
+        tokenStorage.removeItem("admin_token");
+        tokenStorage.removeItem("admin_profile");
+        throw new Error("Session expired. Please login again.");
       }
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch admin details');
+      throw new Error(error.error || "Failed to fetch admin details");
     }
 
     const data = await response.json();
@@ -162,27 +194,34 @@ class AdminApiService {
 
     return {
       admin: data.admin,
-      recent_sessions: data.recent_sessions
+      recent_sessions: data.recent_sessions,
     };
   }
 
   async getStats(): Promise<AdminStatsResponse> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.STATS}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.STATS}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
-      console.error('Stats API Error:', {
+      console.error("Stats API Error:", {
         status: response.status,
         statusText: response.statusText,
-        url: `${API_BASE_URL}${API_ENDPOINTS.ADMIN.STATS}`
+        url: `${API_BASE_URL}${API_ENDPOINTS.ADMIN.STATS}`,
       });
-      
+
       try {
         const errorData = await response.json();
-        console.error('Stats error details:', errorData);
-        throw new Error(errorData.error?.message || errorData.message || 'Failed to get stats');
+        console.error("Stats error details:", errorData);
+        throw new Error(
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to get stats",
+        );
       } catch (jsonError) {
         // If JSON parsing fails, throw a simpler error
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -193,26 +232,32 @@ class AdminApiService {
   }
 
   async logout(): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGOUT}`, {
-      method: 'POST',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGOUT}`,
+      {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Logout failed');
+      throw new Error(error.error || "Logout failed");
     }
   }
 
   async getSessions(): Promise<AdminSession[]> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.SESSIONS}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.SESSIONS}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to get sessions');
+      throw new Error(error.error || "Failed to get sessions");
     }
 
     const data = await response.json();
@@ -220,75 +265,83 @@ class AdminApiService {
   }
 
   async revokeSession(sessionId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.REVOKE_SESSION(sessionId)}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.REVOKE_SESSION(sessionId)}`,
+      {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to revoke session');
+      throw new Error(error.error || "Failed to revoke session");
     }
   }
 
   // Messaging endpoints for admin
-  async getDashboardMessages(params: {
-    page?: number;
-    limit?: number;
-    unread_only?: boolean;
-  } = {}): Promise<{
+  async getDashboardMessages(
+    params: {
+      page?: number;
+      limit?: number;
+      unread_only?: boolean;
+    } = {},
+  ): Promise<{
     success: boolean;
     messages: any[];
     pagination: any;
     stats: any;
   }> {
     const queryParams = new URLSearchParams();
-    if (params.page) queryParams.set('page', params.page.toString());
-    if (params.limit) queryParams.set('limit', params.limit.toString());
-    if (params.unread_only) queryParams.set('unread_only', params.unread_only.toString());
-    
+    if (params.page) queryParams.set("page", params.page.toString());
+    if (params.limit) queryParams.set("limit", params.limit.toString());
+    if (params.unread_only)
+      queryParams.set("unread_only", params.unread_only.toString());
+
     const queryString = queryParams.toString();
-    const endpoint = queryString 
+    const endpoint = queryString
       ? `${API_ENDPOINTS.ADMIN.DASHBOARD_MESSAGES}?${queryString}`
       : API_ENDPOINTS.ADMIN.DASHBOARD_MESSAGES;
-    
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
+      method: "GET",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch dashboard messages');
+      throw new Error(error.error || "Failed to fetch dashboard messages");
     }
 
     return response.json();
   }
 
-  async getDashboardConversations(params: {
-    limit?: number;
-    status?: string;
-  } = {}): Promise<{
+  async getDashboardConversations(
+    params: {
+      limit?: number;
+      status?: string;
+    } = {},
+  ): Promise<{
     success: boolean;
     conversations: any[];
   }> {
     const queryParams = new URLSearchParams();
-    if (params.limit) queryParams.set('limit', params.limit.toString());
-    if (params.status) queryParams.set('status', params.status);
-    
+    if (params.limit) queryParams.set("limit", params.limit.toString());
+    if (params.status) queryParams.set("status", params.status);
+
     const queryString = queryParams.toString();
-    const endpoint = queryString 
+    const endpoint = queryString
       ? `${API_ENDPOINTS.ADMIN.DASHBOARD_CONVERSATIONS}?${queryString}`
       : API_ENDPOINTS.ADMIN.DASHBOARD_CONVERSATIONS;
-    
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
+      method: "GET",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch dashboard conversations');
+      throw new Error(error.error || "Failed to fetch dashboard conversations");
     }
 
     return response.json();
@@ -308,25 +361,30 @@ class AdminApiService {
       most_active_conversation?: any;
     };
   }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch dashboard summary');
+      throw new Error(error.error || "Failed to fetch dashboard summary");
     }
 
     return response.json();
   }
 
-  async getConversations(params: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    search?: string;
-  } = {}): Promise<{
+  async getConversations(
+    params: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      search?: string;
+    } = {},
+  ): Promise<{
     success: boolean;
     conversations: any[];
     total: number;
@@ -336,35 +394,39 @@ class AdminApiService {
     has_prev: boolean;
   }> {
     const queryParams = new URLSearchParams();
-    if (params.page) queryParams.set('page', params.page.toString());
-    if (params.limit) queryParams.set('limit', params.limit.toString());
-    if (params.status) queryParams.set('status', params.status);
-    if (params.search) queryParams.set('search', params.search);
-    
+    if (params.page) queryParams.set("page", params.page.toString());
+    if (params.limit) queryParams.set("limit", params.limit.toString());
+    if (params.status) queryParams.set("status", params.status);
+    if (params.search) queryParams.set("search", params.search);
+
     const queryString = queryParams.toString();
-    const endpoint = queryString 
+    const endpoint = queryString
       ? `${API_ENDPOINTS.ADMIN.DASHBOARD_CONVERSATIONS}?${queryString}`
       : API_ENDPOINTS.ADMIN.DASHBOARD_CONVERSATIONS;
-    
-    console.log('Admin API calling endpoint:', `${API_BASE_URL}${endpoint}`);
-    console.log('Admin API headers:', this.getAuthHeaders());
-    
+
+    console.log("Admin API calling endpoint:", `${API_BASE_URL}${endpoint}`);
+    console.log("Admin API headers:", this.getAuthHeaders());
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
+      method: "GET",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
-      console.error('API Error Response:', {
+      console.error("API Error Response:", {
         status: response.status,
         statusText: response.statusText,
-        url: `${API_BASE_URL}${endpoint}`
+        url: `${API_BASE_URL}${endpoint}`,
       });
-      
+
       try {
         const errorData = await response.json();
-        console.error('Error details:', errorData);
-        throw new Error(errorData.error?.message || errorData.message || 'Failed to fetch conversations');
+        console.error("Error details:", errorData);
+        throw new Error(
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to fetch conversations",
+        );
       } catch (jsonError) {
         // If JSON parsing fails, throw a simpler error
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -376,7 +438,7 @@ class AdminApiService {
 
   async getConversationMessages(
     conversationId: number,
-    params: { page?: number; limit?: number } = {}
+    params: { page?: number; limit?: number } = {},
   ): Promise<{
     success: boolean;
     messages: any[];
@@ -388,22 +450,22 @@ class AdminApiService {
     has_prev: boolean;
   }> {
     const queryParams = new URLSearchParams();
-    if (params.page) queryParams.set('page', params.page.toString());
-    if (params.limit) queryParams.set('limit', params.limit.toString());
-    
+    if (params.page) queryParams.set("page", params.page.toString());
+    if (params.limit) queryParams.set("limit", params.limit.toString());
+
     const queryString = queryParams.toString();
-    const endpoint = queryString 
+    const endpoint = queryString
       ? `${API_ENDPOINTS.ADMIN.CONVERSATION_MESSAGES(conversationId)}?${queryString}`
       : API_ENDPOINTS.ADMIN.CONVERSATION_MESSAGES(conversationId);
-    
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
+      method: "GET",
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch conversation messages');
+      throw new Error(error.error || "Failed to fetch conversation messages");
     }
 
     return response.json();
@@ -419,18 +481,21 @@ class AdminApiService {
     attachment_type?: string;
     metadata?: any;
   }): Promise<{ success: boolean; message: any }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.SEND_MESSAGE}`, {
-      method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json'
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.SEND_MESSAGE}`,
+      {
+        method: "POST",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       },
-      body: JSON.stringify(data)
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to send message');
+      throw new Error(error.error || "Failed to send message");
     }
 
     return response.json();
@@ -438,26 +503,32 @@ class AdminApiService {
 
   async updateConversationStatus(
     conversationId: number,
-    status: 'open' | 'closed' | 'pending'
+    status: "open" | "closed" | "pending",
   ): Promise<{ success: boolean; conversation: any }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.UPDATE_CONVERSATION_STATUS(conversationId)}`, {
-      method: 'PUT',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json'
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.UPDATE_CONVERSATION_STATUS(conversationId)}`,
+      {
+        method: "PUT",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
       },
-      body: JSON.stringify({ status })
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to update conversation status');
+      throw new Error(error.error || "Failed to update conversation status");
     }
 
     return response.json();
   }
 
-  async uploadFile(file: File, conversationId?: number): Promise<{
+  async uploadFile(
+    file: File,
+    conversationId?: number,
+  ): Promise<{
     success: boolean;
     file_url: string;
     file_name: string;
@@ -465,37 +536,43 @@ class AdminApiService {
     file_type: string;
   }> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
     if (conversationId) {
-      formData.append('conversation_id', conversationId.toString());
+      formData.append("conversation_id", conversationId.toString());
     }
 
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.UPLOAD_FILE}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getAdminToken()}`
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.UPLOAD_FILE}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAdminToken()}`,
+        },
+        body: formData,
       },
-      body: formData
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to upload file');
+      throw new Error(error.error || "Failed to upload file");
     }
 
     return response.json();
   }
 
   async downloadFile(filename: string): Promise<Blob> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.DOWNLOAD_FILE(filename)}`, {
-      headers: this.getAuthHeaders()
-    });
-    
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.DOWNLOAD_FILE(filename)}`,
+      {
+        headers: this.getAuthHeaders(),
+      },
+    );
+
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to download file');
+      throw new Error(error.error || "Failed to download file");
     }
-    
+
     return response.blob();
   }
 
@@ -509,14 +586,17 @@ class AdminApiService {
       unread_messages: number;
     };
   }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.MESSAGING_STATS}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.MESSAGING_STATS}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch messaging stats');
+      throw new Error(error.error || "Failed to fetch messaging stats");
     }
 
     return response.json();
@@ -526,14 +606,17 @@ class AdminApiService {
     success: boolean;
     profile: any;
   }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.EXTERNAL_TENANT_PROFILE(userId)}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.EXTERNAL_TENANT_PROFILE(userId)}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch external tenant profile');
+      throw new Error(error.error || "Failed to fetch external tenant profile");
     }
 
     return response.json();
@@ -554,11 +637,13 @@ class AdminApiService {
     pages?: number;
   }> {
     const queryParams = new URLSearchParams();
-    if (params?.search) queryParams.set('search', params.search);
-    if (params?.role && params.role !== 'all') queryParams.set('role', params.role);
-    if (params?.status && params.status !== 'all') queryParams.set('status', params.status);
-    if (params?.page) queryParams.set('page', params.page.toString());
-    if (params?.limit) queryParams.set('limit', params.limit.toString());
+    if (params?.search) queryParams.set("search", params.search);
+    if (params?.role && params.role !== "all")
+      queryParams.set("role", params.role);
+    if (params?.status && params.status !== "all")
+      queryParams.set("status", params.status);
+    if (params?.page) queryParams.set("page", params.page.toString());
+    if (params?.limit) queryParams.set("limit", params.limit.toString());
 
     const queryString = queryParams.toString();
     const endpoint = queryString
@@ -566,62 +651,73 @@ class AdminApiService {
       : API_ENDPOINTS.ADMIN.USERS;
 
     const fullUrl = `${API_BASE_URL}${endpoint}`;
-    console.log('[AdminAPI] Calling GET', fullUrl);
+    console.log("[AdminAPI] Calling GET", fullUrl);
 
     const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
+      method: "GET",
+      headers: this.getAuthHeaders(),
     });
 
-    console.log('[AdminAPI] Response status:', response.status, response.statusText);
+    console.log(
+      "[AdminAPI] Response status:",
+      response.status,
+      response.statusText,
+    );
 
     if (!response.ok) {
-      console.error('[AdminAPI] Users API Error:', {
+      console.error("[AdminAPI] Users API Error:", {
         status: response.status,
         statusText: response.statusText,
-        url: fullUrl
+        url: fullUrl,
       });
 
       try {
         const errorData = await response.json();
-        console.error('[AdminAPI] Error details:', errorData);
-        throw new Error(errorData.error?.message || errorData.message || 'Failed to fetch users');
+        console.error("[AdminAPI] Error details:", errorData);
+        throw new Error(
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to fetch users",
+        );
       } catch (jsonError) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     }
 
     const data = await response.json();
-    console.log('[AdminAPI] Users data received:', data);
+    console.log("[AdminAPI] Users data received:", data);
     return data;
   }
 
   async suspendUser(
     userId: string,
-    suspensionType: 'temp' | 'perm',
+    suspensionType: "temp" | "perm",
     suspensionReason: string,
-    suspendedUntil?: string
+    suspendedUntil?: string,
   ): Promise<{
     success: boolean;
     message: string;
     user: any;
   }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.SUSPEND_USER(userId)}`, {
-      method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json'
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.SUSPEND_USER(userId)}`,
+      {
+        method: "POST",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          suspension_type: suspensionType,
+          suspension_reason: suspensionReason,
+          suspended_until: suspendedUntil,
+        }),
       },
-      body: JSON.stringify({
-        suspension_type: suspensionType,
-        suspension_reason: suspensionReason,
-        suspended_until: suspendedUntil
-      })
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to suspend user');
+      throw new Error(error.error || "Failed to suspend user");
     }
 
     return response.json();
@@ -632,45 +728,66 @@ class AdminApiService {
     message: string;
     user: any;
   }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.UNSUSPEND_USER(userId)}`, {
-      method: 'POST',
-      headers: this.getAuthHeaders()
-    });
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.UNSUSPEND_USER(userId)}`,
+      {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to unsuspend user');
+      throw new Error(error.error || "Failed to unsuspend user");
     }
 
     return response.json();
   }
 
   // TASK MANAGEMENT ENDPOINTS
-  async getTasks(): Promise<{ tasks: Task[], stats: TaskStats }> {
-    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch tasks');
+  async getTasks(): Promise<{ tasks: Task[]; stats: TaskStats }> {
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
+    if (!response.ok) throw new Error("Failed to fetch tasks");
     return await response.json();
   }
 
   // 2. Perform actions on tasks (retry, revoke, delete)
-  async performTaskAction(taskId: string, action: 'retry' | 'revoke' | 'delete'): Promise<void> {
-    const url = action === 'delete' 
-      ? `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}/${taskId}`
-      : `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_ACTION(taskId)}`;
+  async performTaskAction(
+    taskId: string,
+    action: "retry" | "revoke" | "delete",
+  ): Promise<void> {
+    const url =
+      action === "delete"
+        ? `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}/${taskId}`
+        : `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_ACTION(taskId)}`;
 
     const response = await fetch(url, {
-      method: action === 'delete' ? 'DELETE' : 'POST',
+      method: action === "delete" ? "DELETE" : "POST",
       headers: this.getAuthHeaders(),
-      body: action !== 'delete' ? JSON.stringify({ action }) : undefined
+      body: action !== "delete" ? JSON.stringify({ action }) : undefined,
     });
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to ${action} task`);
     }
+  }
+  async createTask(payload: CreateTaskPayload): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`,
+      {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(payload),
+      },
+    );
+    if (!response.ok) throw new Error("Failed to create task");
   }
 }
 

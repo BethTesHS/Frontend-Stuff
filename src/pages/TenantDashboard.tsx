@@ -20,9 +20,12 @@ import { TenantAgent } from "@/components/TenantDashboard/TenantAgent";
 import { TenantVerificationContent } from "@/components/TenantDashboard/TenantVerificationContent";
 import { TenantNotificationDropdown } from "@/components/TenantDashboard/TenantNotificationDropdown";
 import MyComplaints from "@/components/TenantDashboard/MyComplaints";
+import MaintenanceRequests from "@/components/TenantDashboard/MaintenanceRequests";
 import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import VerificationStatusCircle from "@/components/TenantDashboard/VerificationStatusCircle";
+import { TenantCalendar } from "@/components/TenantDashboard/TenantCalender";
+import { TenantTenancy } from "@/components/TenantDashboard/TenancyManagement";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
 
@@ -148,6 +151,7 @@ const TenantDashboard = () => {
       dashboard: "Dashboard",
       verification: "Verify Tenancy",
       complaints: "My Complaints",
+      maintenance: "Maintenance Requests",
       messages: "Messages",
       agent: "Agent",
       notifications: "Notifications",
@@ -159,11 +163,20 @@ const TenantDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "verification": return <TenantVerificationContent user={user} navigate={navigate} />;
-      case "complaints": return <MyComplaints />;
-      case "messages": return <Messages />;
+      case "complaints": return (
+        <MyComplaints
+          onGoToMessages={() => setActiveTab('messages')}
+        />
+      );
+      case "maintenance": return <MaintenanceRequests />;
+      case "messages": return (
+        <Messages />
+      );
       case "agent": return <TenantAgent user={user} dashboardData={dashboardData} setActiveTab={setActiveTab} />;
+      case "calendar": return <TenantCalendar />;
+      case "tenancy": return <TenantTenancy />;
       case "notifications": return <NotificationsComponent user={user} />;
-      case "profile": return <TenantProfile user={user} />;
+      case "profile": return <TenantProfile />;
       default: return <TenantOverview user={user} setActiveTab={setActiveTab} navigate={navigate} dashboardData={dashboardData} dashboardLoading={dashboardLoading} />;
     }
   };
@@ -245,7 +258,7 @@ const TenantDashboard = () => {
         </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+        <div className={`flex-1 bg-gray-50 dark:bg-gray-950 ${activeTab === 'messages' ? 'overflow-hidden' : 'overflow-y-auto p-6'}`}>
           {renderContent()}
         </div>
       </main>

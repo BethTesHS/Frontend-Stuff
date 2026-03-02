@@ -130,7 +130,7 @@ const BuyerDashboard = () => {
       case "history":
         return <BuyerHistory />;
       case "profile":
-        return <BuyerProfile user={user} />;
+        return <BuyerProfile />;
       default:
         return <BuyerOverview user={user} />;
     }
@@ -240,7 +240,7 @@ const BuyerDashboard = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
+        <main className={`flex-1 bg-gray-50 dark:bg-gray-950 ${activeTab === 'messages' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
           {renderContent()}
         </main>
       </div>

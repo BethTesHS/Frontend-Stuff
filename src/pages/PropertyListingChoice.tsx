@@ -1,342 +1,246 @@
-
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Layout from '@/components/Layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { propertyApi } from '@/services/api';
-import { 
-  Building, 
-  User, 
-  CheckCircle, 
-  Users,
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { propertyApi } from "@/services/api";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  Building,
   ArrowRight,
-  Sparkles,
-  Star,
+  ArrowLeft,
   DollarSign,
   Shield,
   Clock,
-  Camera,
   Zap,
   Trophy,
+  Target,
+  Users,
   Heart,
-  Target
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
-const PropertyListingChoice = () => {
+interface PropertyListingChoiceProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  propertyData: any;
+  onSelectAgentMode: (data: any) => void;
+}
+
+const PropertyListingChoice = ({
+  isOpen,
+  onClose,
+  onBack,
+  propertyData,
+  onSelectAgentMode,
+}: PropertyListingChoiceProps) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [loading, setLoading] = useState(false);
-  
-  // Get property data from previous page
-  const propertyData = location.state?.propertyData;
 
-  if (!propertyData) {
-    navigate('/list-property');
-    return null;
-  }
+  if (!propertyData) return null;
 
   const handleSelfManagement = async () => {
     setLoading(true);
     try {
-      // Create FormData for multipart/form-data encoding
       const formData = new FormData();
-      
-      // Add required form fields
-      formData.append('title', propertyData.title);
-      formData.append('description', propertyData.description);
-      formData.append('price', propertyData.price.toString());
-      formData.append('bedrooms', propertyData.bedrooms.toString());
-      formData.append('bathrooms', propertyData.bathrooms.toString());
-      formData.append('receptions', propertyData.receptions.toString());
-      formData.append('propertyType', propertyData.propertyType);
-      formData.append('listingType', propertyData.listingType);
-      formData.append('street', propertyData.street);
-      formData.append('city', propertyData.city);
-      formData.append('postcode', propertyData.postcode);
-      formData.append('county', propertyData.county);
-      
-      // Add optional fields only if they have values
-      if (propertyData.tenure) formData.append('tenure', propertyData.tenure);
-      if (propertyData.propertySize) formData.append('property_size', propertyData.propertySize.toString());
-      if (propertyData.landSize) formData.append('land_size', propertyData.landSize.toString());
-      if (propertyData.energyRating) formData.append('energy_rating', propertyData.energyRating);
-      if (propertyData.councilTaxBand) formData.append('council_tax_band', propertyData.councilTaxBand);
-      if (propertyData.yearBuilt) formData.append('year_built', propertyData.yearBuilt.toString());
-      
-      // Add features as JSON string if any selected
-      if (propertyData.features && propertyData.features.length > 0) {
-        formData.append('features', JSON.stringify(propertyData.features));
+
+      // Data mapping from original logic
+      formData.append("title", propertyData.title);
+      formData.append("description", propertyData.description);
+      formData.append("price", propertyData.price.toString());
+      formData.append("bedrooms", propertyData.bedrooms.toString());
+      formData.append("bathrooms", propertyData.bathrooms.toString());
+      formData.append("receptions", propertyData.receptions.toString());
+      formData.append("propertyType", propertyData.propertyType);
+      formData.append("listingType", propertyData.listingType);
+      formData.append("street", propertyData.street);
+      formData.append("city", propertyData.city);
+      formData.append("postcode", propertyData.postcode);
+      formData.append("county", propertyData.county);
+
+      if (propertyData.tenure) formData.append("tenure", propertyData.tenure);
+      if (propertyData.propertySize)
+        formData.append("property_size", propertyData.propertySize.toString());
+
+      if (propertyData.features) {
+        formData.append("features", JSON.stringify(propertyData.features));
       }
 
-      // Add images using the 'images' field name
       if (propertyData.propertyImages) {
-        propertyData.propertyImages.forEach((image) => {
-          formData.append('images', image);
-        });
+        propertyData.propertyImages.forEach((image: any) =>
+          formData.append("images", image),
+        );
       }
 
-      // Add documents using the 'documents' field name if any
-      if (propertyData.documents) {
-        propertyData.documents.forEach((doc) => {
-          formData.append('documents', doc);
-        });
-      }
+      formData.append("management_type", "self");
 
-      // Add management type
-      formData.append('management_type', 'self');
-
-      // Submit to API
       const response = await propertyApi.createProperty(formData);
-      
+
       if (response.success) {
-        toast.success('Property listed successfully for self-management!');
-        navigate('/owner-dashboard', { 
-          state: { 
-            message: 'Property listed successfully!',
-            refresh: true
-          }
-        });
-      } else {
-        throw new Error(response.error || 'Failed to create property listing');
+        toast.success("Property listed successfully!");
+        onClose();
+        navigate(0);
       }
     } catch (error: any) {
-      console.error('Error listing property:', error);
-      toast.error(error.message || 'Failed to list property. Please try again.');
+      toast.error(error.message || "Failed to list property");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestAgent = () => {
-    navigate('/select-agent', { state: { propertyData } });
-  };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 relative overflow-hidden">
-        {/* Floating Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-40 right-20 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none bg-white dark:bg-slate-950 shadow-2xl">
+        {/* Custom Header with Back Arrow Only */}
+        <div className="flex items-center p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950">
+          <button
+            onClick={onBack}
+            className="flex items-center text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            <span className="text-sm font-semibold">Back to details</span>
+          </button>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Modern Header Section */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-lg border border-white/30 rounded-full px-6 py-3 mb-8">
-              <Sparkles className="w-5 h-5 text-indigo-500" />
-              <span className="text-sm font-medium text-gray-700">Property Listing</span>
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 leading-tight">
-              How would you like to list your property?
-            </h1>
-            
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Choose the perfect approach for your property listing. Whether you prefer hands-on control or professional expertise, we've got you covered.
-            </p>
-
-            {/* Property Summary - Minimalist Design */}
-            <div className="bg-white/30 backdrop-blur-lg border border-white/40 rounded-3xl p-8 mb-16 max-w-4xl mx-auto">
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Building className="w-8 h-8 text-white" />
-                </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
+          <div className="relative p-6 md:p-10">
+            {loading && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+                <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
               </div>
-              
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">{propertyData.title}</h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 text-center">
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-blue-600">£{propertyData.price}</div>
-                  <div className="text-sm text-gray-600">Price</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-purple-600">{propertyData.propertyType}</div>
-                  <div className="text-sm text-gray-600">Type</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-emerald-600">{propertyData.bedrooms}</div>
-                  <div className="text-sm text-gray-600">Bedrooms</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-teal-600">{propertyData.city}</div>
-                  <div className="text-sm text-gray-600">Location</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-indigo-600">{propertyData.listingType}</div>
-                  <div className="text-sm text-gray-600">Listing</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-bold text-rose-600">Ready</div>
-                  <div className="text-sm text-gray-600">Status</div>
-                </div>
+            )}
+
+            <div className="flex flex-col items-center text-center mb-10">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-4 transition-colors">
+                <Building className="w-7 h-7 text-blue-600 dark:text-blue-400" />
               </div>
-            </div>
-          </div>
-
-          {/* Two Clear Options - Modern Card Design */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            
-            {/* Self-Service Listing */}
-            <div className="group relative transform transition-all duration-500 hover:scale-105">
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 rounded-3xl blur-lg opacity-25 group-hover:opacity-50 transition duration-500"></div>
-              
-              {/* Main Card */}
-              <div className="relative bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 lg:p-10 hover:bg-white/90 transition-all duration-500 hover:shadow-2xl">
-                
-                {/* Header with Icon */}
-                <div className="text-center mb-8">
-                  <div className="relative mx-auto w-20 h-20 mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl transform rotate-3 group-hover:rotate-6 transition-transform duration-500"></div>
-                    <div className="relative w-full h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-xl">
-                      <Zap className="w-10 h-10 text-white" />
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4">
-                    Self-Service Listing
-                  </h3>
-                  
-                  <p className="text-lg text-gray-600 leading-relaxed max-w-sm mx-auto">
-                    Take complete control and save on costs with our powerful DIY tools
-                  </p>
-                </div>
-
-                {/* Feature Benefits */}
-                <div className="space-y-5 mb-10">
-                  {[
-                    { icon: DollarSign, text: 'Zero commission fees - Keep 100% of your rental income' },
-                    { icon: Target, text: 'Full control over pricing, tenant selection, and communications' },
-                    { icon: Clock, text: 'List instantly with our streamlined process' },
-                    { icon: Camera, text: 'Professional listing tools and photo enhancement' }
-                  ].map((benefit, index) => (
-                    <div key={index} className="flex items-start space-x-4 group/item">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-xl flex items-center justify-center group-hover/item:scale-110 transition-transform duration-300">
-                        <benefit.icon className="w-4 h-4 text-emerald-600" />
-                      </div>
-                      <span className="text-gray-700 font-medium leading-relaxed">{benefit.text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA Button */}
-                <Button 
-                  onClick={handleSelfManagement}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-5 text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 group/btn"
-                >
-                  <Zap className="w-5 h-5 mr-2 group-hover/btn:animate-pulse" />
-                  Start Self-Service Listing
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                </Button>
-                
-                <p className="text-center text-sm text-gray-500 mt-4">
-                  Perfect for experienced landlords
-                </p>
-              </div>
-            </div>
-
-            {/* Agent-Assisted Listing */}
-            <div className="group relative transform transition-all duration-500 hover:scale-105">
-              {/* Most Popular Badge */}
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg flex items-center space-x-2">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span>Most Popular</span>
-                </div>
-              </div>
-              
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-3xl blur-lg opacity-30 group-hover:opacity-60 transition duration-500"></div>
-              
-              {/* Main Card */}
-              <div className="relative bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 lg:p-10 hover:bg-white/90 transition-all duration-500 hover:shadow-2xl pt-12">
-                
-                {/* Header with Icon */}
-                <div className="text-center mb-8">
-                  <div className="relative mx-auto w-20 h-20 mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl transform -rotate-3 group-hover:-rotate-6 transition-transform duration-500"></div>
-                    <div className="relative w-full h-full bg-gradient-to-r from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-xl">
-                      <Trophy className="w-10 h-10 text-white" />
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                    Agent-Assisted Listing
-                  </h3>
-                  
-                  <p className="text-lg text-gray-600 leading-relaxed max-w-sm mx-auto">
-                    Professional expertise and full-service support for maximum results
-                  </p>
-                </div>
-
-                {/* Feature Benefits */}
-                <div className="space-y-5 mb-10">
-                  {[
-                    { icon: Shield, text: 'Professional marketing strategy and premium listing placement' },
-                    { icon: Users, text: 'Expert tenant screening and comprehensive background checks' },
-                    { icon: Heart, text: 'Stress-free experience with dedicated property management' },
-                    { icon: Star, text: 'Higher rental yields through market expertise and optimization' }
-                  ].map((benefit, index) => (
-                    <div key={index} className="flex items-start space-x-4 group/item">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl flex items-center justify-center group-hover/item:scale-110 transition-transform duration-300">
-                        <benefit.icon className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      <span className="text-gray-700 font-medium leading-relaxed">{benefit.text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA Button */}
-                <Button 
-                  onClick={handleRequestAgent}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white py-5 text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 group/btn"
-                >
-                  <Trophy className="w-5 h-5 mr-2 group-hover/btn:animate-bounce" />
-                  Get Professional Agent
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                </Button>
-                
-                <p className="text-center text-sm text-gray-500 mt-4">
-                  Recommended for first-time landlords
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Compare Options CTA */}
-          <div className="text-center mt-16">
-            <div className="bg-white/30 backdrop-blur-lg border border-white/40 rounded-2xl p-8 max-w-2xl mx-auto">
-              <h4 className="text-xl font-bold text-gray-800 mb-4">Still undecided?</h4>
-              <p className="text-gray-600 mb-6">
-                Our team can help you choose the best option for your specific situation and property type.
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+                Listing Options
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+                Select how you would like to manage the listing for your{" "}
+                {propertyData.bedrooms} bedroom {propertyData.propertyType}.
               </p>
-              <Button 
-                variant="outline" 
-                className="bg-white/50 border-gray-300 text-gray-700 hover:bg-white/70 px-8 py-3 rounded-xl font-medium"
-                onClick={() => navigate('/contact')}
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 mb-10">
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-4 text-center">
+                {[
+                  { label: "Price", value: `£${propertyData.price}` },
+                  { label: "Type", value: propertyData.propertyType },
+                  { label: "Beds", value: propertyData.bedrooms },
+                  { label: "Location", value: propertyData.city },
+                  { label: "Listing", value: propertyData.listingType },
+                  { label: "Status", value: "Ready" },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex flex-col">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 truncate">
+                      {item.value}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-semibold tracking-wider mt-1">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              {/* Self-Service Card */}
+              <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 transition-all hover:shadow-md">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-5 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                  <Zap className="w-6 h-6 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                </div>
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Self-Service
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                  Manage everything yourself using our comprehensive landlord
+                  toolkit.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    { icon: DollarSign, text: "No commission fees" },
+                    { icon: Target, text: "Direct communication" },
+                    { icon: Clock, text: "Instant activation" },
+                  ].map((feat, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center text-xs text-slate-600 dark:text-slate-300"
+                    >
+                      <feat.icon className="w-3.5 h-3.5 mr-3 text-slate-400" />
+                      {feat.text}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={handleSelfManagement}
+                  className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold h-12 rounded-xl transition-all"
+                >
+                  Select Self-Service
+                </Button>
+              </div>
+
+              {/* Agent-Assisted Card */}
+              <div className="group relative bg-white dark:bg-slate-900 border-2 border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 transition-all shadow-sm">
+                <div className="absolute -top-3 right-6 bg-blue-600 text-[10px] text-white font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg shadow-blue-200 dark:shadow-none">
+                  Recommended
+                </div>
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-5">
+                  <Trophy className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Agent-Assisted
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                  Professional expertise for maximum results and stress-free
+                  management.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    { icon: Shield, text: "Expert marketing strategy" },
+                    { icon: Users, text: "Tenant screening" },
+                    { icon: Heart, text: "Full management" },
+                  ].map((feat, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center text-xs text-slate-600 dark:text-slate-300"
+                    >
+                      <feat.icon className="w-3.5 h-3.5 mr-3 text-blue-500/70" />
+                      {feat.text}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={() => {
+                    onSelectAgentMode(propertyData);
+                    onClose();
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-xl transition-all shadow-lg shadow-blue-200 dark:shadow-none"
+                >
+                  Choose an Agent <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-center pt-8 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs text-slate-500 dark:text-slate-500 mb-4">
+                Need help deciding? Our team is available for a free
+                consultation.
+              </p>
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/contact")}
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
               >
-                Compare Options & Get Help
+                View Comparison Guide
               </Button>
             </div>
           </div>
         </div>
-      </div>
-    </Layout>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -126,31 +126,33 @@ const apiRequest = async <T>(
       if (isTokenError && isExpiredToken) {
         console.log('Token error in complaints API, attempting to refresh...', { errorMsg });
 
+        const refreshTokenValue = getRefreshToken();
+        if (!refreshTokenValue) {
+          // No refresh token available — throw without forcing logout so callers can handle gracefully
+          throw new Error('Authentication required. Please log in.');
+        }
+
         try {
-          // Attempt to refresh the token
-          const refreshTokenValue = getRefreshToken();
-          if (refreshTokenValue) {
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${refreshTokenValue}`,
-              },
-            });
+          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${refreshTokenValue}`,
+            },
+          });
 
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.success && refreshData.data) {
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            if (refreshData.success && refreshData.data) {
                 // Update tokens
-                setAuthToken(refreshData.data.access_token);
-                if (refreshData.data.refresh_token) {
-                  setRefreshToken(refreshData.data.refresh_token);
-                }
-
-                console.log('Token refreshed successfully, retrying complaints API request');
-                // Retry the original request with new token
-                return apiRequest(endpoint, options, true);
+              setAuthToken(refreshData.data.access_token);
+              if (refreshData.data.refresh_token) {
+                setRefreshToken(refreshData.data.refresh_token);
               }
+
+              console.log('Token refreshed successfully, retrying complaints API request');
+                // Retry the original request with new token
+              return apiRequest(endpoint, options, true);
             }
           }
 

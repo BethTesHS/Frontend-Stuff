@@ -14,6 +14,8 @@ import { OwnerProperties } from '@/components/OwnerDashboard/OwnerProperties';
 import { OwnerProfile } from '@/components/OwnerDashboard/OwnerProfile';
 import { OwnerBookings } from '@/components/OwnerDashboard/OwnerBookings';
 import { OwnerCalendar } from '@/components/OwnerDashboard/OwnerCalendar';
+import { OwnerMaintenance } from '@/components/OwnerDashboard/OwnerMaintenance';
+import { OwnerComplaints } from '@/components/OwnerDashboard/OwnerComplaints';
 import NotificationsComponent from '@/components/TenantDashboard/TenantNotifications';
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
 import Messages from "@/components/Messages/Messages";
@@ -26,6 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ListProperty from "@/pages/ListProperty";
+import PropertyListingChoice from "@/pages/PropertyListingChoice";
 
 const OwnerDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['owner'], false);
@@ -38,6 +42,10 @@ const OwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [listPropertyOpen, setListPropertyOpen] = useState(false);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const [pendingPropertyData, setPendingPropertyData] = useState<any>(null);
+  const [isSelectingAgent, setIsSelectingAgent] = useState(false);
 
   // Handle success message from property listing
   useEffect(() => {
@@ -60,10 +68,15 @@ const OwnerDashboard = () => {
   if (!hasAccess) {
     return null;
   }
+  const handleListPropertyComplete = (data: any) => {
+    setListPropertyOpen(false); 
+    setPendingPropertyData(data);
+    setChoiceModalOpen(true);
+  };
 
   const handleTabChange = (tab: string) => {
     if (tab === 'add-property') {
-      navigate('/list-property');
+      setListPropertyOpen(false);
       return;
     }
     if (tab === 'post-spare-room') {
@@ -76,13 +89,27 @@ const OwnerDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'properties':
-        return <OwnerProperties />;
+        return (
+          <OwnerProperties
+            onOpenListModal={() => {
+              setIsSelectingAgent(false);
+              setListPropertyOpen(true);
+            }}
+            isSelectingAgent={isSelectingAgent}
+            setIsSelectingAgent={setIsSelectingAgent}
+            pendingPropertyData={pendingPropertyData}
+          />
+        );
       case 'messages':
         return <Messages />;
       case 'bookings':
         return <OwnerBookings />;
       case 'calendar':
         return <OwnerCalendar />;
+      case 'maintenance':
+        return <OwnerMaintenance />;
+      case 'complaints':
+        return <OwnerComplaints />;
       case 'notifications':
         return <NotificationsComponent user={user} />;
       case 'spare-rooms':
@@ -117,6 +144,16 @@ const OwnerDashboard = () => {
     }
   }
 
+  const handleBackToDetails = () => {
+    setChoiceModalOpen(false);
+    setListPropertyOpen(true);
+  };
+  const handleOpenAgentSelection = (data: any) => {
+  setPendingPropertyData(data);
+  setChoiceModalOpen(false);
+  setIsSelectingAgent(true);
+  setActiveTab('properties');
+};
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Mobile Sidebar Overlay */}
@@ -135,7 +172,7 @@ const OwnerDashboard = () => {
           onCollapseChange={setIsSidebarCollapsed}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          isCollapsed={isSidebarCollapsed} /* <--- Add this line */
+          isCollapsed={isSidebarCollapsed} 
         />
 
         {/* Main Content */}
@@ -233,11 +270,26 @@ const OwnerDashboard = () => {
           </header>
 
           {/* Content Area */}
-          <div className={`flex-1 overflow-auto bg-gray-50 dark:bg-gray-950 w-full ${activeTab === 'overview' ? 'p-0' : 'p-6'}`}>
+          <div className={`flex-1 bg-gray-50 dark:bg-gray-950 w-full ${activeTab === 'overview' || activeTab === 'messages' ? 'overflow-hidden' : 'overflow-auto p-6'}`}>
             {renderContent()}
           </div>
         </div>
       </div>
+      <ListProperty 
+        isOpen={listPropertyOpen} 
+        onClose={() => setListPropertyOpen(false)} 
+        user={user}
+        isAgencyMode={false} // Owners usually aren't in agency mode
+        onComplete={handleListPropertyComplete}
+        defaultValues={pendingPropertyData}
+      />
+      <PropertyListingChoice
+        isOpen={choiceModalOpen}
+        onClose={() => setChoiceModalOpen(false)}
+        propertyData={pendingPropertyData}
+        onBack={handleBackToDetails}
+        onSelectAgentMode={handleOpenAgentSelection}
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { adminApi, Task, TaskStats } from "@/services/adminApi";
 import { MOCK_TASKS, MOCK_TASK_STATS } from "@/utils/mockTaskData";
+import { AdminCreateTaskModal } from "./AdminCreateTaskModal";
 
 const AdminTask = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -24,21 +25,24 @@ const AdminTask = () => {
   const [filter, setFilter] = useState("all tasks");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
+      if (tasks.length === 0) setLoading(true);
+
       // const data = await adminApi.getTasks(); mocking the API call for now
+      // setTasks(data.tasks);
+      // setStats(data.stats);
       await new Promise((resolve) => setTimeout(resolve, 600));
       setTasks(MOCK_TASKS);
       setStats(MOCK_TASK_STATS);
-      // setTasks(data.tasks);
-      // setStats(data.stats);
     } catch (error) {
       console.error("Failed to load tasks:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tasks.length]);
 
   useEffect(() => {
     loadData();
@@ -134,7 +138,10 @@ const AdminTask = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
             <Plus size={18} /> Create New Task
           </button>
         </div>
@@ -186,6 +193,11 @@ const AdminTask = () => {
           ))
         )}
       </div>
+      <AdminCreateTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreated={loadData}
+      />
     </div>
   );
 };
