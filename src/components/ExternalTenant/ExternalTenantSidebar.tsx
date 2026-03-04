@@ -1,133 +1,171 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
 import {
   Home,
   User,
-  FileText,
   Clock,
-  MessageCircle,
+  MessageSquare,
   LogOut,
+  X,
+  Wrench,
+  Calendar,
+  Bell,
+  ClipboardList
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface ExternalTenantSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  isCollapsed?: boolean;
   user: any;
 }
 
-const ExternalTenantSidebar = ({ activeTab, setActiveTab, user }: ExternalTenantSidebarProps) => {
-  const { state } = useSidebar();
+interface NavigationItem {
+  title: string;
+  value: string;
+  icon: any;
+  color?: string;
+  badge?: boolean;
+}
+
+export default function ExternalTenantSidebar({
+  
+  activeTab,
+  setActiveTab,
+  isOpen = true,
+  onClose,
+  isCollapsed = false,
+  user
+}: ExternalTenantSidebarProps) {
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const sidebarItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home, color: "text-blue-500" },
-    { id: "calendar", label: "Calendar", icon: Clock, color: "text-indigo-500" },
-    { id: "complaints", label: "Complaints", icon: FileText, color: "text-orange-500" },
-    { id: "history", label: "History", icon: Clock, color: "text-purple-500" },
-    { id: "messages", label: "Messages", icon: MessageCircle, color: "text-pink-500" },
-    { id: "spare-rooms", label: "My Spare Room", icon: Home, color: "text-emerald-500" },
+  const navigationItems: NavigationItem[] = [
+    { title: "Dashboard", value: "dashboard", icon: Home },
+    { title: "My Complaints", value: "complaints", icon: ClipboardList },
+    { title: "Maintenance", value: "maintenance", icon: Wrench },
+    { title: "Messages", value: "messages", icon: MessageSquare },
+    { title: "Calendar", value: "calendar", icon: Calendar },
+    { title: "Profile", value: "profile", icon: User },
+    { title: "History", value: "history", icon: Clock },
+    { title: "My Spare Room", value: "spare-rooms", icon: Home },
+    { title: "Notifications", value: "notifications", icon: Bell },
   ];
 
+  const handleTabClick = (tabValue: string) => {
+    setActiveTab(tabValue);
+    if (onClose && window.innerWidth < 1024) {
+      onClose();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      toast.error("Failed to logout");
+    }
+  };
+
+  const getUserInitials = () => {
+    if (user?.name) {
+      const parts = user.name.split(' ');
+      if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      return parts[0][0].toUpperCase();
+    }
+    if (!user?.firstName && !user?.lastName) return "ET";
+    return `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
+  };
+
   return (
-    <Sidebar variant="inset" className="border-r border-border/60">
-      <SidebarHeader className="bg-gradient-to-b from-background via-muted/20 to-muted/40">
-        <div className="flex items-center gap-3 px-2 py-4">
-          <div className="size-8 text-primary drop-shadow-sm">
-            <Home className="w-6 h-6" />
-          </div>
-          {state === "expanded" && (
-            <h1 className="text-foreground text-lg font-bold leading-normal tracking-tight">
-              Tenancy Hub
-            </h1>
-          )}
-        </div>
-      </SidebarHeader>
+    <aside className={`fixed lg:relative h-screen bg-white dark:bg-gray-900 shadow-lg border-r border-gray-200 dark:border-gray-800 z-50 transition-all duration-300 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      {/* Close Button (Mobile only) */}
+      <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-end lg:hidden flex-shrink-0">
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <X className="text-xl" />
+        </button>
+      </div>
 
-      <SidebarContent className="bg-gradient-to-b from-background via-muted/20 to-muted/40">
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {sidebarItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-        <SidebarMenuButton
-          onClick={() => setActiveTab(item.id)}
-          isActive={activeTab === item.id}
-          className="w-full"
+      {/* User Profile Area */}
+      <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
         >
-          <item.icon className={`w-5 h-5 flex-shrink-0 ${
-            activeTab === item.id ? "text-primary-foreground" : `${item.color}`
-          }`} />
-          {state === "expanded" && (
-            <span className="text-sm font-medium">
-              {item.label}
-            </span>
-          )}
-        </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="bg-gradient-to-b from-background via-muted/20 to-muted/40">
-        <div className="flex flex-col gap-4 p-4">
-          {state === "expanded" && (
-            <Button
-              onClick={() => navigate("/login")}
-              variant="destructive"
-              className="bg-gradient-to-r from-destructive to-destructive/90 hover:from-destructive/90 hover:to-destructive/80 text-destructive-foreground shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-          )}
-          <div
-            className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-muted/60 to-muted/40 border border-border/40 shadow-sm cursor-pointer hover:bg-muted/60 transition-colors"
-            onClick={() => setActiveTab("profile")}
-            title="View Profile"
-          >
-            <div className="bg-gradient-to-br from-primary/20 to-primary-glow/20 rounded-full size-8 flex items-center justify-center border border-primary/20">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            {state === "expanded" && (
-              <div className="flex flex-col">
-                <p className="text-foreground text-xs font-semibold leading-tight">
-                  {user?.name || "External Tenant"}
-                </p>
-                <p className="text-muted-foreground text-xs font-normal leading-tight">
-                  Verified Tenant
-                </p>
-              </div>
-            )}
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
           </div>
-          <Button
-            variant="outline"
-            className="w-full bg-gradient-to-r from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/40 border-border/60 shadow-sm hover:shadow-md transition-all duration-300"
-            onClick={() => navigate('/')}
-          >
-            <Home className="w-4 h-4 mr-2" />
-            {state === "expanded" && "Back to Homepage"}
-          </Button>
+          {!isCollapsed && (
+            <div>
+              <h2 className="font-semibold text-gray-800 dark:text-gray-100 truncate w-32">
+                {user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "External Tenant"}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">External Tenant</p>
+            </div>
+          )}
         </div>
-      </SidebarFooter>
-    </Sidebar>
-  );
-};
+      </div>
 
-export default ExternalTenantSidebar;
+      {/* Navigation Items */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+        {navigationItems.map((item) => (
+          <div
+            key={item.value}
+            onClick={() => handleTabClick(item.value)}
+            className={`p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} cursor-pointer rounded-lg transition-all ${
+              activeTab === item.value
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300'
+            }`}
+            title={isCollapsed ? item.title : undefined}
+          >
+            <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+              <item.icon
+                className={
+                  item.color 
+                    ? item.color 
+                    : (activeTab === item.value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400')
+                }
+                size={20}
+              />
+              {!isCollapsed && (
+                <span className="font-medium flex-1">{item.title}</span>
+              )}
+              {!isCollapsed && item.badge && (
+                <Badge variant="destructive" className="text-xs px-1.5 py-0.5">!</Badge>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 space-y-3">
+        <button
+          onClick={() => navigate('/')}
+          className={`w-full p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-center space-x-2'} bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors`}
+          title={isCollapsed ? "Back to Homepage" : undefined}
+        >
+          <Home className="text-gray-600 dark:text-gray-400" size={20} />
+          {!isCollapsed && <span className="font-medium text-gray-700 dark:text-gray-300">Homepage</span>}
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className={`w-full p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-center space-x-2'} bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors`}
+          title={isCollapsed ? "Logout" : undefined}
+        >
+          <LogOut size={20} />
+          {!isCollapsed && <span className="font-medium">Logout</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}

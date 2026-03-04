@@ -4,28 +4,20 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
-// Removed Card imports - using glass morphism divs instead
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import NotificationDropdown from "@/components/Notifications/NotificationDropdown";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Menu, ChevronLeft, ChevronRight, HelpCircle, Sun, Moon } from "lucide-react";
+
+// Dashboard Components
 import ExternalTenantSidebar from "@/components/ExternalTenant/ExternalTenantSidebar";
 import ExternalTenantCalendar from "@/components/ExternalTenant/ExternalTenantCalendar";
-import {
-  Home,
-  User,
-  FileText,
-  Clock,
-  MessageCircle,
-  HelpCircle,
-  Sun,
-  Moon,
-  Search
-} from "lucide-react";
-
-// Import pages that will be created
+import { ExternalTenantOverview } from "@/components/ExternalTenant/ExternalTenantOverview";
 import ExternalTenantProfile from "@/components/ExternalTenant/ExternalTenantProfile";
 import ExternalTenantComplaints from "@/components/ExternalTenant/ExternalTenantComplaints";
+import ExternalTenantMaintenanceRequests from "@/components/ExternalTenant/ExternalTenantMaintenanceRequests";
 import ExternalTenantHistory from "@/components/ExternalTenant/ExternalTenantHistory";
-import ExternalTenantMessages from "@/components/ExternalTenant/ExternalTenantMessages";
+import ExternalTenantMessages from "@/components/Messages/Messages";
+import { TenantNotificationDropdown } from "@/components/TenantDashboard/TenantNotificationDropdown"; 
+import NotificationsComponent from '@/components/TenantDashboard/TenantNotifications';
 import { SpareRoomListings } from "@/components/SpareRoom/SpareRoomListings";
 
 const ExternalTenantDashboard = () => {
@@ -34,7 +26,10 @@ const ExternalTenantDashboard = () => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("dashboard");
-  console.log('ExternalTenantDashboard: Current activeTab state:', activeTab);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   
   // Handle special tab navigation cases
   const handleTabChange = (tab: string) => {
@@ -44,118 +39,28 @@ const ExternalTenantDashboard = () => {
     }
     setActiveTab(tab);
   };
-  
-  // Remove the redirect check that was causing endless loading
-  // External tenants are already properly routed here by the AuthContext
-  // No additional checks needed since AuthContext handles tenant type detection
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-500"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#notifications') {
+        setActiveTab('notifications');
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
-  if (!hasAccess) {
-    return null;
-  }
-
-  const sidebarItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home, color: "text-gray-600 dark:text-gray-400" },
-    { id: "calendar", label: "Calendar", icon: Clock, color: "text-gray-600 dark:text-gray-400" },
-    { id: "profile", label: "Profile", icon: User, color: "text-gray-600 dark:text-gray-400" },
-    { id: "complaints", label: "Complaints", icon: FileText, color: "text-gray-600 dark:text-gray-400" },
-    { id: "history", label: "History", icon: Clock, color: "text-gray-600 dark:text-gray-400" },
-    { id: "messages", label: "Messages", icon: MessageCircle, color: "text-gray-600 dark:text-gray-400" },
-    { id: "spare-rooms", label: "My Spare Room", icon: Home, color: "text-gray-600 dark:text-gray-400" },
-  ];
-
-  const renderContent = () => {
-    console.log('Rendering content for activeTab:', activeTab);
-    switch (activeTab) {
-      case "calendar":
-        console.log('Rendering ExternalTenantCalendar');
-        return <ExternalTenantCalendar user={user} />;
-      case "profile":
-        console.log('Rendering ExternalTenantProfile');
-        return <ExternalTenantProfile user={user} />;
-      case "complaints":
-        console.log('Rendering ExternalTenantComplaints');
-        return <ExternalTenantComplaints />;
-      case "history":
-        console.log('Rendering ExternalTenantHistory');
-        return <ExternalTenantHistory />;
-      case "messages":
-        console.log('Rendering ExternalTenantMessages');
-        return <ExternalTenantMessages />;
-      case "spare-rooms":
-        return <SpareRoomListings userRole="tenant" />;
-      default:
-        console.log('Rendering DashboardContent (default)');
-        return <DashboardContent user={user} setActiveTab={setActiveTab} />;
-    }
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <ExternalTenantSidebar
-          activeTab={activeTab}
-          setActiveTab={handleTabChange}
-          user={user}
-        />
-        <SidebarInset className="flex flex-col">
-          <header className="flex items-center justify-between border-b border-border px-8 py-4 bg-card">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="mr-2" />
-              <h2 className="text-foreground text-xl font-bold leading-tight tracking-[-0.015em]">
-                {sidebarItems.find((item) => item.id === activeTab)?.label ||
-                  "Dashboard Overview"}
-              </h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleTheme}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? (
-                  <Sun size={20} className="text-yellow-500" />
-                ) : (
-                  <Moon size={20} className="text-gray-600" />
-                )}
-              </button>
-              <NotificationDropdown />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-muted hover:bg-muted/80"
-              >
-                <HelpCircle className="w-5 h-5 text-muted-foreground" />
-              </Button>
-            </div>
-          </header>
-
-          <main className="flex-1 p-6 bg-background overflow-auto">
-            {renderContent()}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-// Dashboard Content Component
-const DashboardContent = ({ user, setActiveTab }: any) => {
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!isMobile) setSidebarOpen(true);
+    else setSidebarOpen(false);
+  }, [isMobile]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true);
-        // Import API dynamically to avoid circular imports
+        setDashboardLoading(true);
         const { externalTenantApi } = await import('@/services/api');
         const [dashboardResponse, profileResponse] = await Promise.all([
           externalTenantApi.getDashboard().catch(() => ({ success: false, data: null })),
@@ -165,7 +70,6 @@ const DashboardContent = ({ user, setActiveTab }: any) => {
         if (dashboardResponse.success && dashboardResponse.data) {
           setDashboardData(dashboardResponse.data);
         } else if (profileResponse.success && profileResponse.data?.external_tenant_profile) {
-          // Fallback: Create dashboard data from profile if dashboard API fails
           const profile = profileResponse.data.external_tenant_profile;
           setDashboardData({
             user: user,
@@ -173,14 +77,9 @@ const DashboardContent = ({ user, setActiveTab }: any) => {
               address: profile.property_address || 'N/A',
               postcode: profile.postcode || 'N/A',
               type: profile.property_type || 'N/A',
-              bedrooms: profile.bedrooms || 0,
-              bathrooms: profile.bathrooms || 0,
-              monthly_rent: profile.monthly_rent || 0,
             },
             tenancy_timeline: {
               move_in_date: profile.move_in_date,
-              days_since_move_in: profile.move_in_date ? 
-                Math.floor((new Date().getTime() - new Date(profile.move_in_date).getTime()) / (1000 * 60 * 60 * 24)) : 0,
               status: 'active'
             }
           });
@@ -188,189 +87,159 @@ const DashboardContent = ({ user, setActiveTab }: any) => {
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
-        setLoading(false);
+        setDashboardLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, []); // Empty dependency array - only run once on mount
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap justify-between gap-4">
-        <div>
-          <h1 className="text-gray-800 dark:text-gray-100 tracking-light text-3xl font-bold leading-tight">
-            Welcome back, {dashboardData?.user?.name || user?.name || "Tenant"}! 🏠
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {dashboardData?.property_summary?.address ?
-              `Managing your tenancy at ${dashboardData.property_summary.address}` :
-              "Here's what's happening with your tenancy today"
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="size-2 rounded-full bg-gray-500 dark:bg-gray-600"></div>
-          <p className="text-muted-foreground text-sm">
-            {dashboardData?.tenancy_timeline?.status === 'active' ? 'Active Tenant' : 'External Tenant'}
-          </p>
-        </div>
-      </div>
 
-      {dashboardData?.property_summary && (
-        <div className="glass-card p-6 glass-hover bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-lg text-gray-800 dark:text-gray-100 font-semibold">Your Property</h3>
-                <p className="text-gray-700 dark:text-gray-300 text-sm">
-                  {dashboardData.property_summary.address}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                  £{dashboardData.property_summary.monthly_rent?.toLocaleString()}
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">per month</p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Type:</span>
-                <span className="ml-2 font-medium">{dashboardData.property_summary.type}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Bedrooms:</span>
-                <span className="ml-2 font-medium">{dashboardData.property_summary.bedrooms}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Move-in:</span>
-                <span className="ml-2 font-medium">
-                  {dashboardData.tenancy_timeline?.move_in_date ?
-                    new Date(dashboardData.tenancy_timeline.move_in_date).toLocaleDateString() : 'N/A'}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Days living here:</span>
-                <span className="ml-2 font-medium">
-                  {dashboardData.tenancy_timeline?.days_since_move_in || 0} days
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+  if (!hasAccess) return null;
+
+  const getTabTitle = (tab: string) => {
+    const titles: Record<string, string> = {
+      dashboard: "Dashboard",
+      calendar: "Calendar",
+      profile: "Profile",
+      complaints: "My Complaints",
+      maintenance: "Maintenance Requests",
+      history: "History",
+      messages: "Messages",
+      notifications: "Notifications",
+      "spare-rooms": "My Spare Room",
+    };
+    return titles[tab] || "Dashboard Overview";
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "calendar":
+        return <ExternalTenantCalendar user={user} />;
+      case "profile":
+        return <ExternalTenantProfile />;
+      case "complaints":
+        return <ExternalTenantComplaints onGoToMessages={(context) => setActiveTab('messages')} />;
+      case "maintenance":
+        return <ExternalTenantMaintenanceRequests onGoToMessages={(context) => setActiveTab('messages')} />;
+      case "history":
+        return <ExternalTenantHistory />;
+      case "messages":
+        return <ExternalTenantMessages />;
+      case "notifications":
+        // Utilizing the shared TenantNotifications component
+        return <NotificationsComponent user={user} />;
+      case "spare-rooms":
+        return <SpareRoomListings userRole="tenant" />;
+      default:
+        return (
+          <ExternalTenantOverview 
+            user={user} 
+            setActiveTab={setActiveTab} 
+            navigate={navigate} 
+            dashboardData={dashboardData} 
+            dashboardLoading={dashboardLoading} 
+          />
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex w-full">
+      {isMobile && (
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="w-64 p-0">
+            <ExternalTenantSidebar
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+              isOpen={true}
+              onClose={() => setSidebarOpen(false)}
+              isCollapsed={false}
+              user={user}
+            />
+          </SheetContent>
+        </Sheet>
       )}
 
-      <div>
-        <h2 className="text-foreground text-xl font-bold leading-tight tracking-[-0.015em] mb-4">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="glass-card p-6 glass-hover cursor-pointer group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow" onClick={() => setActiveTab("complaints")}>
-            <div className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-8 rounded-xl bg-gray-600 dark:bg-gray-700 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <FileText className="w-3 h-3" />
-                </div>
-                <h3 className="text-base text-gray-800 dark:text-gray-100 font-semibold">File a Complaint</h3>
-              </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">
-                Submit a formal complaint about your rental property
-              </p>
-            </div>
-            <div>
-              <Button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white shadow-md hover:shadow-lg transition-all duration-300">
-                Get Started
-              </Button>
-            </div>
-          </div>
+      {!isMobile && (
+        <ExternalTenantSidebar
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          isOpen={sidebarOpen}
+          isCollapsed={sidebarCollapsed}
+          user={user}
+        />
+      )}
 
-          <div className="glass-card p-6 glass-hover cursor-pointer group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow" onClick={() => setActiveTab("complaints")}>
-            <div className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-8 rounded-xl bg-gray-600 dark:bg-gray-700 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Clock className="w-3 h-3" />
-                </div>
-                <h3 className="text-base text-gray-800 dark:text-gray-100 font-semibold">Track Complaint</h3>
-              </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">
-                Check the status of your submitted complaints
-              </p>
-            </div>
-            <div>
-              <Button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white shadow-md hover:shadow-lg transition-all duration-300">
-                View Status
-              </Button>
-            </div>
-          </div>
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 flex-shrink-0">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <Menu size={20} className="text-gray-600 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:block p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                </button>
 
-          <div className="glass-card p-6 glass-hover cursor-pointer group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow" onClick={() => setActiveTab("profile")}>
-            <div className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-8 rounded-xl bg-gray-600 dark:bg-gray-700 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <User className="w-3 h-3" />
+                <div className="flex flex-col gap-1">
+                  {activeTab === "dashboard" ? (
+                    <>
+                      <h1 className="text-gray-800 dark:text-gray-100 tracking-light text-2xl font-bold leading-tight">
+                        Welcome back, {user?.name || "Tenant"}
+                      </h1>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm hidden sm:block">
+                        Here's what's happening with your tenancy today
+                      </p>
+                    </>
+                  ) : (
+                    <h2 className="text-gray-800 dark:text-gray-100 text-xl font-bold leading-tight tracking-[-0.015em]">
+                      {getTabTitle(activeTab)}
+                    </h2>
+                  )}
                 </div>
-                <h3 className="text-base text-gray-800 dark:text-gray-100 font-semibold">My Profile</h3>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">
-                View and update your personal and property details
-              </p>
-            </div>
-            <div>
-              <Button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white shadow-md hover:shadow-lg transition-all duration-300">
-                View Details
-              </Button>
-            </div>
-          </div>
 
-          <div className="glass-card p-6 glass-hover cursor-pointer group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow" onClick={() => setActiveTab("messages")}>
-            <div className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-8 rounded-xl bg-gray-600 dark:bg-gray-700 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <MessageCircle className="w-3 h-3" />
-                </div>
-                <h3 className="text-base text-gray-800 dark:text-gray-100 font-semibold">Messages</h3>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {theme === 'dark' ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} />}
+                </button>
+                
+                <TenantNotificationDropdown 
+                  onShowAll={() => setActiveTab('notifications')} 
+                />
+                
+                <Button variant="ghost" size="icon" className="bg-muted hover:bg-muted/80 hidden sm:flex">
+                  <HelpCircle className="w-5 h-5 text-muted-foreground" />
+                </Button>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">
-                Communicate with your landlord or property manager
-              </p>
-            </div>
-            <div>
-              <Button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white shadow-md hover:shadow-lg transition-all duration-300">
-                View Messages
-              </Button>
             </div>
           </div>
+        </header>
 
-          <div className="glass-card p-6 glass-hover cursor-pointer group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow" onClick={() => navigate('/properties')}>
-            <div className="mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center size-8 rounded-xl bg-gray-600 dark:bg-gray-700 text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Search className="w-3 h-3" />
-                </div>
-                <h3 className="text-base text-gray-800 dark:text-gray-100 font-semibold">Browse Properties</h3>
-              </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">
-                Explore available rental properties in your area
-              </p>
-            </div>
-            <div>
-              <Button className="bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white shadow-md hover:shadow-lg transition-all duration-300">
-                Browse Now
-              </Button>
-            </div>
-          </div>
+        <div className={`flex-1 bg-gray-50 dark:bg-gray-950 ${activeTab === 'messages' ? 'overflow-hidden' : 'overflow-y-auto p-6'}`}>
+          {renderContent()}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
-import { Complaint } from '@/services/complaintsApi';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface MessagesContext {
@@ -25,8 +24,8 @@ interface MessagesContext {
   agentName?: string;
 }
 
-interface MaintenanceRequestCardProps {
-  complaint: Complaint;
+interface ExternalTenantMaintenanceRequestCardProps {
+  complaint: any;
   onGoToMessages?: (context: MessagesContext) => void;
 }
 
@@ -57,15 +56,14 @@ function parseScheduleNote(note: string): { date: string; time: string; message:
   };
 }
 
-export function MaintenanceRequestCard({ complaint, onGoToMessages }: MaintenanceRequestCardProps) {
+export function ExternalTenantMaintenanceRequestCard({ complaint, onGoToMessages }: ExternalTenantMaintenanceRequestCardProps) {
   const { user } = useAuth();
-  
+
   const IssueIcon = getIssueIcon(complaint.issue_type);
 
   const isActive = complaint.status === 'in_progress';
   const isCompleted = complaint.status === 'resolved' || complaint.status === 'closed';
 
-  // We still parse notes to display the top-level scheduling proposed date (if any exists)
   const scheduleNote = (complaint.notes || [])
     .slice()
     .reverse()

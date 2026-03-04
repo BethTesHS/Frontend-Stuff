@@ -84,7 +84,7 @@ const ComplaintRow = ({ complaint, onGoToMessages }: ComplaintRowProps) => {
 
   const StatusIcon = isOpen ? AlertTriangle : isActive ? Clock : CheckCircle2;
 
-  const handleMessageAgent = () => {
+  const handleMessage = () => {
     const agentNote = complaint.notes?.find(n => n.added_by !== complaint.tenant_name);
     onGoToMessages({
       subject: `${complaint.issue_type} - ${complaint.ticket_number}`,
@@ -138,11 +138,11 @@ const ComplaintRow = ({ complaint, onGoToMessages }: ComplaintRowProps) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleMessageAgent}
-            className="text-xs flex items-center gap-1 h-7 px-2"
+            onClick={handleMessage}
+            className="text-xs flex items-center gap-1 h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            Message Agent
+            Message
           </Button>
         </div>
       </div>
@@ -238,7 +238,7 @@ const MyComplaints = ({ onGoToMessages }: { onGoToMessages?: (context: MessagesC
                 onClick={() => setFilter(opt.value)}
                 className={`flex items-center gap-1.5 ${
                   active
-                    ? 'bg-gradient-to-r from-emerald-500 to-blue-600 text-white border-none'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-none'
                     : ''
                 }`}
               >
@@ -258,7 +258,7 @@ const MyComplaints = ({ onGoToMessages }: { onGoToMessages?: (context: MessagesC
         <Button
           onClick={() => navigate('/submit-complaint')}
           disabled={!isVerified}
-          className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-md transition-all duration-300 hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Complaint

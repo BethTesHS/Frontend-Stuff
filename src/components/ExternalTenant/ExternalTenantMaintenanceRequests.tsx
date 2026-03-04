@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Wrench, Clock, CheckCircle2, ListFilter, AlertTriangle } from 'lucide-react';
+import { Wrench, Clock, CheckCircle2, ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { complaintsApi, type Complaint } from '@/services/complaintsApi';
-import { MaintenanceRequestCard } from './MaintenanceRequestCard';
-import { useAuth } from '@/contexts/AuthContext';
+import { ExternalTenantMaintenanceRequestCard } from './ExternalTenantMaintenanceRequestCard';
 
 type FilterOption = 'all' | 'active' | 'completed';
 
@@ -14,7 +11,7 @@ interface MessagesContext {
   agentName?: string;
 }
 
-interface MaintenanceRequestsProps {
+interface ExternalTenantMaintenanceRequestsProps {
   onGoToMessages?: (context: MessagesContext) => void;
 }
 
@@ -24,10 +21,10 @@ const filterOptions: { label: string; value: FilterOption; icon: any }[] = [
   { label: 'Completed', value: 'completed', icon: CheckCircle2 },
 ];
 
-const MOCK_MAINTENANCE_REQUESTS: Complaint[] = [
+const MOCK_MAINTENANCE_REQUESTS: any[] = [
   {
     id: 1,
-    tenant_id: 'tenant-001',
+    tenant_id: 'ext-tenant-001',
     tenant_name: 'James Davies',
     tenant_email: 'james.davies@email.com',
     house_number: '14B, Riverside Court',
@@ -46,46 +43,21 @@ const MOCK_MAINTENANCE_REQUESTS: Complaint[] = [
         note: '[MAINTENANCE_SCHEDULE]\n📅 MAINTENANCE SCHEDULED\nDate: 28 Feb 2026\nTime: 10:00 AM\nNotes: Plumber will attend. Please ensure kitchen is accessible.',
         added_by: 'Agent Sarah M.',
         created_at: '2026-02-21T14:32:00.000Z',
-      }
+      },
     ],
-  },
+  }
 ];
 
-const MaintenanceRequests = ({ onGoToMessages }: MaintenanceRequestsProps) => {
-  const { user } = useAuth();
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+export default function ExternalTenantMaintenanceRequests({ onGoToMessages }: ExternalTenantMaintenanceRequestsProps) {
+  const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterOption>('all');
-  const isVerified = user?.tenantVerified || false;
 
   useEffect(() => {
-    const fetchComplaints = async () => {
-      setLoading(true);
-      try {
-        const response = await complaintsApi.getMyComplaints();
-        let data: Complaint[] = [];
-        
-        if (Array.isArray(response.complaints)) {
-          data = response.complaints;
-        } else if (response.data && Array.isArray((response.data as any).complaints)) {
-          data = (response.data as any).complaints;
-        } else if (Array.isArray(response)) {
-          data = response as unknown as Complaint[];
-        }
-
-        const maintenance = data.filter(
-          c => c.status === 'in_progress' || c.status === 'resolved' || c.status === 'closed'
-        );
-        
-        setComplaints(maintenance.length === 0 ? MOCK_MAINTENANCE_REQUESTS : maintenance);
-      } catch {
-        setComplaints(MOCK_MAINTENANCE_REQUESTS);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchComplaints();
+    setTimeout(() => {
+      setComplaints(MOCK_MAINTENANCE_REQUESTS);
+      setLoading(false);
+    }, 500);
   }, []);
 
   const filtered = complaints.filter(c => {
@@ -102,15 +74,6 @@ const MaintenanceRequests = ({ onGoToMessages }: MaintenanceRequestsProps) => {
 
   return (
     <div className="space-y-6">
-      {!isVerified && (
-        <Alert className="border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20">
-          <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-          <AlertDescription className="text-orange-800 dark:text-orange-200">
-            Please verify your tenancy to access maintenance features.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex items-center gap-2 flex-wrap">
         {filterOptions.map(opt => {
           const Icon = opt.icon;
@@ -157,12 +120,14 @@ const MaintenanceRequests = ({ onGoToMessages }: MaintenanceRequestsProps) => {
           </div>
         ) : (
           filtered.map(complaint => (
-            <MaintenanceRequestCard key={complaint.id} complaint={complaint} onGoToMessages={onGoToMessages} />
+            <ExternalTenantMaintenanceRequestCard 
+              key={complaint.id} 
+              complaint={complaint} 
+              onGoToMessages={onGoToMessages} 
+            />
           ))
         )}
       </div>
     </div>
   );
-};
-
-export default MaintenanceRequests;
+}
