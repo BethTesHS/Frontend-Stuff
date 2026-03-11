@@ -10,7 +10,7 @@ import {
   Bell,
   ClipboardList
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -92,25 +92,12 @@ export default function ExternalTenantSidebar({
         </button>
       </div>
 
-      {/* User Profile Area */}
-      <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <div
-          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
-          onClick={() => handleTabClick("profile")}
-          title="View Profile"
-        >
-          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
-            <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h2 className="font-semibold text-gray-800 dark:text-gray-100 truncate w-32">
-                {user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "External Tenant"}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">External Tenant</p>
-            </div>
-          )}
-        </div>
+      {/* Homed Branding */}
+      <div className={`px-6 py-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 ${isCollapsed ? 'px-3' : ''}`}>
+        <Link to="/" className={`flex items-center gap-2 group transition ${isCollapsed ? 'justify-center' : 'pl-2'}`}>
+          <img src="/logo.svg" alt="Homed Logo" className="h-8 w-auto transition-transform duration-200 group-hover:rotate-6" />
+          {!isCollapsed && <span className="text-2xl font-bold text-blue-1000 dark:text-whitee transition-transform duration-200 group-hover:scale-105">Homed</span>}
+        </Link>
       </div>
 
       {/* Navigation Items */}
@@ -146,8 +133,29 @@ export default function ExternalTenantSidebar({
         ))}
       </div>
 
+      {/* User Profile */}
+      <div className="px-6 pt-4 pb-2 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
+        >
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
+          </div>
+          {!isCollapsed && (
+            <div>
+              <h2 className="font-semibold text-gray-800 dark:text-gray-100 truncate w-32">
+                {user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "External Tenant"}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">External Tenant</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Footer Actions */}
-      <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 space-y-3">
+      <div className="px-6 pb-6 pt-2 flex-shrink-0 space-y-3">
         <button
           onClick={() => navigate('/')}
           className={`w-full p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-center space-x-2'} bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors`}

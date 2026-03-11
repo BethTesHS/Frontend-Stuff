@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, Bed, Bath, DollarSign, Edit, AlertTriangle, Plus, Loader2 } from 'lucide-react';
+import { Building, MapPin, Bed, Bath, DollarSign, Edit, AlertTriangle, Plus, Loader2, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,15 @@ import { PropertyToggle } from '@/components/Properties/PropertyToggle';
 import { propertyApi } from '@/services/api';
 import { toast } from 'sonner';
 
-export const PropertyManagementList = () => {
+interface PropertyManagementListProps {
+  selectionMode?: string;
+  onAnalyze?: (property: any) => void;
+}
+
+export const PropertyManagementList = ({ 
+  selectionMode = 'default', 
+  onAnalyze 
+}: PropertyManagementListProps) => {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,40 +79,86 @@ export const PropertyManagementList = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {properties.map((property) => (
-        <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <div className="relative h-48 cursor-pointer" onClick={() => navigate(`/property/${property.id}`)}>
+        <Card
+          key={property.id}
+          className="overflow-hidden hover:shadow-lg transition-shadow"
+        >
+          <div
+            className="relative h-48 cursor-pointer"
+            onClick={() => navigate(`/property/${property.id}`)}
+          >
             <img
-              src={property.images?.[0]?.image_url || property.primary_image_url || '/placeholder.svg'}
+              src={
+                property.images?.[0]?.image_url ||
+                property.primary_image_url ||
+                "/placeholder.svg"
+              }
               alt={property.title}
               className="w-full h-full object-cover"
             />
-            <Badge className="absolute top-2 right-2">{property.listing_type}</Badge>
+            <Badge className="absolute top-2 right-2">
+              {property.listing_type}
+            </Badge>
           </div>
           <CardContent className="p-4">
             <h3 className="font-semibold truncate mb-1">{property.title}</h3>
             <p className="text-sm text-muted-foreground flex items-center mb-3">
               <MapPin className="w-3 h-3 mr-1" /> {property.location}
             </p>
-            
+
             <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-              <span className="flex items-center"><Bed className="w-3 h-3 mr-1" />{property.bedrooms}</span>
-              <span className="flex items-center"><Bath className="w-3 h-3 mr-1" />{property.bathrooms}</span>
-              <span className="font-bold text-primary text-sm ml-auto">${property.price?.toLocaleString()}</span>
+              <span className="flex items-center">
+                <Bed className="w-3 h-3 mr-1" />
+                {property.bedrooms}
+              </span>
+              <span className="flex items-center">
+                <Bath className="w-3 h-3 mr-1" />
+                {property.bathrooms}
+              </span>
+              <span className="font-bold text-primary text-sm ml-auto">
+                ${property.price?.toLocaleString()}
+              </span>
             </div>
 
             <PropertyToggle
               propertyId={property.id}
               currentStatus={property.status}
-              onStatusChange={(newStatus) => handleStatusChange(property.id, newStatus)}
+              onStatusChange={(newStatus) =>
+                handleStatusChange(property.id, newStatus)
+              }
             />
 
-            <div className="flex gap-2 mt-4 pt-4 border-t">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/edit-property/${property.id}`)}>
-                <Edit className="w-4 h-4 mr-1" /> Edit
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1 text-red-500 hover:bg-red-50" onClick={() => {/* Delete logic */}}>
-                <AlertTriangle className="w-4 h-4 mr-1" /> Delete
-              </Button>
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+              {selectionMode === "improve" ? (
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg py-5"
+                  onClick={() => onAnalyze?.(property)}
+                >
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Perform Analysis
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 dark:border-gray-700"
+                    onClick={() => navigate(`/edit-property/${property.id}`)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 dark:border-gray-700"
+                    onClick={() => {
+                      /* Delete logic */
+                    }}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-1" /> Delete
+                  </Button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

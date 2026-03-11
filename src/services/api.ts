@@ -807,6 +807,60 @@ export const propertyApi = {
       method: 'DELETE',
     });
   },
+  submitTenancyNotice: async (noticeData: { 
+    move_out_date: string; 
+    reason?: string; 
+  }): Promise<ApiResponse<{ message: string; tenancy_status: string }>> => {
+    return apiRequest('/tenancy/submit-notice', {
+      method: 'POST',
+      body: JSON.stringify(noticeData),
+    });
+  },
+
+  getTenancyStatus: async (): Promise<ApiResponse<{ 
+    status: string; 
+    move_out_date?: string; 
+    submission_date?: string;
+    inspection_date?: string;
+    agent_name?: string;
+  }>> => {
+    return apiRequest('/tenancy/status');
+  },
+
+  rescheduleInspection: async (inspectionId: string, newDate: string): Promise<ApiResponse<any>> => {
+    return apiRequest(`/tenancy/inspection/${inspectionId}/reschedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({ requested_date: newDate }),
+    });
+  },
+
+  submitTenancyReview: async (reviewData: { rating: number; comment: string }): Promise<ApiResponse<any>> => {
+    return apiRequest('/tenancy/review', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    });
+  },
+  acknowledgeNotice: async (tenancyId: string): Promise<ApiResponse<{ status: string }>> => {
+  return apiRequest(`/tenancy/acknowledge-notice/${tenancyId}`, {
+    method: 'POST',
+  });
+},
+
+scheduleInspection: async (tenancyId: string, inspectionData: { 
+  date: string; 
+  notes?: string; 
+}): Promise<ApiResponse<{ status: string; inspection_date: string }>> => {
+  return apiRequest(`/tenancy/schedule-inspection/${tenancyId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(inspectionData),
+  });
+},
+
+closeTenancy: async (tenancyId: string): Promise<ApiResponse<{ message: string }>> => {
+  return apiRequest(`/tenancy/close/${tenancyId}`, {
+    method: 'POST',
+  });
+},
 };
 
 export const profileApi = {

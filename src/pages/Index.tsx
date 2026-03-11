@@ -17,6 +17,7 @@ const Index = () => {
         <FeaturedProperties />
         <OurTowns />
         <AgentSection />
+
         <Testimonials />
       </div>
     </Layout>

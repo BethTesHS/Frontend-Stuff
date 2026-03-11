@@ -65,8 +65,8 @@ const AgencyLogin = () => {
       toast.success('Login successful! Redirecting to dashboard...');
 
       setTimeout(() => {
-        navigate(`/dashboard?agency=${response.agency.slug}`);
-      }, 100);
+        window.location.href = `/dashboard?agency=${response.agency.slug}`;
+      }, 500);
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Login failed. Please try again.');

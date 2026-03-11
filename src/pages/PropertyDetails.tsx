@@ -24,11 +24,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
-  MessageCircle
+  MessageCircle,
+  FileText
 } from 'lucide-react';
 import { Property, PropertyHistory } from '@/types';
 import SharePropertyPopover from '@/components/Properties/SharePropertyPopover';
 import BrochureRequestDialog from '@/components/Properties/BrochureRequestDialog';
+import IntelligenceReportModal from '@/components/Properties/IntelligenceReportModal';
 import { propertyApi, findAgentApi } from '@/services/api';
 import PropertyMap from '@/components/Properties/PropertyMap';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,6 +71,7 @@ const PropertyDetails = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [localLoading, setLocalLoading] = useState(true);
+  const [showIntelligenceReport, setShowIntelligenceReport] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -526,15 +529,14 @@ const PropertyDetails = () => {
               address={`${property.address.street}, ${property.address.city}`}
               listingType={property.listingType}
             />
+
           </div>
 
           {/* Sidebar - Takes 1/3 on large screens */}
           <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)]">
-              <div className="overflow-y-auto lg:max-h-[calc(100vh-4rem)]">
-                <div className="pr-2">
-                  {/* Flex container for cards */}
-                  <div className="flex flex-col gap-6">
+            <div className="pr-2">
+              {/* Flex container for cards */}
+              <div className="flex flex-col gap-6">
                     {/* Agent Contact - Enhanced with full agent details */}
                     {agent ? (
                       <Card>
@@ -625,6 +627,16 @@ const PropertyDetails = () => {
                         <CardTitle>Quick Actions</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
+                        {/* Intelligence Report */}
+                        <Button
+                          variant="outline"
+                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                          onClick={() => setShowIntelligenceReport(true)}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          View Intelligence Report
+                        </Button>
+
                         {property && (
                           <ScheduleViewingDialog
                             propertyId={parseInt(property.id)}
@@ -663,13 +675,17 @@ const PropertyDetails = () => {
                         </SharePropertyPopover>
                       </CardContent>
                     </Card>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      {/* Intelligence Report Modal */}
+      <IntelligenceReportModal
+        property={property}
+        open={showIntelligenceReport}
+        onOpenChange={setShowIntelligenceReport}
+      />
     </Layout>
   );
 };

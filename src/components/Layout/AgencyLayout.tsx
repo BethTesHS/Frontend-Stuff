@@ -335,8 +335,12 @@ const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children, activeTab, onTabC
               <div className="text-xs text-muted-foreground">
                 © 2024 {agency?.name || 'Agency'}. All rights reserved.
               </div>
-              <div className="text-xs text-muted-foreground">
-                Powered by <span className="text-primary font-semibold">Homed</span>
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                Powered by
+                <Link to="/" className="inline-flex items-center gap-1 group transition">
+                  <img src="/logo.svg" alt="Homed Logo" className="h-4 w-auto transition-transform duration-200 group-hover:rotate-6" />
+                  <span className="text-primary font-semibold transition-transform duration-200 group-hover:scale-105">Homed</span>
+                </Link>
               </div>
             </div>
           </footer>

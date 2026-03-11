@@ -3,18 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import {
-  MapPin,
-  Calendar,
-  Users,
-  Wifi,
-  Car,
-  TreePine,
-  Bath,
-  Star,
-  Heart,
-  Trash2
-} from 'lucide-react';
+import { Calendar, Users, Bath, Star, Heart, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface RoomCardProps {
@@ -75,17 +64,17 @@ const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
   const reviewCount = Math.floor(Math.random() * 30) + 5;
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-gray-100 flex flex-col lg:flex-row w-full">
-      {/* Image section - responsive width */}
-      <div className="relative w-full lg:w-96 h-64 lg:h-auto flex-shrink-0 overflow-hidden">
-        <img 
+    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col">
+      {/* Image with overlays */}
+      <div className="relative w-full h-52 overflow-hidden flex-shrink-0">
+        <img
           src={imageUrl}
           alt={room.title}
           className="w-full h-full object-cover"
           onError={handleImageError}
         />
 
-        {/* Navigation arrows for multiple images */}
+        {/* Navigation arrows */}
         {room.images.length > 1 && (
           <>
             <button
@@ -102,29 +91,26 @@ const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
             </button>
           </>
         )}
-        
-        {/* Status badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          <Badge className="bg-primary-500 text-white">
-            {formatRoomType(room.room_type)}
-          </Badge>
+
+        {/* Status badges - top left */}
+        <div className="absolute top-3 left-3 flex gap-1.5">
           {room.bills_included && (
-            <Badge className="bg-green-600 text-white">Bills Inc.</Badge>
+            <Badge className="bg-green-600 text-white text-xs font-bold uppercase">Bills Inc.</Badge>
           )}
           {room.furnished && (
-            <Badge className="bg-blue-600 text-white">Furnished</Badge>
+            <Badge className="bg-red-600 text-white text-xs font-bold uppercase">Furnished</Badge>
           )}
         </div>
 
-        {/* Favorite heart button */}
+        {/* Heart / delete button - top right */}
         <div className="absolute top-3 right-3">
           <Button
             variant="ghost"
             size="sm"
             className={`p-2 h-8 w-8 rounded-full backdrop-blur-sm transition-colors ${
-              showDeleteOnly || isFavorited 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-500'
+              showDeleteOnly || isFavorited
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-600'
             }`}
             onClick={handleToggleFavorite}
           >
@@ -136,121 +122,71 @@ const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
           </Button>
         </div>
 
-        {/* Price label */}
+        {/* Price overlay - bottom left */}
         <div className="absolute bottom-3 left-3">
-          <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2">
-            <div className="text-lg font-bold text-gray-900">
-              £{room.rent.toLocaleString()}
-              <span className="text-sm font-normal text-gray-600">/month</span>
-            </div>
-            {room.deposit && (
-              <div className="text-xs text-gray-500">
-                £{room.deposit.toLocaleString()} deposit
-              </div>
-            )}
-          </div>
+          <span className="bg-white text-gray-900 font-bold text-sm px-2.5 py-1 rounded-md shadow">
+            £{room.rent.toLocaleString()}
+            <span className="font-normal text-gray-500 text-xs"> /mo</span>
+          </span>
         </div>
       </div>
-      
-      {/* Text section - flex-1 to take remaining space */}
-      <CardContent className="p-6 flex flex-col flex-1">
-        {/* Room title */}
-        <h3 className="font-bold text-xl text-gray-900 mb-3 line-clamp-2">
+
+      {/* Card body */}
+      <CardContent className="p-4 flex flex-col flex-1">
+        {/* Title */}
+        <h3 className="font-bold text-gray-900 text-base line-clamp-1 mb-1">
           {room.title}
         </h3>
 
         {/* Address */}
-        <div className="flex items-center mb-3">
-          <MapPin className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-          <span className="text-gray-600 line-clamp-1">
-            {room.property_address}
-          </span>
-        </div>
+        <p className="text-gray-500 text-sm mb-2 line-clamp-1">{room.property_address}</p>
 
-        {/* Landlord */}
-        <div className="mb-4">
-          <span className="text-primary-600 font-medium">
-            By {room.landlord_name}
-          </span>
-        </div>
+        {/* Room type */}
+        <p className="text-blue-600 text-sm font-medium capitalize mb-2">{formatRoomType(room.room_type)}</p>
 
-        {/* Rating stars with review count */}
-        <div className="flex items-center mb-4">
+        {/* Rating */}
+        <div className="flex items-center gap-1.5 mb-3">
           <div className="flex items-center">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                className={`w-4 h-4 ${
-                  star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                }`}
+                className={`w-3.5 h-3.5 ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
               />
             ))}
           </div>
-          <span className="text-sm text-gray-500 ml-2">
-            {rating} ({reviewCount} reviews)
-          </span>
+          <span className="text-xs text-gray-500">{reviewCount} reviews</span>
         </div>
 
-        {/* Room details */}
-        <div className="flex items-center justify-between mb-4 text-gray-600">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center">
-              <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm">Available {formatAvailableFrom(room.available_from)}</span>
-            </div>
-            <div className="flex items-center">
-              <Users className="w-4 h-4 mr-1" />
-              <span className="text-sm">{room.current_housemates}/{room.total_housemates} housemates</span>
-            </div>
+        {/* Room details row */}
+        <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>{formatAvailableFrom(room.available_from)}</span>
           </div>
-        </div>
-
-        {/* Amenities */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {room.internet_included && (
-            <Badge variant="secondary">
-              <Wifi className="w-3 h-3 mr-1" />
-              WiFi
-            </Badge>
-          )}
-          {room.parking_available && (
-            <Badge variant="secondary">
-              <Car className="w-3 h-3 mr-1" />
-              Parking
-            </Badge>
-          )}
-          {room.garden_access && (
-            <Badge variant="secondary">
-              <TreePine className="w-3 h-3 mr-1" />
-              Garden
-            </Badge>
-          )}
-          {room.room_type === 'ensuite' && (
-            <Badge variant="secondary">
-              <Bath className="w-3 h-3 mr-1" />
-              Ensuite
-            </Badge>
-          )}
-          {room.size_sqft && (
-            <Badge variant="secondary">
-              {room.size_sqft} sqft
-            </Badge>
+          <div className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            <span>{room.current_housemates}/{room.total_housemates}</span>
+          </div>
+          {room.size_sqft > 0 && (
+            <div className="flex items-center gap-1">
+              <Bath className="w-4 h-4" />
+              <span>{room.size_sqft} sqft</span>
+            </div>
           )}
         </div>
 
-        {/* Room description */}
-        <p className="text-gray-600 mb-6 line-clamp-2">
-          {room.description}
-        </p>
-
-        {/* Buttons - margin-top auto pushes them to bottom */}
+        {/* Action buttons */}
         <div className="mt-auto flex gap-2">
           <Link to={`/rooms/${room.id}`} className="flex-1">
-            <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
               View Details
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleEmailLandlord}>
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+            onClick={handleEmailLandlord}
+          >
             Contact
           </Button>
         </div>

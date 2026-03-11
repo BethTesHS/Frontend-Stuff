@@ -166,7 +166,12 @@ const PublicAgentProfile = () => {
             console.log('Agent profile_picture_url:', response.data.agent.profile_picture_url);
             setAgent(response.data.agent);
           } else {
-            toast.error('Agent not found');
+            console.log("API did not find agent, checking mock data...");
+            if (mockAgentData[numericId as keyof typeof mockAgentData]) {
+              setAgent(mockAgentData[numericId as keyof typeof mockAgentData]);
+            } else {
+              toast.error("Agent not found in system");
+            }
           }
         } catch (error) {
           console.error('Error fetching agent details:', error);

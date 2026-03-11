@@ -78,6 +78,7 @@ const ListProperty = ({
   const listingType = watch("listingType");
   const isSaleRequired = listingType === "sale" || listingType === "both";
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const isEditing = !!defaultValues?.id;
 
   const commonFeatures = [
     "Garden",
@@ -96,16 +97,31 @@ const ListProperty = ({
     "Swimming Pool",
   ];
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
       if (defaultValues) {
-        reset(defaultValues);
+        const mappedData = {
+          ...defaultValues,
+          propertySize: defaultValues.property_size || defaultValues.propertySize,
+          landSize: defaultValues.land_size || defaultValues.landSize,
+          yearBuilt: defaultValues.year_built || defaultValues.yearBuilt,
+          councilTaxBand: defaultValues.council_tax_band || defaultValues.councilTaxBand,
+          energyRating: defaultValues.energy_rating || defaultValues.energyRating,
+        };
+        
+        reset(mappedData);
         setSelectedFeatures(defaultValues.features || []);
+      } else {
+        reset({
+          listingType: "sale",
+          propertyType: "house",
+          tenure: "freehold",
+        });
+        setSelectedFeatures([]);
+        setPropertyImages([]);
+        setDocuments([]);
       }
-    } else {
-      //when opening for a new listing
-      reset();
     }
-  }, [isOpen, reset]);
+  }, [isOpen, defaultValues, reset]);
 
   const handleFeatureChange = (feature: string, checked: boolean) => {
     setSelectedFeatures((prev) => {
@@ -119,11 +135,10 @@ const ListProperty = ({
   };
 
   const onSubmit = async (data: PropertyData) => {
-    if (propertyImages.length === 0) {
+    if (!isEditing && propertyImages.length === 0) {
       toast.error("Please upload at least one property image");
       return;
     }
-
     const isDirectSubmit =
       user?.role === "agent" || user?.role === "manager" || isAgencyMode;
     const propertyDataWithFeatures = {
@@ -167,9 +182,14 @@ const ListProperty = ({
         propertyImages.forEach((image) => formData.append("images", image));
         documents.forEach((doc) => formData.append("documents", doc));
 
-        await propertyApi.createProperty(formData);
+        if (isEditing) {
+          await propertyApi.updateProperty(defaultValues.id, formData);
+          toast.success("Property updated successfully!");
+        } else {
+          await propertyApi.createProperty(formData);
+          toast.success("Property listed successfully!");
+        }
 
-        toast.success("Property listed successfully!");
         onClose();
         navigate(0); // Refresh current dashboard to show new property
       } catch (error: any) {
@@ -258,7 +278,7 @@ const ListProperty = ({
             </div>
             <div>
               <DialogTitle className="text-2xl font-bold text-foreground">
-                List Property
+                {isEditing ? `Edit ${defaultValues.title}` : "List Property"}
               </DialogTitle>
               <p className="text-sm text-muted-foreground">
                 Provide comprehensive information about the property
@@ -318,14 +338,14 @@ const ListProperty = ({
                   {submitting ? (
                     <div className="flex items-center space-x-2">
                       <Loader2 className="animate-spin h-5 w-5" />
-                      <span>Listing Property...</span>
+                      <span>{isEditing ? "Updating..." : "Listing Property..."}</span>
                     </div>
-                  ) : user?.role === "agent" ||
-                    user?.role === "manager" ||
-                    isAgencyMode ? (
-                    "Submit Property Listing"
                   ) : (
-                    "Continue to Listing Options"
+                    isEditing 
+                      ? "Update Property Listing" 
+                      : (user?.role === "agent" || user?.role === "manager" || isAgencyMode)
+                        ? "Submit Property Listing"
+                        : "Continue to Listing Options"
                   )}
                 </Button>
                 <Button

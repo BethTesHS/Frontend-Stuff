@@ -191,6 +191,18 @@ const BuyerDashboard = () => {
               </div>
 
               <div className="flex items-center space-x-4">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? (
+                    <Sun size={20} className="text-yellow-500" />
+                  ) : (
+                    <Moon size={20} className="text-gray-600" />
+                  )}
+                </button>
+
                 <BuyerNotificationDropdown onShowAll={() => handleTabChange('notifications')} />
 
                 <DropdownMenu>

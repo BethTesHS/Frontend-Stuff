@@ -12,10 +12,10 @@ import { OwnerNotificationDropdown } from '@/components/OwnerDashboard/OwnerNoti
 import { OwnerOverview } from '@/components/OwnerDashboard/OwnerOverview';
 import { OwnerProperties } from '@/components/OwnerDashboard/OwnerProperties';
 import { OwnerProfile } from '@/components/OwnerDashboard/OwnerProfile';
-import { OwnerBookings } from '@/components/OwnerDashboard/OwnerBookings';
 import { OwnerCalendar } from '@/components/OwnerDashboard/OwnerCalendar';
 import { OwnerMaintenance } from '@/components/OwnerDashboard/OwnerMaintenance';
 import { OwnerComplaints } from '@/components/OwnerDashboard/OwnerComplaints';
+import { OwnerPropertyPerformance } from '@/components/OwnerDashboard/OwnerPropertyPerformance';
 import NotificationsComponent from '@/components/TenantDashboard/TenantNotifications';
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
 import Messages from "@/components/Messages/Messages";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ListProperty from "@/pages/ListProperty";
 import PropertyListingChoice from "@/pages/PropertyListingChoice";
+import PostSpareRoom from './PostSpareRoom';
 
 const OwnerDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['owner'], false);
@@ -46,6 +47,8 @@ const OwnerDashboard = () => {
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [pendingPropertyData, setPendingPropertyData] = useState<any>(null);
   const [isSelectingAgent, setIsSelectingAgent] = useState(false);
+  const [spareRoomModalOpen, setSpareRoomModalOpen] = useState(false);
+  const [propertyMode, setPropertyMode] = useState<"default" | "improve">("default");
 
   // Handle success message from property listing
   useEffect(() => {
@@ -74,16 +77,17 @@ const OwnerDashboard = () => {
     setChoiceModalOpen(true);
   };
 
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: string, mode: "default" | "improve" = "default") => {
     if (tab === 'add-property') {
       setListPropertyOpen(false);
       return;
     }
     if (tab === 'post-spare-room') {
-      navigate('/post-spare-room');
+      setSpareRoomModalOpen(true);
       return;
     }
     setActiveTab(tab);
+    setPropertyMode(mode);
   };
 
   const renderContent = () => {
@@ -98,12 +102,14 @@ const OwnerDashboard = () => {
             isSelectingAgent={isSelectingAgent}
             setIsSelectingAgent={setIsSelectingAgent}
             pendingPropertyData={pendingPropertyData}
+            user={user}
+            initialMode={propertyMode}
           />
         );
+      case 'property-performance':
+        return <OwnerPropertyPerformance />;
       case 'messages':
-        return <Messages />;
-      case 'bookings':
-        return <OwnerBookings />;
+        return <Messages />;;
       case 'calendar':
         return <OwnerCalendar />;
       case 'maintenance':
@@ -115,13 +121,16 @@ const OwnerDashboard = () => {
       case 'spare-rooms':
         return (
           <div className="space-y-6">
-            <SpareRoomListings userRole="owner" />
+            <SpareRoomListings
+              userRole="owner"
+              onOpenPostModal={() => setSpareRoomModalOpen(true)}
+            />
           </div>
         );
       case 'profile':
         return <OwnerProfile />;
       default:
-        return <OwnerOverview user={user} hasAccess={hasAccess} />;
+        return <OwnerOverview user={user} hasAccess={hasAccess} onTabChange={handleTabChange}/>;
     }
   };
 
@@ -155,16 +164,10 @@ const OwnerDashboard = () => {
   setActiveTab('properties');
 };
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-      {/* Mobile Sidebar Overlay */}
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       {sidebarOpen && isMobile && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-
-      <div className="flex flex-1">
         {/* Sidebar */}
         <OwnerSidebar
           activeTab={activeTab}
@@ -269,12 +272,10 @@ const OwnerDashboard = () => {
             </div>
           </header>
 
-          {/* Content Area */}
-          <div className={`flex-1 bg-gray-50 dark:bg-gray-950 w-full ${activeTab === 'overview' || activeTab === 'messages' ? 'overflow-hidden' : 'overflow-auto p-6'}`}>
+          <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
             {renderContent()}
-          </div>
+          </main>
         </div>
-      </div>
       <ListProperty 
         isOpen={listPropertyOpen} 
         onClose={() => setListPropertyOpen(false)} 
@@ -289,6 +290,10 @@ const OwnerDashboard = () => {
         propertyData={pendingPropertyData}
         onBack={handleBackToDetails}
         onSelectAgentMode={handleOpenAgentSelection}
+      />
+      <PostSpareRoom 
+        isOpen={spareRoomModalOpen} 
+        onClose={() => setSpareRoomModalOpen(false)} 
       />
     </div>
   );

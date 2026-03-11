@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useAgencyAuthGuard } from "@/hooks/useAgencyAuthGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { getAgencyUser, tokenStorage } from "@/utils/tokenStorage";
 import { toast } from "sonner";
 
 import { AgentSidebar } from '@/components/AgentDashboard/AgentSidebar';
@@ -52,9 +52,15 @@ import {
 import { Button } from "@/components/ui/button";
 
 const AgentDashboard = () => {
-  const { loading, hasAccess, user } = useAuthGuard(['agent'], false);
-  const { logout } = useAuth();
+  const { loading, hasAccess } = useAgencyAuthGuard();
+  const user = getAgencyUser();
   const navigate = useNavigate();
+  const logout = () => {
+    tokenStorage.removeItem('agencyToken');
+    tokenStorage.removeItem('agencyData');
+    tokenStorage.removeItem('user');
+    navigate('/login');
+  };
   const location = useLocation();
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
@@ -112,16 +118,16 @@ const AgentDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "properties": return <AgentProperties />;
+      case "properties": return <AgentProperties onOpenListModal={() => handleTabChange('add-property')} />;
       case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;
       case "viewings": return <AgentViewings />;
       case "inquiries": return <AgentInquiries />;
       case "complaints": return <AgentComplaints />;
-      case "spare-rooms": return <SpareRoomListings userRole="agent" />;
+      case "spare-rooms": return <SpareRoomListings userRole="agent" onOpenPostModal={() => handleTabChange('post-spare-room')} />;
       case "notifications": return <NotificationsComponent user={user} />;
-      case "profile": return <AgentProfile user={user} />;
+      case "profile": return <AgentProfile/>;
       default: return <AgentOverview user={user} />;
     }
   };

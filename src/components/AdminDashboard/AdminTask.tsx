@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   Plus,
@@ -9,6 +9,8 @@ import {
   XCircle,
   Trash2,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { adminApi, Task, TaskStats } from "@/services/adminApi";
 import { MOCK_TASKS, MOCK_TASK_STATS } from "@/utils/mockTaskData";
@@ -27,13 +29,13 @@ const AdminTask = () => {
   const [actionId, setActionId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 3; 
+
   const loadData = useCallback(async () => {
     try {
       if (tasks.length === 0) setLoading(true);
-
-      // const data = await adminApi.getTasks(); mocking the API call for now
-      // setTasks(data.tasks);
-      // setStats(data.stats);
+      // const data = await adminApi.getTasks();
       await new Promise((resolve) => setTimeout(resolve, 600));
       setTasks(MOCK_TASKS);
       setStats(MOCK_TASK_STATS);
@@ -50,13 +52,16 @@ const AdminTask = () => {
     return () => clearInterval(interval);
   }, [loadData]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery]);
+
   const handleAction = async (
     taskId: string,
     action: "retry" | "revoke" | "delete",
   ) => {
     setActionId(`${taskId}-${action}`);
     try {
-      // await adminApi.performTaskAction(taskId, action);  this is the real API call, but we'll mock it for now
       await new Promise((resolve) => setTimeout(resolve, 1000));
       if (action === "delete") {
         setTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -81,13 +86,20 @@ const AdminTask = () => {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === "all tasks" || task.status === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch =
+        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.id.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = filter === "all tasks" || task.status === filter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [tasks, searchQuery, filter]);
+
+  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
 
   if (loading && tasks.length === 0) {
     return (
@@ -165,25 +177,27 @@ const AdminTask = () => {
         </div>
       </div>
 
-      {/* List */}
+      {/* List Container */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-1">
           <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Recent Jobs
           </h2>
           <span className="text-xs text-gray-400">
-            Total: {filteredTasks.length}
+            Showing {filteredTasks.length > 0 ? indexOfFirstTask + 1 : 0}-
+            {Math.min(indexOfLastTask, filteredTasks.length)} of{" "}
+            {filteredTasks.length}
           </span>
         </div>
 
-        {filteredTasks.length === 0 ? (
+        {currentTasks.length === 0 ? (
           <div className="bg-white dark:bg-gray-900 p-12 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
             <p className="text-gray-500 dark:text-gray-400">
               No tasks found matching your criteria.
             </p>
           </div>
         ) : (
-          filteredTasks.map((task) => (
+          currentTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -192,7 +206,51 @@ const AdminTask = () => {
             />
           ))
         )}
+
+        {/* Pagination UI - Always verify totalPages > 1 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-6">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-gray-200 dark:border-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ChevronLeft
+                size={20}
+                className="text-gray-600 dark:text-gray-400"
+              />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
+                    currentPage === i + 1
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-gray-200 dark:border-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ChevronRight
+                size={20}
+                className="text-gray-600 dark:text-gray-400"
+              />
+            </button>
+          </div>
+        )}
       </div>
+
       <AdminCreateTaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

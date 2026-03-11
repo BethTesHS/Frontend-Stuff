@@ -239,6 +239,13 @@ class SpareRoomApiService {
     const response = await this.request('/properties/platform-stats');
     return response?.data || response;
   }
+
+  async updateRoomStatus(roomId: number, status: string) {
+  return this.request(`/api/spare-rooms/${roomId}/update-status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
 }
 
 export const spareRoomApi = new SpareRoomApiService();

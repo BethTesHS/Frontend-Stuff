@@ -369,7 +369,7 @@ const Rooms = () => {
   return (
     <Layout>
       <div className="bg-white min-h-screen">
-        <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           {/* Two-column header */}
           <div className="flex justify-between items-start mb-8">
             <div>
@@ -464,12 +464,10 @@ const Rooms = () => {
             </SheetContent>
           </Sheet>
 
-          {/* Room Cards - Single Column */}
-          <div className="space-y-6 mb-8">
+          {/* Room Cards */}
+          <div className="grid gap-6 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {filteredRooms.map((room) => (
-              <div key={room.id} className="w-full">
-                <RoomCard room={room} />
-              </div>
+              <RoomCard key={room.id} room={room} />
             ))}
           </div>
 

@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Mail, Home } from 'lucide-react';
+import { MapPin, Phone, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -9,10 +9,14 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <div className="text-2xl font-bold font-serif mb-4 flex items-center">
-              <Home className="mr-2 h-6 w-6" />
-              Homed
-            </div>
+            <Link to="/" className="text-2xl font-bold mb-4 flex items-center gap-2 group transition">
+              <img
+                src="/logo.svg"
+                alt="Homed Logo"
+                className="h-8 w-auto brightness-0 invert transition-transform duration-200 group-hover:rotate-6"
+              />
+              <span className="transition-transform duration-200 group-hover:scale-105">Homed</span>
+            </Link>
             <p className="text-blue-200 mb-4 text-sm">
               Your trusted partner in finding the perfect home in the UK. Making property search simple and transparent.
             </p>

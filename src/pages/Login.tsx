@@ -195,13 +195,13 @@ const Login = () => {
               </button>
             </div>
 
-            {/* Sign Up Link
+            {/* Sign Up Link */}
             <p className="mt-6 text-center text-sm text-gray-600">
-              Don’t have an account?{' '}
-              <Link to="/register" className="text-pink-600 hover:underline font-medium">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-blue-600 hover:underline font-medium">
                 Sign up
               </Link>
-            </p> */}
+            </p>
           </div>
         </div>
       </div>

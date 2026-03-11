@@ -1,4 +1,4 @@
-// src/pages/AgentDashboard.tsx
+
 import { useState, useEffect } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -23,6 +23,7 @@ import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
 import { AgentTenancy } from "@/components/AgentDashboard/AgentTenancy";
+import { AgentPropertyPerformance } from "@/components/AgentDashboard/AgentPropertyPerformance";
 
 import {
   Menu,
@@ -53,6 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import ListProperty from "@/pages/ListProperty";
+import PostSpareRoom from "./PostSpareRoom";
 
 const AgentDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['agent'], false);
@@ -67,6 +69,8 @@ const AgentDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [listPropertyOpen, setListPropertyOpen] = useState(false);
+  const [spareRoomModalOpen, setSpareRoomModalOpen] = useState(false);
+  const [propertyMode, setPropertyMode] = useState<'default' | 'improve'>('default');
 
   useEffect(() => {
     if (!isMobile) {
@@ -84,9 +88,9 @@ const AgentDashboard = () => {
     }
   }, [location.state, navigate, location.pathname]);
 
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: string, mode: 'default' | 'improve' = 'default') => {
     if (tab === 'post-spare-room') {
-      navigate('/post-spare-room');
+      setSpareRoomModalOpen(true);
       return;
     }
     if (tab === 'add-property') {
@@ -96,6 +100,7 @@ const AgentDashboard = () => {
 
     flushSync(() => {
       setActiveTab(tab);
+      setPropertyMode(mode);
     });
   };
 
@@ -116,7 +121,8 @@ const AgentDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "properties": return <AgentProperties onOpenListModal={() => setListPropertyOpen(true)} />;
+      case "properties": return <AgentProperties onOpenListModal={() => setListPropertyOpen(true)} initialMode={propertyMode} user={user} isAgencyMode={false} />;
+      case "property-performance": return <AgentPropertyPerformance />;
       case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;
@@ -124,11 +130,11 @@ const AgentDashboard = () => {
       case "inquiries": return <AgentInquiries />;
       case "complaints": return <AgentComplaints />;
       case "maintenance": return <AgentMaintenance />;
-      case "spare-rooms": return <SpareRoomListings userRole="agent" />;
+      case "spare-rooms": return <SpareRoomListings userRole="agent" onOpenPostModal={() => setSpareRoomModalOpen(true)} />;
       case "tenancies": return <AgentTenancy />;
       case "notifications": return <NotificationsComponent user={user} />;
-      case "profile": return <AgentProfile user={user} />;
-      default: return <AgentOverview user={user} />;
+      case "profile": return <AgentProfile />;
+      default: return <AgentOverview user={user} onTabChange={handleTabChange} />;
     }
   };
 
@@ -176,6 +182,18 @@ const AgentDashboard = () => {
               </div>
 
               <div className="flex items-center space-x-4">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? (
+                    <Sun size={20} className="text-yellow-500" />
+                  ) : (
+                    <Moon size={20} className="text-gray-600" />
+                  )}
+                </button>
+
                 <AgentNotificationDropdown onShowAll={() => handleTabChange('notifications')} />
 
                 <DropdownMenu>
@@ -252,6 +270,10 @@ const AgentDashboard = () => {
         onClose={() => setListPropertyOpen(false)} 
         user={user}
         isAgencyMode={false} 
+      />
+      <PostSpareRoom
+        isOpen={spareRoomModalOpen}
+        onClose={() => setSpareRoomModalOpen(false)}
       />
     </div>
   );

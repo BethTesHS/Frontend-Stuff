@@ -76,6 +76,16 @@ export default {
 					'accent-foreground': 'hsl(var(--accent-foreground))',
 					border: 'hsl(var(--border))',
 					ring: 'hsl(var(--ring))'
+				},
+				roomie: {
+					primary: '#F5F6F7',
+					'primary-light': '#F9FAFB',
+					secondary: '#F4C542',
+					'secondary-light': '#FBF1D9',
+					accent: '#2E86DE',
+					'accent-light': '#E3F1FE',
+					'accent-dark': '#1E5FA8',
+					'accent-darker': '#15428C'
 				}
 			},
 			fontFamily: {

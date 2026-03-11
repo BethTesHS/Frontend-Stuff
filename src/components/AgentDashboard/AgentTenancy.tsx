@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import {
   CheckCircle2,
-  Building2,
   ArrowRight,
   ClipboardCheck,
   Paperclip,
   Plus,
+  Calendar,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export type TenancyStatus =
   | "ACTIVE"
@@ -16,8 +19,11 @@ export type TenancyStatus =
   | "COMPLETED";
 
 export const AgentTenancy = () => {
-  const [status, setStatus] = useState<TenancyStatus>("NOTICE_SENT");
-  const moveOutDate = "2026-03-10";
+  const [status, setStatus] = useState<TenancyStatus>("ACTIVE");
+  const [loading, setLoading] = useState(false);
+  const [inspectionDate, setInspectionDate] = useState("");
+  const [terminationReason, setTerminationReason] = useState("");
+  const [moveOutDate] = useState("2026-03-10");
 
   const steps = [
     { key: "ACTIVE", label: "Tenancy Active" },
@@ -27,8 +33,53 @@ export const AgentTenancy = () => {
     { key: "COMPLETED", label: "Tenancy Closed" },
   ];
 
+  const handleIssueTermination = async () => {
+    if (!terminationReason.trim()) {
+      toast.error("Please provide a reason for termination");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setStatus("NOTICE_SENT");
+      setLoading(false);
+      toast.success("Termination notice issued to tenant");
+    }, 1000);
+  };
+
+  const handleAcknowledge = async () => {
+    setLoading(true);
+    setTimeout(() => {
+      setStatus("ACKNOWLEDGED");
+      setLoading(false);
+      toast.success("Notice acknowledged");
+    }, 800);
+  };
+
+  const handleScheduleInspection = async () => {
+    if (!inspectionDate) {
+      toast.error("Please select a date first");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setStatus("INSPECTION_SET");
+      setLoading(false);
+      toast.success(`Inspection scheduled for ${inspectionDate}`);
+    }, 800);
+  };
+
+  const handleCloseTenancy = async () => {
+    setLoading(true);
+    setTimeout(() => {
+      setStatus("COMPLETED");
+      setLoading(false);
+      toast.success("Tenancy closed successfully");
+    }, 800);
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-in fade-in duration-500">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-gray-200 dark:border-gray-800 pb-8">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -47,125 +98,139 @@ export const AgentTenancy = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
         <div className="lg:col-span-8 space-y-6">
+          {/* 1. Tenant Notice Banner */}
           {status === "NOTICE_SENT" && (
             <div className="border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-900/10 rounded-2xl p-6 sm:p-8 transition-all">
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-blue-900 dark:text-blue-300">
-                  Notice to Vacate Received
+                  Notice to Vacate Processed
                 </h3>
                 <p className="text-blue-800/80 dark:text-blue-400/80 mt-1">
-                  The tenant has requested to move out on{" "}
+                  Move out date set for:{" "}
                   <span className="font-bold underline underline-offset-4 text-blue-900 dark:text-blue-200">
                     {moveOutDate}
                   </span>
-                  .
                 </p>
               </div>
               <button
-                onClick={() => setStatus("ACKNOWLEDGED")}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                onClick={handleAcknowledge}
+                disabled={loading}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-70"
               >
-                Acknowledge Notice <ArrowRight className="w-4 h-4" />
+                {loading ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : (
+                  "Acknowledge & Proceed"
+                )}
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}
-          {(status === "ACTIVE" || status === "NOTICE_SENT") && (
+
+          {/* 2. Agent Termination Form (Active State) */}
+          {status === "ACTIVE" && (
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                Initiate Termination (Eviction)
-              </h3>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  Initiate Termination (Eviction)
+                </h3>
+              </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Reason for termination (mandatory)
                 </label>
                 <textarea
-                  className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm min-h-[100px] outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-all"
-                  placeholder="Rent arrears + breach"
-                  defaultValue="Rent arrears + breach"
+                  value={terminationReason}
+                  onChange={(e) => setTerminationReason(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm min-h-[100px] outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                  placeholder="e.g., Rent arrears exceeding 2 months or breach of Clause 4.2..."
                 />
               </div>
 
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Upload official documents (PDF, required)
+                  Required Documents
                 </label>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                      <Paperclip className="w-4 h-4" /> Section 22 notice.pdf
-                    </div>
-                    <span className="text-[10px] text-gray-400 font-medium">
-                      (uploaded 12 Apr 2025)
-                    </span>
+                <div className="p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <Paperclip className="w-4 h-4" />{" "}
+                    termination_notice_draft.pdf
                   </div>
-
-                  <div className="flex items-center gap-2 p-3 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 text-sm text-gray-600 dark:text-gray-300">
-                    <Paperclip className="w-4 h-4" /> termination_letter.pdf
-                  </div>
+                  <span className="text-[10px] font-bold text-blue-600 cursor-pointer hover:underline">
+                    Replace
+                  </span>
                 </div>
-                <p className="text-[11px] text-gray-400">
-                  * mandatory: termination letter or Section 22 attached
-                </p>
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-2">
                 <button
-                  onClick={() => setStatus("NOTICE_SENT")}
-                  className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-8 py-3 rounded-full font-bold text-sm hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-md"
+                  onClick={handleIssueTermination}
+                  disabled={loading || !terminationReason}
+                  className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
                 >
-                  Issue Termination Notice
+                  {loading && <Loader2 className="animate-spin w-4 h-4" />}
+                  Issue Official Termination
                 </button>
               </div>
             </div>
           )}
+
+          {/* 3. Schedule Inspection Section */}
           {status === "ACKNOWLEDGED" && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="flex justify-between items-start">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  schedule inspection
-                </h3>
-                <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
-                  action needed
-                </span>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 animate-in slide-in-from-bottom-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Schedule Exit Inspection
+              </h3>
+              <div className="relative max-w-xs">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={inspectionDate}
+                  onChange={(e) => setInspectionDate(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                />
               </div>
-
-              <div className="space-y-4">
-                <button
-                  onClick={() => setStatus("INSPECTION_SET")}
-                  className="flex items-center gap-2 px-5 py-2 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 transition-all shadow-sm"
-                >
-                  <Plus className="w-4 h-4" /> schedule exit inspection
-                </button>
-
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  proposed dates:{" "}
-                  <span className="text-gray-900 dark:text-gray-100 font-bold">
-                    15 May
-                  </span>{" "}
-                  (pending tenant confirm)
-                </p>
-              </div>
+              <button
+                onClick={handleScheduleInspection}
+                disabled={loading || !inspectionDate}
+                className="flex items-center gap-2 px-8 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-md"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                Confirm Inspection Date
+              </button>
             </div>
           )}
+
+          {/* 4. Progress Placeholders */}
           {["INSPECTION_SET", "COMPLETED"].includes(status) && (
             <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-10 bg-gray-50/50 dark:bg-gray-900/40 text-center border-dashed">
-              <ClipboardCheck className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+              <ClipboardCheck
+                className={`w-12 h-12 mx-auto mb-4 ${status === "COMPLETED" ? "text-green-500" : "text-blue-500"}`}
+              />
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Process Advancing
+                {status === "COMPLETED"
+                  ? "Tenancy Closed"
+                  : "Ready for Final Walkthrough"}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Currently at:{" "}
-                <span className="capitalize">
-                  {status.replace("_", " ").toLowerCase()}
-                </span>
+                {status === "INSPECTION_SET"
+                  ? `Confirmed for: ${inspectionDate}`
+                  : "Lease termination complete."}
               </p>
             </div>
           )}
         </div>
+
+        {/* Sidebar */}
         <div className="lg:col-span-4">
           <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 bg-white dark:bg-gray-900 shadow-sm sticky top-6">
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-8">
@@ -173,13 +238,11 @@ export const AgentTenancy = () => {
             </h3>
             <div className="space-y-8 relative">
               <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-gray-800" />
-
               {steps.map((step, index) => {
                 const isCompleted =
-                  index <= steps.findIndex((s) => s.key === status) &&
-                  status !== "ACTIVE";
+                  index < steps.findIndex((s) => s.key === status) ||
+                  status === "COMPLETED";
                 const isCurrent = step.key === status;
-
                 return (
                   <div
                     key={step.key}
@@ -189,7 +252,9 @@ export const AgentTenancy = () => {
                       className={`mt-1 w-[24px] h-[24px] rounded-full flex items-center justify-center transition-all ${
                         isCompleted
                           ? "bg-blue-600"
-                          : "bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700"
+                          : isCurrent
+                            ? "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500"
+                            : "bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700"
                       }`}
                     >
                       {isCompleted ? (
@@ -200,13 +265,11 @@ export const AgentTenancy = () => {
                         />
                       )}
                     </div>
-                    <div>
-                      <span
-                        className={`text-sm font-bold ${isCompleted ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
+                    <span
+                      className={`text-sm font-bold ${isCompleted || isCurrent ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}`}
+                    >
+                      {step.label}
+                    </span>
                   </div>
                 );
               })}
@@ -214,11 +277,15 @@ export const AgentTenancy = () => {
 
             <div className="mt-10 pt-6 border-t border-gray-100 dark:border-gray-800">
               <button
-                onClick={() => setStatus("COMPLETED")}
-                disabled={status === "COMPLETED" || status === "ACTIVE"}
-                className="w-full bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-500 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-30"
+                onClick={handleCloseTenancy}
+                disabled={status !== "INSPECTION_SET" || loading}
+                className="w-full bg-red-50 dark:bg-red-900/10 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-500 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-30"
               >
-                Close Tenancy
+                {loading ? (
+                  <Loader2 className="animate-spin w-4 h-4 mx-auto" />
+                ) : (
+                  "Finalize Closure"
+                )}
               </button>
             </div>
           </div>

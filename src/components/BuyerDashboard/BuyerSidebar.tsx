@@ -9,6 +9,7 @@ import {
   Heart
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 interface BuyerSidebarProps {
@@ -69,28 +70,12 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
         </button>
       </div>
 
-      {/* User Profile */}
-      <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <div
-          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
-          onClick={() => handleTabClick("profile")}
-          title="View Profile"
-        >
-          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
-            <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h2 className="font-semibold text-gray-800 dark:text-gray-100">
-                {user?.firstName} {user?.lastName}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Buyer</p>
-            </div>
-          )}
-        </div>
-        {/* {!isCollapsed && (
-          <p className="mt-4 text-gray-600 dark:text-gray-400 text-sm">Find your dream property</p>
-        )} */}
+      {/* Homed Branding */}
+      <div className={`px-6 py-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 ${isCollapsed ? 'px-3' : ''}`}>
+        <Link to="/" className={`flex items-center gap-2 group transition ${isCollapsed ? 'justify-center' : 'pl-2'}`}>
+          <img src="/logo.svg" alt="Homed Logo" className="h-8 w-auto transition-transform duration-200 group-hover:rotate-6" />
+          {!isCollapsed && <span className="text-2xl font-bold text-blue-1000 dark:text-whitee transition-transform duration-200 group-hover:scale-105">Homed</span>}
+        </Link>
       </div>
 
       {/* Navigation Items - Scrollable */}
@@ -114,8 +99,29 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
         ))}
       </div>
 
+      {/* User Profile */}
+      <div className="px-6 pt-4 pb-2 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -mx-2 transition-colors`}
+          onClick={() => handleTabClick("profile")}
+          title="View Profile"
+        >
+          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-emerald-400 to-emerald-600 dark:from-emerald-600 dark:to-emerald-800 rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-lg">{getUserInitials()}</span>
+          </div>
+          {!isCollapsed && (
+            <div>
+              <h2 className="font-semibold text-gray-800 dark:text-gray-100">
+                {user?.firstName} {user?.lastName}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Buyer</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Logout Button */}
-      <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+      <div className="px-6 pb-6 pt-2 flex-shrink-0">
         <button
           onClick={handleLogout}
           className={`w-full p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-center space-x-2'} bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors`}

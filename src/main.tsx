@@ -63,6 +63,7 @@ import ReviewAgent from '@/pages/ReviewAgent';
 import RoomDetails from '@/pages/RoomDetails';
 import Rooms from '@/pages/Rooms';
 import Saved from '@/pages/Saved';
+import FindRoomie from '@/pages/FindRoomie';
 import SelectAgent from '@/pages/SelectAgent';
 import SelectRole from '@/pages/SelectRole';
 import SubmitComplaint from '@/pages/SubmitComplaint';
@@ -74,6 +75,7 @@ import VerifyEmail from '@/pages/VerifyEmail';
 import BuyerDashboard from '@/pages/BuyerDashboard';
 
 import './index.css';
+import FindAgency from './pages/FindAgency';
 
 const queryClient = new QueryClient();
 
@@ -151,16 +153,17 @@ const AppRouter: React.FC = () => {
             <Route path="/saved" element={<Saved />} />
             
             {/* Room Routes */}
+            {/* Room Routes */}
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<RoomDetails />} />
-            <Route path="/rooms/list" element={<ListRoom />} />
+            <Route path="/find-roomie" element={<FindRoomie />} /> {/* Updated this line */}
             <Route path="/post-spare-room" element={<PostSpareRoom />} />
             
             {/* Agent Routes */}
             <Route path="/find-agent" element={<FindAgent />} />
             <Route path="/agents" element={<AgentsList />} />
             <Route path="/agent-profile" element={<AgentProfile />} />
-            <Route path="/agent/:id" element={<PublicAgentProfile />} />
+            <Route path="/agent" element={<PublicAgentProfile />} />
             <Route path="/contact-agent" element={<ContactAgent />} />
             <Route path="/select-agent" element={<SelectAgent />} />
             <Route path="/review-agent" element={<ReviewAgent />} />
@@ -170,6 +173,7 @@ const AppRouter: React.FC = () => {
             <Route path="/agency-login" element={<AgencyLogin />} />
             <Route path="/agency-profile" element={<AgencyProfile />} />
             <Route path="/agency-registration" element={<AgencyRegistration />} />
+            <Route path='/find-agency' element={<FindAgency />} />
             
             {/* Admin Routes */}
             <Route path="/admin-login" element={<AdminLogin />} />

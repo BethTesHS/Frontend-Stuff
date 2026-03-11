@@ -15,6 +15,7 @@ import { AdminNotifications } from '@/components/AdminDashboard/AdminNotificatio
 import { AdminNotificationDropdown } from '@/components/AdminDashboard/AdminNotificationDropdown';
 import Messages from "@/components/Messages/Messages";
 import { AdminCalendar } from '@/components/AdminDashboard/AdminCalendar';
+import { AdminSettings } from '@/components/AdminDashboard/AdminSettings';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -26,6 +27,19 @@ const AdminDashboard = () => {
   
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+
+  const loadStats = async () => {
+    try {
+      setStatsLoading(true);
+      const { adminApi } = await import('@/services/adminApi');
+      const response = await adminApi.getStats();
+      setStats(response.stats);
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -51,19 +65,6 @@ const AdminDashboard = () => {
 
   if (!isAdminAuthenticated) return null;
 
-  const loadStats = async () => {
-    try {
-      setStatsLoading(true);
-      const { adminApi } = await import('@/services/adminApi');
-      const response = await adminApi.getStats();
-      setStats(response.stats);
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
   const handleTabChange = (tab: string) => {
     flushSync(() => {
       setActiveTab(tab);
@@ -84,6 +85,8 @@ const AdminDashboard = () => {
       case "calendar": return <AdminCalendar />
       case "notifications":
         return <AdminNotifications />;
+      case "settings":
+        return <AdminSettings />;
       case "support": 
         return <AdminSupport stats={stats} />;
       default: 

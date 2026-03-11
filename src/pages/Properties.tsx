@@ -359,7 +359,7 @@ const Properties = () => {
   return (
     <Layout>
       <div className="bg-white min-h-screen">
-        <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex justify-between items-start mb-8">
             <div>
@@ -512,14 +512,13 @@ const Properties = () => {
           </Sheet>
 
           {/* Property Cards */}
-          <div className="space-y-6 mb-8">
+          <div className="grid gap-6 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {properties.map((property: Property) => (
-              <div key={property.id} className="w-full">
-                <PropertyCard 
-                  property={property} 
-                  showSaleDetails={filters.listingType === 'sale' || (!filters.listingType && listingType === 'sale')} 
-                />
-              </div>
+              <PropertyCard
+                key={property.id}
+                property={property}
+                showSaleDetails={filters.listingType === 'sale' || (!filters.listingType && listingType === 'sale')}
+              />
             ))}
           </div>
 

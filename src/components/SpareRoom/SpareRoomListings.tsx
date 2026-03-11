@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { spareRoomApi } from "@/services/spareRoomApi";
+import { RoomToggle } from "./SpareRoomToggle";
 
 interface SpareRoom {
   id: number;
@@ -57,10 +58,11 @@ interface SpareRoom {
 }
 
 interface SpareRoomListingsProps {
-  userRole: 'agent' | 'owner' | 'tenant';
+  userRole: "agent" | "owner" | "tenant";
+  onOpenPostModal: () => void;
 }
 
-export function SpareRoomListings({ userRole }: SpareRoomListingsProps) {
+export function SpareRoomListings({ userRole, onOpenPostModal }: SpareRoomListingsProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [spareRooms, setSpareRooms] = useState<SpareRoom[]>([]);
@@ -129,6 +131,12 @@ export function SpareRoomListings({ userRole }: SpareRoomListingsProps) {
     );
   }
 
+  const handleStatusChange = (roomId: number, newStatus: string) => {
+    setSpareRooms(prev => 
+      prev.map(room => room.id === roomId ? { ...room, status: newStatus as any } : room)
+    );  
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -139,7 +147,7 @@ export function SpareRoomListings({ userRole }: SpareRoomListingsProps) {
           </p>
         </div>
         <Button 
-          onClick={() => navigate('/post-spare-room')}
+          onClick={ onOpenPostModal }
           className="bg-primary hover:bg-primary/90"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -156,7 +164,7 @@ export function SpareRoomListings({ userRole }: SpareRoomListingsProps) {
               You haven't posted any spare room listings yet.
             </p>
             <Button 
-              onClick={() => navigate('/post-spare-room')}
+              onClick={ onOpenPostModal }
               className="bg-primary hover:bg-primary/90"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -218,8 +226,15 @@ export function SpareRoomListings({ userRole }: SpareRoomListingsProps) {
 
                   <div className="border-t pt-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Posted on {new Date(room.created_at).toLocaleDateString()}
+                      <div className="flex items-center gap-4">
+                        <RoomToggle 
+                          roomId={room.id}
+                          currentStatus={room.status || 'inactive'}
+                          onStatusChange={(newStatus) => handleStatusChange(room.id, newStatus)}
+                        />
+                        <div className="hidden sm:block text-xs text-muted-foreground">
+                          Posted on {new Date(room.created_at).toLocaleDateString()}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button

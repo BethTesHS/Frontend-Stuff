@@ -1,4 +1,4 @@
-// src/components/Messages/Messages.tsx
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

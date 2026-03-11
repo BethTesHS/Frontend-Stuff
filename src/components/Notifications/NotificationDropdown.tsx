@@ -1,5 +1,5 @@
 // src/components/Notifications/NotificationDropdown.tsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Bell, Check, Trash2, MessageSquare, AlertCircle, Calendar, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,14 +53,36 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
 
 interface NotificationDropdownProps {
   viewAllRoute?: string; // e.g., "/tenant/notifications" or "notifications"
+  onViewAll?: () => void; // Callback for "View All" button, takes precedence over viewAllRoute
 }
 
-export default function NotificationDropdown({ viewAllRoute = "notifications" }: NotificationDropdownProps) {
+export default function NotificationDropdown({ viewAllRoute = "notifications", onViewAll }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const hoverTimeoutRef = useRef<NodeJS.Timeout>();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 200);
+  };
+
+  const getScrollAreaHeight = () => {
+    if (notifications.length === 0) return "max-h-32";
+    if (notifications.length === 1) return "max-h-[150px]";
+    if (notifications.length === 2) return "max-h-[280px]";
+    if (notifications.length === 3) return "max-h-[380px]";
+    if (notifications.length === 4) return "max-h-[480px]";
+    return "max-h-[580px]";
+  };
 
   const handleMarkAllAsRead = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -79,7 +101,11 @@ export default function NotificationDropdown({ viewAllRoute = "notifications" }:
 
   const handleViewAll = () => {
     setIsOpen(false);
-    navigate(viewAllRoute);
+    if (onViewAll) {
+      onViewAll();
+    } else {
+      navigate(viewAllRoute);
+    }
   };
 
   const getIcon = (type: string) => {
@@ -92,45 +118,46 @@ export default function NotificationDropdown({ viewAllRoute = "notifications" }:
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full hover:bg-muted">
-          <Bell className="h-5 w-5 text-foreground/80" />
-          {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs border-2 border-background"
-            >
-              {unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      
-      <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl shadow-lg border-border">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50">
-          <h3 className="font-semibold text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleMarkAllAsRead}
-              className="h-auto px-2 py-1 text-xs text-primary hover:text-primary/80"
-            >
-              Mark all read
-            </Button>
-          )}
-        </div>
+    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative h-10 w-10 hover:bg-muted">
+            <Bell className="h-5 w-5 text-foreground/80" />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs border-2 border-background"
+              >
+                {unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl shadow-lg border-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50">
+            <h3 className="font-semibold text-sm">Notifications</h3>
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleMarkAllAsRead}
+                className="h-auto px-2 py-1 text-xs text-primary hover:text-primary/80"
+              >
+                Mark all read
+              </Button>
+            )}
+          </div>
 
-        <ScrollArea className="h-[300px]">
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-              <Bell className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-sm">No notifications</p>
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {notifications.map((notification) => (
+          <ScrollArea className={getScrollAreaHeight()}>
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                <Bell className="h-8 w-8 mb-2 opacity-20" />
+                <p className="text-sm">No notifications</p>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {notifications.map((notification) => (
                 <div 
                   key={notification.id}
                   className={`flex items-start gap-3 p-4 transition-colors hover:bg-muted/50 border-b border-border/50 last:border-0 ${
@@ -171,20 +198,21 @@ export default function NotificationDropdown({ viewAllRoute = "notifications" }:
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </ScrollArea>
+              </div>
+            )}
+          </ScrollArea>
         
-        <div className="p-2 border-t border-border bg-card/50 rounded-b-xl">
-          <Button 
-            variant="outline" 
-            className="w-full text-sm font-medium h-9"
-            onClick={handleViewAll}
-          >
-            View All Notifications
-          </Button>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <div className="p-2 border-t border-border bg-card/50 rounded-b-xl">
+            <Button 
+              variant="outline" 
+              className="w-full text-sm font-medium h-9"
+              onClick={handleViewAll}
+            >
+              View All Notifications
+            </Button>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

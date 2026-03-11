@@ -5,7 +5,7 @@ import { Property } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Bed, Bath, Home, Star, Heart, Trash2, Square, Calendar, Zap, FileText } from 'lucide-react';
+import { Bed, Bath, Star, Heart, Trash2, Square } from 'lucide-react';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 interface PropertyCardProps {
@@ -58,43 +58,40 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
   const reviewCount = Math.floor(Math.random() * 50) + 10;
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-gray-100 flex flex-col lg:flex-row w-full">
-      {/* Image section - responsive width */}
-      <div className="relative w-full lg:w-96 h-64 lg:h-auto flex-shrink-0 overflow-hidden">
-        <img 
+    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col">
+      {/* Image with overlays */}
+      <div className="relative w-full h-52 overflow-hidden flex-shrink-0">
+        <img
           src={imageUrl}
           alt={property.title}
           className="w-full h-full object-cover"
           onError={handleImageError}
         />
-        
-        {/* Status badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          <Badge className="bg-primary-500 text-white">
-            For {property.listingType === 'sale' ? 'Sale' : 'Rent'}
-          </Badge>
+
+        {/* Status badges - top left */}
+        <div className="absolute top-3 left-3 flex gap-1.5">
+          {Math.random() > 0.7 && (
+            <Badge className="bg-green-600 text-white text-xs font-bold uppercase">New</Badge>
+          )}
+          {Math.random() > 0.8 && (
+            <Badge className="bg-red-600 text-white text-xs font-bold uppercase">Reduced</Badge>
+          )}
           {showSaleDetails && (
-            <Badge variant="secondary" className="bg-white/90 text-gray-800">
+            <Badge className="bg-white/90 text-gray-800 text-xs">
               {property.tenure === 'freehold' ? 'Freehold' : 'Leasehold'}
             </Badge>
           )}
-          {Math.random() > 0.7 && (
-            <Badge className="bg-green-600 text-white">New</Badge>
-          )}
-          {Math.random() > 0.8 && (
-            <Badge className="bg-red-600 text-white">Reduced</Badge>
-          )}
         </div>
 
-        {/* Favorite heart button */}
+        {/* Heart / delete button - top right */}
         <div className="absolute top-3 right-3">
           <Button
             variant="ghost"
             size="sm"
             className={`p-2 h-8 w-8 rounded-full backdrop-blur-sm transition-colors ${
-              showDeleteOnly || isSaved 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-500'
+              showDeleteOnly || isSaved
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-600'
             }`}
             onClick={handleToggle}
           >
@@ -106,111 +103,67 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
           </Button>
         </div>
 
-        {/* Price label */}
+        {/* Price overlay - bottom left */}
         <div className="absolute bottom-3 left-3">
-          <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2">
-            <div className="text-lg font-bold text-gray-900">
-              £{property.price.toLocaleString()}
-              {property.listingType === 'rent' && (
-                <span className="text-sm font-normal text-gray-600">/month</span>
-              )}
-            </div>
-          </div>
+          <span className="bg-white text-gray-900 font-bold text-sm px-2.5 py-1 rounded-md shadow">
+            £{property.price.toLocaleString()}
+            {property.listingType === 'rent' && (
+              <span className="font-normal text-gray-500 text-xs"> /mo</span>
+            )}
+          </span>
         </div>
       </div>
 
-      {/* Text section - flex-1 to take remaining space */}
-      <CardContent className="p-6 flex flex-col flex-1">
-        {/* Property title */}
-        <h3 className="font-bold text-xl text-gray-900 mb-3 line-clamp-2">
+      {/* Card body */}
+      <CardContent className="p-4 flex flex-col flex-1">
+        {/* Title */}
+        <h3 className="font-bold text-gray-900 text-base line-clamp-1 mb-1">
           {property.title}
         </h3>
 
         {/* Address */}
-        <div className="flex items-center mb-3">
-          <MapPin className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-          <span className="text-gray-600">
-            {property.address.street}, {property.address.city}, {property.address.postcode}
-          </span>
-        </div>
+        <p className="text-gray-500 text-sm mb-2 line-clamp-1">
+          {property.address.street}, {property.address.city}
+        </p>
 
         {/* Property type */}
-        <div className="mb-4">
-          <span className="text-primary-600 font-medium capitalize">
-            {property.type}
-          </span>
-        </div>
+        <p className="text-blue-600 text-sm font-medium capitalize mb-2">{property.type}</p>
 
-        {/* Rating stars with review count */}
-        <div className="flex items-center mb-4">
+        {/* Rating */}
+        <div className="flex items-center gap-1.5 mb-3">
           <div className="flex items-center">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                className={`w-4 h-4 ${
-                  star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                }`}
+                className={`w-3.5 h-3.5 ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
               />
             ))}
           </div>
-          <span className="text-sm text-gray-500 ml-2">
-            {rating} ({reviewCount} reviews)
-          </span>
+          <span className="text-xs text-gray-500">{reviewCount} reviews</span>
         </div>
 
-        {/* Amenities row */}
-        <div className="flex items-center justify-between mb-4 text-gray-600">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center">
-              <Bed className="w-5 h-5 mr-2" />
-              <span>{property.bedrooms} bed</span>
-            </div>
-            <div className="flex items-center">
-              <Bath className="w-5 h-5 mr-2" />
-              <span>{property.bathrooms} bath</span>
-            </div>
-            {showSaleDetails && property.propertySize && (
-              <div className="flex items-center">
-                <Square className="w-5 h-5 mr-2" />
-                <span>{property.propertySize} sqft</span>
-              </div>
-            )}
+        {/* Amenities */}
+        <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+          <div className="flex items-center gap-1">
+            <Bed className="w-4 h-4" />
+            <span>{property.bedrooms} beds</span>
           </div>
+          <div className="flex items-center gap-1">
+            <Bath className="w-4 h-4" />
+            <span>{property.bathrooms} baths</span>
+          </div>
+          {property.propertySize && (
+            <div className="flex items-center gap-1">
+              <Square className="w-4 h-4" />
+              <span>{property.propertySize} sqft</span>
+            </div>
+          )}
         </div>
 
-        {/* Sale-specific details */}
-        {showSaleDetails && (
-          <div className="flex items-center space-x-4 mb-6 text-gray-500 text-sm">
-            {property.energyRating && (
-              <div className="flex items-center">
-                <Zap className="w-4 h-4 mr-1" />
-                <span>EPC: {property.energyRating}</span>
-              </div>
-            )}
-            {property.councilTaxBand && (
-              <div className="flex items-center">
-                <FileText className="w-4 h-4 mr-1" />
-                <span>Tax: {property.councilTaxBand}</span>
-              </div>
-            )}
-            {property.yearBuilt && (
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
-                <span>{property.yearBuilt}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Property description */}
-        <p className="text-gray-600 mb-6 line-clamp-2">
-          {property.description}
-        </p>
-
-        {/* "View Details" button - margin-top auto pushes it to bottom */}
+        {/* View Details button */}
         <div className="mt-auto">
           <Link to={`/property/${property.id}`} className="block">
-            <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
               View Details
             </Button>
           </Link>

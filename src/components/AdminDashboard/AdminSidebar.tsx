@@ -9,9 +9,11 @@ import {
   Users,
   Activity,
   Bell,
-  Calendar
+  Calendar,
+  Settings
 } from "lucide-react"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
+import { Link } from "react-router-dom"
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -38,6 +40,7 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Task Monitor", value: "tasks", icon: Activity },
     { title: "Calendar", value: "calendar", icon: Calendar },
     { title: "Notifications", value: "notifications", icon: Bell },
+    { title: "Settings", value: "settings", icon: Settings },
     { title: "Support", value: "support", icon: HelpCircle },
   ]
 
@@ -58,6 +61,14 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
           <X className="text-xl" />
         </button>
+      </div>
+
+      {/* Homed Branding */}
+      <div className={`px-6 py-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 ${isCollapsed ? 'px-3' : ''}`}>
+        <Link to="/" className={`flex items-center gap-2 group transition ${isCollapsed ? 'justify-center' : 'pl-2'}`}>
+          <img src="/logo.svg" alt="Homed Logo" className="h-8 w-auto transition-transform duration-200 group-hover:rotate-6" />
+          {!isCollapsed && <span className="text-2xl font-bold text-blue-1000 dark:text-whitee transition-transform duration-200 group-hover:scale-105">Homed</span>}
+        </Link>
       </div>
 
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">

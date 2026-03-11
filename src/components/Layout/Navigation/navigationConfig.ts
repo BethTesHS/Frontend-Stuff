@@ -1,4 +1,3 @@
-
 import { 
   Search, 
   Building, 
@@ -15,7 +14,8 @@ export const navigationDropdowns = [
     label: 'Find Agent',
     iconColor: 'text-blue-500',
     options: [
-      { to: '/find-agent', label: 'Find Estate Agent' }
+      { to: '/find-agent', label: 'Find Estate Agent' },
+      {to: '/find-agency', label: 'Find Agency' }
     ]
   },
   {
@@ -46,7 +46,7 @@ export const navigationDropdowns = [
     iconColor: 'text-orange-500',
     options: [
       { to: '/rooms', label: 'Find Rooms' },
-      { to: '/rooms/list', label: 'List a Room' }
+      { to: '/find-roomie', label: 'Find a Roomie' }
     ]
   },
   {

@@ -59,6 +59,12 @@ const MaintenanceRequests = ({ onGoToMessages }: MaintenanceRequestsProps) => {
   const isVerified = user?.tenantVerified || false;
 
   useEffect(() => {
+//     if (import.meta.env.DEV) {
+//       setComplaints(MOCK_MAINTENANCE_REQUESTS);
+//       setLoading(false);
+//       return;
+//     }
+
     const fetchComplaints = async () => {
       setLoading(true);
       try {

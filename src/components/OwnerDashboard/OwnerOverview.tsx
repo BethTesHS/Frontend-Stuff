@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, DollarSign, Bed, TrendingUp, Building, User, CheckCircle,
-  Clock, Wrench, ChevronDown, ChevronUp, Phone, Mail
+  Clock, Wrench, ChevronDown, ChevronUp, Phone, Mail,
+  Zap, Wand2, Activity, BarChart2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { propertyApi, ownerDashboardApi } from '@/services/api';
 import { spareRoomApi } from '@/services/spareRoomApi';
 import { toast } from 'sonner';
 import SupportBot from '@/components/Support/SupportBot';
+import { BoostListingModal } from '@/components/AgentDashboard/BoostListingModal';
 
 const initialOwnerStats = [
   { label: 'Total Properties', value: '0', icon: Home, trend: 'Loading...' },
@@ -20,13 +22,14 @@ const initialOwnerStats = [
   { label: 'Total Tenants', value: '0', icon: User, trend: 'Loading...' },
 ];
 
-export const OwnerOverview = ({ user, hasAccess }: { user: any, hasAccess: boolean }) => {
+export const OwnerOverview = ({ user, hasAccess, onTabChange }: { user: any, hasAccess: boolean, onTabChange: (tab: string, mode?: "default" | "improve") => void }) => {
   const location = useLocation();
   const [agentResponse, setAgentResponse] = useState<any>(null);
   const [showMessage, setShowMessage] = useState(false);
   const [ownerStats, setOwnerStats] = useState(initialOwnerStats);
   const [ownerActivity, setOwnerActivity] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [boostModalOpen, setBoostModalOpen] = useState(false);
 
   useEffect(() => {
     if (location.state?.agentRequest) {
@@ -315,6 +318,30 @@ export const OwnerOverview = ({ user, hasAccess }: { user: any, hasAccess: boole
           </div>
         </div>
         
+        {/* Quick Actions */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onClick={() => setBoostModalOpen(true)} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <Zap className="text-yellow-500 mb-2" size={28} />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Boost Listing</span>
+            </button>
+            <button onClick={() => onTabChange('properties', 'improve')} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <Wand2 className="text-purple-500 mb-2" size={28} />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Improve Listing</span>
+            </button>
+            <button onClick={() => toast.info("Performance dashboard is coming soon!")} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <Activity className="text-blue-500 mb-2" size={28} />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">View Performance</span>
+            </button>
+            <button onClick={() => toast.info("Market comparison feature is coming soon!")} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <BarChart2 className="text-green-500 mb-2" size={28} />
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Compare With Market</span>
+            </button>
+          </div>
+        </div>
+
+        <BoostListingModal open={boostModalOpen} onClose={() => setBoostModalOpen(false)} />
         <SupportBot />
       </div>
     </div>
