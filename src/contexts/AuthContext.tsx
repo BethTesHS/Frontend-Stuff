@@ -889,6 +889,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const isAuthenticated = !!user && !!getAuthToken();
 
+
+  // --- DEVELOPMENT BYPASS START ---
+  // Toggle this to `true` to easily view protected routes during frontend dev.
+  // Set it back to `false` when you want real authentication to work again.
+  const DEV_BYPASS = true;
+
+  if (DEV_BYPASS) {
+    const mockUser: User = {
+      id: 'dev-bypass-123',
+      email: 'dev@example.com',
+      firstName: 'Dev',
+      lastName: 'User',
+      name: 'Dev User',
+      // CHANGE THIS to 'owner', 'tenant', 'agent', 'buyer' to test other views
+      role: 'owner', 
+      // role: 'tenant', 
+      // role: 'agent', 
+      // role: 'buyer', 
+      // role: 'agency', 
+      // role: 'agency_admin', 
+      profileComplete: true,
+      isActive: true,
+      isVerified: true,
+    };
+
+    const mockValue: AuthContextType = {
+      user: mockUser,
+      login: async () => {},
+      loginWithSSO: async () => {},
+      logout: () => {},
+      register: async () => {},
+      updateUser: () => {},
+      isAuthenticated: true,
+      loading: false
+    };
+
+    return <AuthContext.Provider value={mockValue}>{children}</AuthContext.Provider>;
+  }
+  // --- DEVELOPMENT BYPASS END ---
+
+
   // Show loading state while checking authentication
   if (loading) {
     return (

@@ -99,6 +99,16 @@ const RoomFilters = ({ filters, onFiltersChange, onClose }: RoomFiltersProps) =>
         </div>
       </div>
 
+      {/* Show Favorites */}
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="show-favorites"
+          checked={localFilters.showFavorites === true}
+          onCheckedChange={(checked) => updateFilter('showFavorites', checked ? true : undefined)}
+        />
+        <Label htmlFor="show-favorites">Favorite Rooms Only</Label>
+      </div>
+
       {/* Furnished */}
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -118,6 +128,7 @@ const RoomFilters = ({ filters, onFiltersChange, onClose }: RoomFiltersProps) =>
         />
         <Label htmlFor="bills-included">Bills included</Label>
       </div>
+
 
       {/* Available From */}
       <div className="space-y-2">

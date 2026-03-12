@@ -48,4 +48,5 @@ export interface RoomFilters {
     smoking?: boolean;
     pets?: boolean;
   };
+  showFavorites?: boolean;
 }

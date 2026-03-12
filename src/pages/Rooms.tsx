@@ -18,8 +18,10 @@ import {
   X,
   Home
 } from 'lucide-react';
+import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 const Rooms = () => {
+  const { isRoomSaved } = useSavedProperties();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Helper to parse filters from URL on initial load
@@ -59,6 +61,7 @@ const Rooms = () => {
       f.location = searchParams.get('location')!;
     }
 
+    if (searchParams.get('showFavorites') === 'true') f.showFavorites = true; // Add this line
     return f;
   };
 
@@ -98,6 +101,8 @@ const Rooms = () => {
     }
     if (filters.preferences?.smoking) params.set('smoking', 'true');
     if (filters.preferences?.pets) params.set('pets', 'true');
+
+    if (filters.showFavorites) params.set('showFavorites', 'true');
 
     setSearchParams(params, { replace: true });
   }, [filters, searchLocation, priceRange, currentPage, setSearchParams]);
@@ -232,6 +237,10 @@ const Rooms = () => {
 
     if (filters.preferences?.pets === true) {
       filtered = filtered.filter(room => room.preferences.pets !== false);
+    }
+
+    if (filters.showFavorites) {
+      filtered = filtered.filter(room => isRoomSaved(room.id));
     }
 
     // Update total count and pages

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, User } from 'lucide-react';
+import { Mail, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout/Layout';
 import { handleGoogleAuth } from '@/services/googleAuth';
@@ -19,6 +19,8 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,14 +202,20 @@ const Register = () => {
                 <div className="relative">
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg h-12 px-4 text-gray-800 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                    className="w-full border border-gray-300 rounded-lg h-12 px-4 pr-10 text-gray-800 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                     placeholder="Enter password"
                   />
-                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
@@ -219,20 +227,27 @@ const Register = () => {
                 <div className="relative">
                   <input
                     id="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg h-12 px-4 text-gray-800 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                    className="w-full border border-gray-300 rounded-lg h-12 px-4 pr-10 text-gray-800 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                     placeholder="Confirm your password"
                   />
-                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
               {/* Continue Button */}
               <button
                 type="submit"
+                
                 disabled={loading}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold h-12 rounded-lg transition-all duration-300"
               >

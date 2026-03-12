@@ -6,6 +6,8 @@ export const useAdminGuard = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading } = useAdminAuth();
 
+  // --- TEMPORARY BYPASS FOR FRONTEND DEV ---
+  /*
   useEffect(() => {
     // If not loading and not authenticated, redirect to admin login
     if (!loading && !isAuthenticated) {
@@ -15,4 +17,8 @@ export const useAdminGuard = () => {
   }, [loading, isAuthenticated, navigate]);
 
   return { isAdminAuthenticated: isAuthenticated, loading };
+  */
+
+  // Force authentication state to true and loading to false
+  return { isAdminAuthenticated: true, loading: false };
 };

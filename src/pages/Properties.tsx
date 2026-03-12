@@ -12,10 +12,12 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
 import { propertyApi } from '@/services/api';
+import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Properties = () => {
+  const { isPropertySaved } = useSavedProperties();
   const [searchParams, setSearchParams] = useSearchParams();
   const listingType = searchParams.get('listingType') || searchParams.get('type') === 'rent' ? 'rent' : 'sale';
   
@@ -33,6 +35,7 @@ const Properties = () => {
     const typeParam = searchParams.get('type') || searchParams.get('listingType');
     if (typeParam === 'sale' || typeParam === 'rent') f.listingType = typeParam;
 
+    if (searchParams.get('showFavorites') === 'true') f.showFavorites = true; // Add this line
     return f;
   };
 
@@ -90,6 +93,8 @@ const Properties = () => {
       const types = Array.isArray(filters.propertyType) ? filters.propertyType : [filters.propertyType];
       types.forEach(t => params.append('propertyType', t));
     }
+
+    if (filters.showFavorites) params.set('showFavorites', 'true');
 
     setSearchParams(params, { replace: true });
   }, [filters, searchLocation, priceRange, currentPage, propertiesPerPage, listingType, setSearchParams]);
@@ -356,6 +361,10 @@ const Properties = () => {
     );
   }
 
+  const displayedProperties = filters.showFavorites
+    ? properties.filter(property => isPropertySaved(property.id))
+    : properties;
+
   return (
     <Layout>
       <div className="bg-white min-h-screen">
@@ -513,7 +522,7 @@ const Properties = () => {
 
           {/* Property Cards */}
           <div className="grid gap-6 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-            {properties.map((property: Property) => (
+            {displayedProperties.map((property: Property) => (
               <PropertyCard
                 key={property.id}
                 property={property}
@@ -523,7 +532,7 @@ const Properties = () => {
           </div>
 
           {/* Empty state */}
-          {properties.length === 0 && !loading && (
+          {displayedProperties.length === 0 && !loading && (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg mb-4">No properties found matching your criteria.</p>
               <Button

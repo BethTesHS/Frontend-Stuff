@@ -93,6 +93,7 @@ export interface SearchFilters {
   propertyType?: string[];
   listingType?: 'sale' | 'rent';
   passportRating?: number;
+  showFavorites?: boolean; 
 }
 
 export interface Complaint {

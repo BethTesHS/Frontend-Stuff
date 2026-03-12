@@ -105,6 +105,18 @@ const PropertyFilters = ({ filters, onFiltersChange, onClose }: PropertyFiltersP
         </Select>
       </div>
 
+      {/* Show Favorites */}
+      <div className="flex items-center space-x-2 mt-4">
+        <Checkbox
+          id="show-favorites"
+          checked={localFilters.showFavorites === true}
+          onCheckedChange={(checked) => 
+            setLocalFilters({ ...localFilters, showFavorites: checked ? true : undefined })
+          }
+        />
+        <Label htmlFor="show-favorites">Favorite Properties Only</Label>
+      </div>
+
       {/* Property Type */}
       <div>
         <Label className="text-base font-medium">Property Type</Label>
