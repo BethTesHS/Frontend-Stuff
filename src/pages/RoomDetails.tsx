@@ -43,11 +43,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
 import IntelligenceReportModal from '@/components/Properties/IntelligenceReportModal';
+import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 const RoomDetails = () => {
   const { id: roomId } = useParams();
   const [room, setRoom] = useState<Room | null>(null);
-  const [isLiked, setIsLiked] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [localLoading, setLocalLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -64,6 +64,10 @@ const RoomDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+
+  // Use the global SavedPropertiesContext instead of local state
+  const { isRoomSaved, addSavedRoom, removeSavedRoom } = useSavedProperties();
+  const isSaved = room ? isRoomSaved(room.id) : false;
 
   useEffect(() => {
     if (!roomId) return;
@@ -135,7 +139,13 @@ const RoomDetails = () => {
   };
 
   const handleLikeToggle = () => {
-    setIsLiked(!isLiked);
+    if (!room) return;
+    
+    if (isSaved) {
+      removeSavedRoom(room.id);
+    } else {
+      addSavedRoom(room);
+    }
   };
 
   const nextImage = () => {
@@ -501,10 +511,10 @@ const RoomDetails = () => {
                 variant="outline"
                 size="lg"
                 onClick={handleLikeToggle}
-                className={`ml-4 ${isLiked ? 'bg-red-50 border-red-200 text-red-600' : ''}`}
+                className={`ml-4 transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700' : 'hover:text-red-600'}`}
               >
-                <Heart className={`w-5 h-5 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-                {isLiked ? 'Saved' : 'Save'}
+                <Heart className={`w-5 h-5 mr-2 ${isSaved ? 'fill-current text-red-600' : ''}`} />
+                {isSaved ? 'Saved' : 'Save'}
               </Button>
             </div>
 

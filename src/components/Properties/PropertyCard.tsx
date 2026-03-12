@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Property } from '@/types';
@@ -55,7 +54,8 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
 
   // Generate mock rating for demonstration
   const rating = 4.5;
-  const reviewCount = Math.floor(Math.random() * 50) + 10;
+  // Calculate deterministic review count so it doesn't jump around on page refresh
+  const reviewCount = property.id ? (String(property.id).length * 3 + 12) % 50 + 10 : 25;
 
   return (
     <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col">
@@ -70,13 +70,10 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
 
         {/* Status badges - top left */}
         <div className="absolute top-3 left-3 flex gap-1.5">
-          {Math.random() > 0.7 && (
-            <Badge className="bg-green-600 text-white text-xs font-bold uppercase">New</Badge>
-          )}
-          {Math.random() > 0.8 && (
-            <Badge className="bg-red-600 text-white text-xs font-bold uppercase">Reduced</Badge>
-          )}
-          {showSaleDetails && (
+          {/* Removed Math.random() so badges don't change on refresh */}
+          {/* Note: You can link these to actual data if you have it: property.isNew, property.isReduced */}
+          
+          {showSaleDetails && property.tenure && (
             <Badge className="bg-white/90 text-gray-800 text-xs">
               {property.tenure === 'freehold' ? 'Freehold' : 'Leasehold'}
             </Badge>
@@ -89,16 +86,18 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
             variant="ghost"
             size="sm"
             className={`p-2 h-8 w-8 rounded-full backdrop-blur-sm transition-colors ${
-              showDeleteOnly || isSaved
+              showDeleteOnly
                 ? 'bg-red-600 text-white hover:bg-red-700'
+                : isSaved
+                ? 'bg-white/90 text-red-600 hover:bg-white'
                 : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-600'
             }`}
             onClick={handleToggle}
           >
-            {showDeleteOnly || isSaved ? (
+            {showDeleteOnly ? (
               <Trash2 className="w-4 h-4" />
             ) : (
-              <Heart className="w-4 h-4" />
+              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
             )}
           </Button>
         </div>
@@ -123,7 +122,7 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
 
         {/* Address */}
         <p className="text-gray-500 text-sm mb-2 line-clamp-1">
-          {property.address.street}, {property.address.city}
+          {property.address?.street}, {property.address?.city}
         </p>
 
         {/* Property type */}

@@ -35,6 +35,7 @@ import { propertyApi, findAgentApi } from '@/services/api';
 import PropertyMap from '@/components/Properties/PropertyMap';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
+import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 // Agent type - matching the one from FindAgent page
 type Agent = {
@@ -68,19 +69,20 @@ const PropertyDetails = () => {
   const [propertyImages, setPropertyImages] = useState<string[]>([]);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agentLoading, setAgentLoading] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [localLoading, setLocalLoading] = useState(true);
   const [showIntelligenceReport, setShowIntelligenceReport] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
+  // Use the global SavedPropertiesContext instead of local state
+  const { isPropertySaved, addSavedProperty, removeSavedProperty } = useSavedProperties();
+  const isSaved = property ? isPropertySaved(property.id) : false;
 
+  useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-
 
     if (!propertyId) return;
 
@@ -187,7 +189,23 @@ const PropertyDetails = () => {
     }
   };
 
-  console.log('PropertyDetails: propertyId from URL:', propertyId);
+  const handleLikeToggle = () => {
+    if (!property) return;
+    
+    if (isSaved) {
+      removeSavedProperty(property.id);
+    } else {
+      addSavedProperty(property);
+    }
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
+  };
 
   if (localLoading) {
     return (
@@ -219,20 +237,6 @@ const PropertyDetails = () => {
       </Layout>
     );
   }
-
-  console.log('PropertyDetails: Rendering property:', property.title);
-
-  const handleLikeToggle = () => {
-    setIsLiked(!isLiked);
-  };
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
-  };
 
   return (
     <Layout>
@@ -318,10 +322,10 @@ const PropertyDetails = () => {
                 variant="outline"
                 size="lg"
                 onClick={handleLikeToggle}
-                className={`ml-4 ${isLiked ? 'bg-red-50 border-red-200 text-red-600' : ''}`}
+                className={`ml-4 transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700' : 'hover:text-red-600'}`}
               >
-                <Heart className={`w-5 h-5 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-                {isLiked ? 'Saved' : 'Save'}
+                <Heart className={`w-5 h-5 mr-2 ${isSaved ? 'fill-current text-red-600' : ''}`} />
+                {isSaved ? 'Saved' : 'Save'}
               </Button>
             </div>
 
@@ -522,7 +526,7 @@ const PropertyDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Price History - Now always shows for all properties */}
+            {/* Price History */}
             <PriceHistoryCard
               propertyHistory={propertyHistory}
               currentPrice={property.price}
@@ -537,144 +541,144 @@ const PropertyDetails = () => {
             <div className="pr-2">
               {/* Flex container for cards */}
               <div className="flex flex-col gap-6">
-                    {/* Agent Contact - Enhanced with full agent details */}
-                    {agent ? (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <Building2 className="w-5 h-5 mr-2" />
-                            Contact Agent
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {agentLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="font-semibold text-lg">{agent.name}</div>
-                                  <div className="text-gray-600">{agent.agency || agent.company}</div>
-                                  <div className="text-sm text-gray-500">{agent.specialization}</div>
-                                  {agent.location && (
-                                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      {agent.location}
-                                    </div>
-                                  )}
+                {/* Agent Contact */}
+                {agent ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Building2 className="w-5 h-5 mr-2" />
+                        Contact Agent
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {agentLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="font-semibold text-lg">{agent.name}</div>
+                              <div className="text-gray-600">{agent.agency || agent.company}</div>
+                              <div className="text-sm text-gray-500">{agent.specialization}</div>
+                              {agent.location && (
+                                <div className="flex items-center text-sm text-gray-500 mt-1">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {agent.location}
                                 </div>
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                                  {agent.rating > 0 ? (
-                                    <span>{agent.rating} ({agent.reviews})</span>
-                                  ) : (
-                                    <span className="text-gray-400">New</span>
-                                  )}
-                                </div>
-                              </div>
-                               
-                              {agent.experience && (
-                                <p className="text-xs text-gray-500">
-                                  Experience: {agent.experience} years
-                                </p>
                               )}
-                              
-                              <div className="space-y-3">
-                                <Button className="w-full" onClick={handleCallAgent}>
-                                  <Phone className="w-4 h-4 mr-2" />
-                                  Call Agent
-                                </Button>
-                                <Button variant="outline" className="w-full" onClick={handleEmailAgent}>
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  Email Agent
-                                </Button>
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                <div className="flex items-center mb-1">
-                                  <Phone className="w-4 h-4 mr-2" />
-                                  {agent.phone}
-                                </div>
-                                <div className="flex items-center">
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  {agent.email}
-                                </div>
-                              </div>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <Building2 className="w-5 h-5 mr-2" />
-                            Contact Agent
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-8">
-                            <p className="text-gray-500">No agent assigned to this property</p>
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                              {agent.rating > 0 ? (
+                                <span>{agent.rating} ({agent.reviews})</span>
+                              ) : (
+                                <span className="text-gray-400">New</span>
+                              )}
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                            
+                          {agent.experience && (
+                            <p className="text-xs text-gray-500">
+                              Experience: {agent.experience} years
+                            </p>
+                          )}
+                          
+                          <div className="space-y-3">
+                            <Button className="w-full" onClick={handleCallAgent}>
+                              <Phone className="w-4 h-4 mr-2" />
+                              Call Agent
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={handleEmailAgent}>
+                              <Mail className="w-4 h-4 mr-2" />
+                              Email Agent
+                            </Button>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <div className="flex items-center mb-1">
+                              <Phone className="w-4 h-4 mr-2" />
+                              {agent.phone}
+                            </div>
+                            <div className="flex items-center">
+                              <Mail className="w-4 h-4 mr-2" />
+                              {agent.email}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Building2 className="w-5 h-5 mr-2" />
+                        Contact Agent
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No agent assigned to this property</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                    {/* Quick Actions */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {/* Intelligence Report */}
-                        <Button
-                          variant="outline"
-                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
-                          onClick={() => setShowIntelligenceReport(true)}
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Intelligence Report
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Intelligence Report */}
+                    <Button
+                      variant="outline"
+                      className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                      onClick={() => setShowIntelligenceReport(true)}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      View Intelligence Report
+                    </Button>
+
+                    {property && (
+                      <ScheduleViewingDialog
+                        propertyId={parseInt(property.id)}
+                        propertyTitle={property.title}
+                        propertyAddress={property.address ? `${property.address.street}, ${property.address.city} ${property.address.postcode}`.trim() : undefined}
+                      >
+                        <Button variant="outline" className="w-full">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Schedule Viewing
                         </Button>
-
-                        {property && (
-                          <ScheduleViewingDialog
-                            propertyId={parseInt(property.id)}
-                            propertyTitle={property.title}
-                            propertyAddress={property.address ? `${property.address.street}, ${property.address.city} ${property.address.postcode}`.trim() : undefined}
-                          >
-                            <Button variant="outline" className="w-full">
-                              <Calendar className="w-4 h-4 mr-2" />
-                              Schedule Viewing
-                            </Button>
-                          </ScheduleViewingDialog>
-                        )}
-                        {agent && property && (
-                          <MessageDialog
-                            recipientId={agent.id.toString()}
-                            recipientName={agent.name}
-                            recipientType="agent"
-                            propertyId={property.id}
-                            propertyTitle={property.title}
-                          >
-                            <Button variant="outline" className="w-full">
-                              <MessageCircle className="w-4 h-4 mr-2" />
-                              Message Agent
-                            </Button>
-                          </MessageDialog>
-                        )}
-                        <BrochureRequestDialog property={property as Property}>
-                          <Button variant="outline" className="w-full">
-                            Request Brochure
-                          </Button>
-                        </BrochureRequestDialog>
-                        <SharePropertyPopover property={property as Property}>
-                          <Button variant="outline" className="w-full">
-                            Share Property
-                          </Button>
-                        </SharePropertyPopover>
-                      </CardContent>
-                    </Card>
+                      </ScheduleViewingDialog>
+                    )}
+                    {agent && property && (
+                      <MessageDialog
+                        recipientId={agent.id.toString()}
+                        recipientName={agent.name}
+                        recipientType="agent"
+                        propertyId={property.id}
+                        propertyTitle={property.title}
+                      >
+                        <Button variant="outline" className="w-full">
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Message Agent
+                        </Button>
+                      </MessageDialog>
+                    )}
+                    <BrochureRequestDialog property={property as Property}>
+                      <Button variant="outline" className="w-full">
+                        Request Brochure
+                      </Button>
+                    </BrochureRequestDialog>
+                    <SharePropertyPopover property={property as Property}>
+                      <Button variant="outline" className="w-full">
+                        Share Property
+                      </Button>
+                    </SharePropertyPopover>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Bath, Star, Heart, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
 interface RoomCardProps {
   room: Room;
@@ -14,12 +15,19 @@ interface RoomCardProps {
 const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  
+  const { isRoomSaved, addSavedRoom, removeSavedRoom } = useSavedProperties();
+  const isSaved = isRoomSaved(room.id);
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsFavorited(!isFavorited);
+    
+    if (isSaved) {
+      removeSavedRoom(room.id);
+    } else {
+      addSavedRoom(room);
+    }
   };
 
   const handleImageError = () => {
@@ -61,7 +69,8 @@ const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
 
   // Generate mock rating for demonstration
   const rating = 4.3;
-  const reviewCount = Math.floor(Math.random() * 30) + 5;
+  // Calculate deterministic review count so it doesn't jump around on page refresh
+  const reviewCount = room.id ? (String(room.id).length * 5 + 17) % 30 + 5 : 15;
 
   return (
     <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col">
@@ -108,16 +117,18 @@ const RoomCard = ({ room, showDeleteOnly = false }: RoomCardProps) => {
             variant="ghost"
             size="sm"
             className={`p-2 h-8 w-8 rounded-full backdrop-blur-sm transition-colors ${
-              showDeleteOnly || isFavorited
+              showDeleteOnly
                 ? 'bg-red-600 text-white hover:bg-red-700'
+                : isSaved
+                ? 'bg-white/90 text-red-600 hover:bg-white'
                 : 'bg-white/90 text-gray-600 hover:bg-white hover:text-red-600'
             }`}
             onClick={handleToggleFavorite}
           >
-            {showDeleteOnly || isFavorited ? (
+            {showDeleteOnly ? (
               <Trash2 className="w-4 h-4" />
             ) : (
-              <Heart className="w-4 h-4" />
+              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
             )}
           </Button>
         </div>
