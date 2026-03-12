@@ -31,6 +31,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Room } from '@/types/room';
+import { Property } from '@/types';
 import { spareRoomApi } from '@/services/spareRoomApi';
 import { buyerApi } from '@/services/buyerApi';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +42,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
+import IntelligenceReportModal from '@/components/Properties/IntelligenceReportModal';
 
 const RoomDetails = () => {
   const { id: roomId } = useParams();
@@ -58,6 +60,7 @@ const RoomDetails = () => {
   const [viewingNotes, setViewingNotes] = useState('');
   const [isSchedulingViewing, setIsSchedulingViewing] = useState(false);
   const [viewingDialogOpen, setViewingDialogOpen] = useState(false);
+  const [showIntelligenceReport, setShowIntelligenceReport] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
@@ -69,10 +72,6 @@ const RoomDetails = () => {
       try {
         setLocalLoading(true);
         
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Use the actual API to get room details
         const response = await spareRoomApi.getSpareRoom(parseInt(roomId));
         
         if (response && response.id) {
@@ -225,19 +224,19 @@ const RoomDetails = () => {
         viewing_type: viewingType,
         notes: viewingNotes || undefined
       });
-
+      
       if (response.success) {
-        toast({
-          title: "Viewing Scheduled!",
-          description: "Your viewing request has been submitted. The property owner will be notified."
-        });
+      toast({
+        title: "Viewing Scheduled!",
+        description: "Your viewing request has been submitted. The property owner will be notified."
+      });
 
         // Reset form and close dialog
-        setViewingDate('');
-        setViewingTime('');
-        setViewingType('in_person');
-        setViewingNotes('');
-        setViewingDialogOpen(false);
+      setViewingDate('');
+      setViewingTime('');
+      setViewingType('in_person');
+      setViewingNotes('');
+      setViewingDialogOpen(false);
       } else {
         toast({
           title: "Error",
@@ -333,6 +332,49 @@ const RoomDetails = () => {
     return types[type] || type;
   };
 
+  // Convert Room object to a mock Property object for the Intelligence Report
+  const getPropertyFormatForReport = (): Property | null => {
+    if (!room) return null;
+
+    const addressParts = room.property_address.split(',').map(p => p.trim());
+    let street = room.property_address;
+    let city = '';
+    let postcode = '';
+
+    if (addressParts.length >= 3) {
+      street = addressParts.slice(0, addressParts.length - 2).join(', ');
+      city = addressParts[addressParts.length - 2];
+      postcode = addressParts[addressParts.length - 1];
+    } else if (addressParts.length === 2) {
+      street = addressParts[0];
+      city = addressParts[1];
+    }
+
+    return {
+      id: room.id,
+      title: room.title,
+      description: room.description,
+      price: room.rent,
+      listingType: 'rent',
+      status: 'available',
+      type: room.room_type,
+      tenure: 'leasehold',
+      bedrooms: room.total_housemates || 1,
+      bathrooms: 1,
+      receptions: 1,
+      propertySize: room.size_sqft,
+      address: {
+        street,
+        city,
+        postcode,
+      },
+      features: room.house_rules || [],
+      images: room.images,
+      createdAt: room.created_at,
+      updatedAt: room.updated_at,
+    } as unknown as Property;
+  };
+
   if (localLoading) {
     return (
       <Layout>
@@ -364,8 +406,8 @@ const RoomDetails = () => {
     );
   }
 
-  const rating = 4.3;
-  const reviewCount = Math.floor(Math.random() * 30) + 5;
+  const rating = 4.8;
+  const reviewCount = 24;
 
   return (
     <Layout>
@@ -575,7 +617,7 @@ const RoomDetails = () => {
                 <CardTitle>Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 leading-relaxed">{room.description}</p>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{room.description}</p>
               </CardContent>
             </Card>
 
@@ -682,7 +724,7 @@ const RoomDetails = () => {
                       <Star
                         key={star}
                         className={`w-4 h-4 ${
-                          star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          star <= Math.round(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
                         }`}
                       />
                     ))}
@@ -791,6 +833,15 @@ const RoomDetails = () => {
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-800"
+                  onClick={() => setShowIntelligenceReport(true)}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  View Intelligence Report
+                </Button>
+                
                 <Dialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full" size="lg">
@@ -944,6 +995,16 @@ const RoomDetails = () => {
           </div>
         </div>
       </div>
+      
+      {/* Intelligence Report Modal */}
+      {room && (
+        <IntelligenceReportModal
+          property={getPropertyFormatForReport() as Property}
+          entityType="room" // Change to "room" to indicate we're viewing a room report
+          open={showIntelligenceReport}
+          onOpenChange={setShowIntelligenceReport}
+        />
+      )}
     </Layout>
   );
 };

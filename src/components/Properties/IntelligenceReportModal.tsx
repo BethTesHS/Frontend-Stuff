@@ -32,6 +32,7 @@ interface IntelligenceReportModalProps {
   property: Property;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  entityType?: 'property' | 'room'; // Defaults to property
 }
 
 // Maintenance history entries modelled after the MaintenanceSchedule data structure
@@ -98,9 +99,15 @@ const IntelligenceReportModal = ({
   property,
   open,
   onOpenChange,
+  entityType = 'property',
 }: IntelligenceReportModalProps) => {
   const [downloaded, setDownloaded] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  // Dynamic naming based on the entityType
+  const isRoom = entityType === 'room';
+  const entityNameCapitalized = isRoom ? 'Room' : 'Property';
+  const entityNameLower = isRoom ? 'room' : 'property';
 
   const handleDownload = useCallback(async () => {
     setGenerating(true);
@@ -181,7 +188,7 @@ const IntelligenceReportModal = ({
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(147, 197, 253);
-      doc.text('PROPERTY INTELLIGENCE REPORT', margin, 12);
+      doc.text(`${entityNameCapitalized.toUpperCase()} INTELLIGENCE REPORT`, margin, 12);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(17);
       doc.setTextColor(255, 255, 255);
@@ -196,10 +203,10 @@ const IntelligenceReportModal = ({
       y = 56;
 
       // 1. PROPERTY OVERVIEW
-      sectionTitle('1. Property Overview');
+      sectionTitle(`1. ${entityNameCapitalized} Overview`);
       statGrid([
         { label: 'Asking Price', value: `£${property.price.toLocaleString()}${property.listingType === 'rent' ? '/mo' : ''}` },
-        { label: 'Property Type', value: property.type.charAt(0).toUpperCase() + property.type.slice(1) },
+        { label: `${entityNameCapitalized} Type`, value: property.type.charAt(0).toUpperCase() + property.type.slice(1) },
         { label: 'Tenure', value: property.tenure.charAt(0).toUpperCase() + property.tenure.slice(1) },
         { label: 'Bedrooms', value: String(property.bedrooms) },
         { label: 'Bathrooms', value: String(property.bathrooms) },
@@ -220,7 +227,95 @@ const IntelligenceReportModal = ({
         ['Capital growth (5-year area average)', '+18.3%'],
         [`Demand index for ${property.address.postcode}`, 'High (82 / 100)'],
       ].forEach(([l, v], i) => tableRow(l, v, i % 2 === 0));
-      y += 6;
+      y += 10;
+
+      // 📈 DRAW THE LINE GRAPH IN PDF
+      checkPage(65);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`5-Year ${isRoom ? 'Rent' : 'Value'} Trend Estimate`, margin, y);
+      y += 8;
+
+      // Generate mock trend data based on current price
+      const trendData = [
+        { label: '2020', value: property.price * 0.78 },
+        { label: '2021', value: property.price * 0.84 },
+        { label: '2022', value: property.price * 0.91 },
+        { label: '2023', value: property.price * 0.96 },
+        { label: '2024', value: property.price }
+      ];
+
+      const chartH = 35; // Height of chart
+      const maxVal = Math.max(...trendData.map(d => d.value));
+      const minVal = Math.min(...trendData.map(d => d.value));
+      
+      // Dynamic baseline to make the line chart scale nicely (not just hug the top)
+      const yMin = minVal * 0.85; 
+      const yRange = maxVal - yMin;
+
+      // Calculate spacing so points span evenly, keeping some padding off the absolute edges
+      const pointCount = trendData.length;
+      const chartInnerWidth = contentW - 16; // 8 unit padding on left and right
+      const startX = margin + 8;
+      const gap = chartInnerWidth / (pointCount - 1);
+
+      // Draw faint background grid lines for context
+      doc.setDrawColor(241, 245, 249); // slate-100
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, margin + contentW, y); // Top reference line
+      doc.line(margin, y + (chartH/2), margin + contentW, y + (chartH/2)); // Mid reference line
+
+      // Draw Main X axis
+      doc.setDrawColor(203, 213, 225); // slate-300
+      doc.line(margin, y + chartH, margin + contentW, y + chartH);
+
+      const points: {x: number, y: number}[] = [];
+
+      // Calculate coordinates and draw text labels
+      trendData.forEach((d, i) => {
+        // Calculate dynamic height based on value
+        const h = ((d.value - yMin) / yRange) * (chartH - 8); // -8 leaves some padding at top
+        const px = startX + i * gap;
+        const py = y + chartH - h;
+        points.push({x: px, y: py});
+
+        // Draw X-axis label (Year) below the axis
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 116, 139); // slate-500
+        const lw = doc.getTextWidth(d.label);
+        doc.text(d.label, px - (lw/2), y + chartH + 5);
+
+        // Draw Value Label above the point
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(15, 23, 42); // slate-900
+        // Clean formatting for high values (e.g. £350k vs £950)
+        const formatVal = d.value >= 10000 
+          ? `£${(d.value / 1000).toFixed(0)}k` 
+          : `£${Math.round(d.value)}`;
+        const vwLen = doc.getTextWidth(formatVal);
+        doc.text(formatVal, px - (vwLen/2), py - 3);
+      });
+
+      // Draw Connecting Lines
+      doc.setDrawColor(59, 130, 246); // blue-500
+      doc.setLineWidth(1.2);
+      for (let i = 0; i < points.length - 1; i++) {
+        doc.line(points[i].x, points[i].y, points[i+1].x, points[i+1].y);
+      }
+
+      // Draw Points (Circles) over the lines
+      doc.setFillColor(255, 255, 255); // white center
+      doc.setDrawColor(59, 130, 246); // blue-500 border
+      doc.setLineWidth(0.8);
+      points.forEach(p => {
+        doc.circle(p.x, p.y, 1.8, 'FD'); // Fill and Stroke
+      });
+
+      y += chartH + 12; // Push cursor past the graph
 
       // 3. MAINTENANCE HISTORY
       sectionTitle('3. Maintenance History');
@@ -284,7 +379,7 @@ const IntelligenceReportModal = ({
       doc.setFontSize(8.5);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        doc.splitTextToSize('This property scores highly on location demand, maintenance history, and price alignment with the local market.', contentW - 42),
+        doc.splitTextToSize(`This ${entityNameLower} scores highly on location demand, maintenance history, and price alignment with the local market.`, contentW - 42),
         margin + 30, y + 21
       );
       y += 38;
@@ -308,14 +403,14 @@ const IntelligenceReportModal = ({
         doc.text(`Page ${p} of ${totalPages}   ·   homed.co.uk`, pageW - margin, fy, { align: 'right' });
       }
 
-      doc.save(`Homed-Intelligence-Report-${property.address.postcode.replace(/\s/g, '')}.pdf`);
+      doc.save(`Homed-${entityNameCapitalized}-Intelligence-Report-${property.address.postcode.replace(/\s/g, '')}.pdf`);
       setDownloaded(true);
     } catch (err) {
       console.error('PDF generation failed:', err);
     } finally {
       setGenerating(false);
     }
-  }, [property]);
+  }, [property, entityNameCapitalized, entityNameLower, isRoom]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -327,7 +422,7 @@ const IntelligenceReportModal = ({
               <div className="flex items-center gap-2 mb-1">
                 <FileText className="w-5 h-5 text-blue-300" />
                 <span className="text-xs font-semibold uppercase tracking-widest text-blue-300">
-                  Property Intelligence Report
+                  {entityNameCapitalized} Intelligence Report
                 </span>
               </div>
               <DialogTitle className="text-xl font-bold text-white leading-tight">
@@ -349,7 +444,7 @@ const IntelligenceReportModal = ({
 
           {/* ── Section 1: Property Overview ── */}
           <section>
-            <SectionHeading icon={<Home className="w-4 h-4" />} title="Property Overview" />
+            <SectionHeading icon={<Home className="w-4 h-4" />} title={`${entityNameCapitalized} Overview`} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
               <StatTile label="Price" value={`£${property.price.toLocaleString()}`} />
               <StatTile label="Type" value={property.type} capitalize />

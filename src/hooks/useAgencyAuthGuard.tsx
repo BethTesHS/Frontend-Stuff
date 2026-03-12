@@ -26,16 +26,16 @@ export const useAgencyAuthGuard = () => {
 
     setLoading(true);
 
-    // Check if we're in agency mode - if not, just mark as no access without redirecting
-    if (!isAgencyMode) {
-      console.log('useAgencyAuthGuard: Not in agency mode, no access granted');
+    // Check for agency authentication token
+    const agencyToken = getAgencyToken();
+
+    // If not in agency mode and no token, deny access
+    if (!isAgencyMode && !agencyToken) {
+      console.log('useAgencyAuthGuard: Not in agency mode and no token, no access granted');
       setHasAccess(false);
       setLoading(false);
       return;
     }
-
-    // Check for agency authentication token
-    const agencyToken = getAgencyToken();
     const agencyData = tokenStorage.getItem('agencyData');
     const userData = tokenStorage.getItem('user');
 

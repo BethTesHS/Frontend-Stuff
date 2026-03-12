@@ -13,7 +13,7 @@ import { setAgencyToken, setAgencyUser, setAgencyData } from '@/utils/tokenStora
 
 const AgencyLogin = () => {
   const navigate = useNavigate();
-  const { agency, loading: agencyLoading } = useAgency();
+  const { agency, loading: agencyLoading, isAgencyMode } = useAgency();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -65,7 +65,7 @@ const AgencyLogin = () => {
       toast.success('Login successful! Redirecting to dashboard...');
 
       setTimeout(() => {
-        window.location.href = `/dashboard?agency=${response.agency.slug}`;
+        window.location.href = isAgencyMode ? '/dashboard' : '/agency-dashboard';
       }, 500);
     } catch (error: any) {
       console.error('Login error:', error);

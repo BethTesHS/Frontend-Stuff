@@ -163,7 +163,7 @@ export const AgentOverview = ({ user, onTabChange }: AgentOverviewProps) => {
             <Activity className="text-blue-500 mb-2" size={28} />
             <span className="text-sm font-medium text-gray-800 dark:text-gray-200">View Performance</span>
           </button>
-          <button onClick={() => toast.info("Market comparison feature is coming soon!")} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <button onClick={() => onTabChange('compare-market')} className="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <BarChart2 className="text-green-500 mb-2" size={28} />
             <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Compare With Market</span>
           </button>

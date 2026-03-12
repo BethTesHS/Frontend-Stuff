@@ -860,7 +860,19 @@ closeTenancy: async (tenancyId: string): Promise<ApiResponse<{ message: string }
   return apiRequest(`/tenancy/close/${tenancyId}`, {
     method: 'POST',
   });
-},
+  },
+getPropertyMarketComparison: async (propertyId: number): Promise<ApiResponse<{
+    property_id: number;
+    metrics: {
+      impressions: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
+      views: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
+      enquiries: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
+    };
+    area_name: string;
+    comparable_count: number;
+  }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.MARKET_COMPARISON(propertyId));
+  },
 };
 
 export const profileApi = {

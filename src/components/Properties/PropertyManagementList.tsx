@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, Bed, Bath, DollarSign, Edit, AlertTriangle, Plus, Loader2, Wand2 } from 'lucide-react';
+import { Building, MapPin, Bed, Bath, DollarSign, Edit, AlertTriangle, Plus, Loader2, Wand2, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +9,15 @@ import { propertyApi } from '@/services/api';
 import { toast } from 'sonner';
 
 interface PropertyManagementListProps {
-  selectionMode?: string;
+  selectionMode?: "default" | "improve" | "compare";
   onAnalyze?: (property: any) => void;
+  onCompare?: (property: any) => void;
 }
 
 export const PropertyManagementList = ({ 
   selectionMode = 'default', 
-  onAnalyze 
+  onAnalyze,
+  onCompare,
 }: PropertyManagementListProps) => {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
@@ -136,6 +138,14 @@ export const PropertyManagementList = ({
                 >
                   <Wand2 className="w-4 h-4 mr-2" />
                   Perform Analysis
+                </Button>
+              ) : selectionMode === "compare" ? (
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg py-5"
+                  onClick={() => onCompare?.(property)}
+                >
+                  <BarChart2 className="w-4 h-4 mr-2" />
+                  Compare Market
                 </Button>
               ) : (
                 <>

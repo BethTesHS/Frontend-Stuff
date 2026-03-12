@@ -13,10 +13,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { migrateFromLocalStorage } from '@/utils/tokenStorage';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { ProtectedAdminRoute } from '@/components/ProtectedAdminRoute';
 
 // Migrate any existing auth tokens from localStorage to sessionStorage
 migrateFromLocalStorage();
-import { ProtectedAdminRoute } from '@/components/ProtectedAdminRoute';
 
 // Import all pages
 import Index from '@/pages/Index';
@@ -47,7 +47,6 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import Help from '@/pages/Help';
 import ListProperty from '@/pages/ListProperty';
-import ListRoom from '@/pages/ListRoom';
 import Messages from '@/pages/Messages';
 import MyComplaints from '@/pages/MyComplaints';
 import MyProperties from '@/pages/MyProperties';
@@ -88,8 +87,8 @@ const LoadingScreen: React.FC = () => (
 
 // Main app router component wrapped with proper error handling
 const AppRouter: React.FC = () => {
+  const { isAgencyMode, loading } = useAgency();
   try {
-    const { isAgencyMode, loading } = useAgency();
 
     if (loading) {
       return <LoadingScreen />;
@@ -111,7 +110,17 @@ const AppRouter: React.FC = () => {
             <Route path="/reports" element={<AgencyDashboard />} />
             <Route path="/tenants" element={<AgencyDashboard />} />
             <Route path="/settings" element={<AgencyDashboard />} />
-            <Route path="/list-property" element={<ListProperty />} />
+            <Route
+              path="/list-property"
+              element={
+                <ListProperty
+                  isOpen={true}
+                  onClose={() => {}}
+                  user={null}
+                  isAgencyMode={isAgencyMode}
+                />
+              }
+            />
             {/* Escape route to main site */}
             <Route path="/main-site" element={<Navigate to="/?exit_agency=true" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -148,8 +157,29 @@ const AppRouter: React.FC = () => {
             <Route path="/property/:id" element={<PropertyDetails />} />
             <Route path="/my-properties" element={<MyProperties />} />
             <Route path="/post-property" element={<PostProperty />} />
-            <Route path="/list-property" element={<ListProperty />} />
-            <Route path="/property-listing-choice" element={<PropertyListingChoice />} />
+            <Route
+              path="/list-property"
+              element={
+                <ListProperty
+                  isOpen={true}
+                  onClose={() => {}}
+                  user={null}
+                  isAgencyMode={false}
+                />
+              }
+            />
+            <Route
+              path="/property-listing-choice"
+              element={
+                <PropertyListingChoice
+                  isOpen={true}
+                  onClose={() => {}}
+                  onBack={() => {}}
+                  propertyData={null}
+                  onSelectAgentMode={() => {}}
+                />
+              }
+            />
             <Route path="/saved" element={<Saved />} />
             
             {/* Room Routes */}
@@ -157,7 +187,15 @@ const AppRouter: React.FC = () => {
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<RoomDetails />} />
             <Route path="/find-roomie" element={<FindRoomie />} /> {/* Updated this line */}
-            <Route path="/post-spare-room" element={<PostSpareRoom />} />
+            <Route
+              path="/post-spare-room"
+              element={
+                <PostSpareRoom
+                  isOpen={true}
+                  onClose={() => {}}
+                />
+              }
+            />
             
             {/* Agent Routes */}
             <Route path="/find-agent" element={<FindAgent />} />
@@ -165,7 +203,15 @@ const AppRouter: React.FC = () => {
             <Route path="/agent-profile" element={<AgentProfile />} />
             <Route path="/agent" element={<PublicAgentProfile />} />
             <Route path="/contact-agent" element={<ContactAgent />} />
-            <Route path="/select-agent" element={<SelectAgent />} />
+            <Route
+              path="/select-agent"
+              element={
+                <SelectAgent
+                  propertyData={null}
+                  onBack={() => {}}
+                />
+              }
+            />
             <Route path="/review-agent" element={<ReviewAgent />} />
             <Route path="/agent-complaints" element={<AgentComplaints />} />
             

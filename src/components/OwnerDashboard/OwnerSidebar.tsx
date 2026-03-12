@@ -13,6 +13,8 @@ import {
   ChevronRight,
   List,
   BarChart2,
+  Scale,
+  UserCheck,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -30,6 +32,7 @@ interface OwnerSidebarProps {
 }
 
 const navigationItems = [
+  { title: "Property Managers", value: "property-managers", icon: UserCheck },
   { title: "Rooms", value: "spare-rooms", icon: Eye },
   { title: "Messages", value: "messages", icon: MessageCircle },
   { title: "Calendar", value: "calendar", icon: Calendar },
@@ -48,7 +51,7 @@ export function OwnerSidebar({
 }: OwnerSidebarProps) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const propertiesActive = activeTab === "properties" || activeTab === "property-performance"
+  const propertiesActive = activeTab === "properties" || activeTab === "property-performance" || activeTab === "compare-market"
   const [propertiesExpanded, setPropertiesExpanded] = useState(propertiesActive)
 
   const handleTabClick = (tabValue: string) => {
@@ -164,6 +167,17 @@ export function OwnerSidebar({
               >
                 <BarChart2 size={15} className={activeTab === "property-performance" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
                 <span className="font-medium">Performance</span>
+              </div>
+              <div
+                onClick={() => handleTabClick("compare-market")}
+                className={`p-2 flex items-center space-x-2 cursor-pointer rounded-lg transition-all text-sm ${
+                  activeTab === "compare-market"
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <Scale size={15} className={activeTab === "compare-market" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
+                <span className="font-medium">Compare Market</span>
               </div>
             </div>
           )}

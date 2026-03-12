@@ -79,7 +79,7 @@ const AgentDashboard = () => {
   }, [isMobile]);
 
   useEffect(() => {
-    const state = location.state as any;
+    const state = location.state as { message?: string };
     if (state?.message) {
       toast.success(state.message);
       navigate(location.pathname, { replace: true });
@@ -118,7 +118,7 @@ const AgentDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "properties": return <AgentProperties onOpenListModal={() => handleTabChange('add-property')} />;
+      case "properties": return <AgentProperties onOpenListModal={() => handleTabChange('add-property')} user={user} isAgencyMode={true} />;
       case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;
@@ -128,7 +128,7 @@ const AgentDashboard = () => {
       case "spare-rooms": return <SpareRoomListings userRole="agent" onOpenPostModal={() => handleTabChange('post-spare-room')} />;
       case "notifications": return <NotificationsComponent user={user} />;
       case "profile": return <AgentProfile/>;
-      default: return <AgentOverview user={user} />;
+      default: return <AgentOverview user={user} onTabChange={handleTabChange} />;
     }
   };
 

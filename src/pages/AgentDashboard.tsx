@@ -24,6 +24,7 @@ import NotificationsComponent from "@/components/TenantDashboard/TenantNotificat
 import { SpareRoomListings } from '@/components/SpareRoom/SpareRoomListings';
 import { AgentTenancy } from "@/components/AgentDashboard/AgentTenancy";
 import { AgentPropertyPerformance } from "@/components/AgentDashboard/AgentPropertyPerformance";
+import { AgentCompareMarket } from "@/components/AgentDashboard/AgentCompareMarket";
 
 import {
   Menu,
@@ -123,6 +124,7 @@ const AgentDashboard = () => {
     switch (activeTab) {
       case "properties": return <AgentProperties onOpenListModal={() => setListPropertyOpen(true)} initialMode={propertyMode} user={user} isAgencyMode={false} />;
       case "property-performance": return <AgentPropertyPerformance />;
+      case "compare-market": return <AgentCompareMarket />;
       case "messages": return <Messages />;
       case "requests": return <AgentRequests />;
       case "approvals": return <AgentApprovals />;

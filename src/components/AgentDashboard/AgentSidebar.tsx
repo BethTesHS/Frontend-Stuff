@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   List,
-  BarChart2
+  BarChart2,
+  Scale,
 } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
@@ -40,7 +41,7 @@ interface NavigationItem {
 
 export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, isCollapsed = false }: AgentSidebarProps) {
   const { user, logout } = useAuth()
-  const propertiesActive = activeTab === "properties" || activeTab === "property-performance"
+  const propertiesActive = activeTab === "properties" || activeTab === "property-performance" || activeTab === "compare-market"
   const [propertiesExpanded, setPropertiesExpanded] = useState(propertiesActive)
 
   const navigationItems: NavigationItem[] = [
@@ -165,6 +166,17 @@ export function AgentSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
               >
                 <BarChart2 size={15} className={activeTab === "property-performance" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
                 <span className="font-medium">Performance</span>
+              </div>
+              <div
+                onClick={() => handleTabClick("compare-market")}
+                className={`p-2 flex items-center space-x-2 cursor-pointer rounded-lg transition-all text-sm ${
+                  activeTab === "compare-market"
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <Scale size={15} className={activeTab === "compare-market" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
+                <span className="font-medium">Compare Market</span>
               </div>
             </div>
           )}

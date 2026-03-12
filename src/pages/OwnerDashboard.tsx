@@ -31,6 +31,8 @@ import {
 import ListProperty from "@/pages/ListProperty";
 import PropertyListingChoice from "@/pages/PropertyListingChoice";
 import PostSpareRoom from './PostSpareRoom';
+import { OwnerCompareMarket } from '@/components/OwnerDashboard/OwnerCompareMarket';
+import { PropertyManagers } from '@/components/OwnerDashboard/PropertyManagers';
 
 const OwnerDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['owner'], false);
@@ -108,6 +110,8 @@ const OwnerDashboard = () => {
         );
       case 'property-performance':
         return <OwnerPropertyPerformance />;
+      case "compare-market": return <OwnerCompareMarket />;
+      case "property-managers": return <PropertyManagers />;
       case 'messages':
         return <Messages />;;
       case 'calendar':
