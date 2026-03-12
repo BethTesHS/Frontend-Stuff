@@ -19,7 +19,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const Properties = () => {
   const { isPropertySaved } = useSavedProperties();
   const [searchParams, setSearchParams] = useSearchParams();
-  const listingType = searchParams.get('listingType') || searchParams.get('type') === 'rent' ? 'rent' : 'sale';
   
   // Helper to parse filters from URL on initial load
   const parseFiltersFromUrl = (): SearchFilters => {
@@ -33,9 +32,11 @@ const Properties = () => {
     if (types.length > 0) f.propertyType = types;
     
     const typeParam = searchParams.get('type') || searchParams.get('listingType');
-    if (typeParam === 'sale' || typeParam === 'rent') f.listingType = typeParam;
+    if (typeParam === 'sale' || typeParam === 'rent') {
+      f.listingType = typeParam; // Only set if strictly 'sale' or 'rent'
+    }
 
-    if (searchParams.get('showFavorites') === 'true') f.showFavorites = true; // Add this line
+    if (searchParams.get('showFavorites') === 'true') f.showFavorites = true;
     return f;
   };
 
@@ -75,8 +76,7 @@ const Properties = () => {
     const params = new URLSearchParams();
     
     // Core parameters
-    const effectiveType = filters.listingType || listingType;
-    if (effectiveType) params.set('type', effectiveType);
+    if (filters.listingType) params.set('type', filters.listingType);
     
     if (searchLocation) params.set('location', searchLocation);
     if (priceRange) params.set('priceRange', priceRange);
@@ -97,7 +97,7 @@ const Properties = () => {
     if (filters.showFavorites) params.set('showFavorites', 'true');
 
     setSearchParams(params, { replace: true });
-  }, [filters, searchLocation, priceRange, currentPage, propertiesPerPage, listingType, setSearchParams]);
+  }, [filters, searchLocation, priceRange, currentPage, propertiesPerPage, setSearchParams]);
 
   // ==================== AUTOCOMPLETE LOGIC ====================
   const fetchAutocompleteSuggestions = useCallback(async (searchText: string) => {
@@ -110,14 +110,12 @@ const Properties = () => {
     setIsLoadingSuggestions(true);
     
     try {
-      // UK postcode pattern detection
       const postcodePattern = /^[A-Z]{1,2}[0-9R][0-9A-Z]?/i;
       const isPostcodeFormat = postcodePattern.test(searchText.replace(/\s/g, ''));
       
       let results: Array<{value: string, label: string, type: string}> = [];
       
       if (isPostcodeFormat) {
-        // POSTCODE SEARCH
         const response = await fetch(`${API_BASE_URL}/api/postcodes/autocomplete?partial=${searchText.replace(/\s/g, '')}`);
         const data = await response.json();
         
@@ -129,7 +127,6 @@ const Properties = () => {
           }));
         }
       } else {
-        // LOCATION SEARCH (from your database)
         const response = await fetch(`${API_BASE_URL}/api/postcodes/locations/autocomplete?query=${searchText}`);
         const data = await response.json();
         
@@ -154,7 +151,6 @@ const Properties = () => {
     }
   }, []);
 
-  // Debounced autocomplete trigger - ONLY for suggestions, NOT search
   useEffect(() => {
     if (autocompleteTimeoutRef.current) {
       clearTimeout(autocompleteTimeoutRef.current);
@@ -176,23 +172,20 @@ const Properties = () => {
     };
   }, [inputValue, fetchAutocompleteSuggestions]);
 
-  // AUTO-SEARCH: Update searchLocation after user stops typing
   useEffect(() => {
     const searchTimeout = setTimeout(() => {
-      // Only trigger search if input has changed AND is not empty
       if (inputValue !== searchLocation) {
         setSearchLocation(inputValue);
         setCurrentPage(1);
       }
-    }, 800); // 800ms delay - adjust if want faster/slower
+    }, 800);
 
     return () => clearTimeout(searchTimeout);
   }, [inputValue, searchLocation]);
 
-  // Handle suggestion selection
   const handleSuggestionSelect = useCallback((selected: {value: string, label: string, type: string}) => {
     setInputValue(selected.value);
-    setSearchLocation(selected.value); // THIS triggers the property search
+    setSearchLocation(selected.value); 
     setSuggestions([]);
     setShowSuggestions(false);
     setCurrentPage(1);
@@ -202,17 +195,15 @@ const Properties = () => {
     }
   }, []);
 
-  // Handle Enter key press
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      setSearchLocation(inputValue); // Apply the search
+      setSearchLocation(inputValue); 
       setSuggestions([]);
       setShowSuggestions(false);
       setCurrentPage(1);
     }
   }, [inputValue]);
 
-  // Close suggestions on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -228,7 +219,6 @@ const Properties = () => {
   }, []);
 
   // ==================== PROPERTY SEARCH LOGIC ====================
-  // This ONLY triggers when searchLocation changes (not inputValue)
   useEffect(() => {
     const fetchProperties = async () => {
       try {
@@ -244,20 +234,20 @@ const Properties = () => {
           maxPriceFromRange = max ? parseInt(max) : undefined;
         }
         
-        const searchParams = {
+        const searchParamsPayload = {
           page: currentPage,
           per_page: propertiesPerPage,
-          listing_type: filters.listingType || (listingType === 'sale' || listingType === 'rent' ? listingType : undefined),
+          listing_type: filters.listingType || undefined,
           location: searchLocation || undefined,
           property_type: propertyTypeArray,
           min_price: filters.minPrice || minPriceFromRange || undefined,
           max_price: filters.maxPrice || maxPriceFromRange || undefined,
           bedrooms: filters.bedrooms || undefined,
           passport_rating: filters.passportRating || undefined,
-          status: 'active', // Only show active (public) properties
+          status: 'active',
         };
 
-        const response = await propertyApi.getProperties(searchParams);
+        const response = await propertyApi.getProperties(searchParamsPayload);
         
         if (response.success && response.data && response.data.properties) {
           const transformedProperties = response.data.properties.map((property: any) => ({
@@ -269,11 +259,9 @@ const Properties = () => {
               county: property.county || '',
               coordinates: property.coordinates
             },
-            // Transform image URLs to match PropertyDetails page logic and ensure HTTPS
             images: property.images && property.images.length > 0
               ? property.images.map((url: string) => {
                   let fixedUrl = url.replace('/api/properties/images/', '/properties/images/');
-                  // Ensure HTTPS protocol to avoid mixed content warnings
                   if (fixedUrl.startsWith('http://')) {
                     fixedUrl = fixedUrl.replace('http://', 'https://');
                   }
@@ -313,12 +301,11 @@ const Properties = () => {
     };
     
     fetchProperties();
-  }, [currentPage, listingType, searchLocation, priceRange, filters, propertiesPerPage]);
+  }, [currentPage, searchLocation, priceRange, filters, propertiesPerPage]);
   
   // ==================== EVENT HANDLERS ====================
   const handleFiltersChange = (newFilters: SearchFilters) => {
     setFilters(newFilters);
-    // If the filters component set a location, update our main location state too
     if (newFilters.location) {
       setSearchLocation(newFilters.location);
       setInputValue(newFilters.location);
@@ -350,6 +337,30 @@ const Properties = () => {
     setCurrentPage(1);
   };
 
+  // Utility to format filter keys and values for tags
+  const formatFilterKey = (key: string) => {
+    const map: Record<string, string> = {
+      listingType: 'Type',
+      minPrice: 'Min Price',
+      maxPrice: 'Max Price',
+      bedrooms: 'Bedrooms',
+      passportRating: 'Passport Rating',
+      propertyType: 'Property Type',
+      showFavorites: 'Favorites Only',
+      location: 'Location'
+    };
+    return map[key] || key;
+  };
+
+  const formatFilterValue = (key: string, value: any) => {
+    if (key === 'listingType') return value === 'sale' ? 'Buy' : value === 'rent' ? 'Rent' : 'All';
+    if (key === 'minPrice' || key === 'maxPrice') return `£${value.toLocaleString()}`;
+    if (key === 'bedrooms') return `${value}+`;
+    if (key === 'propertyType') return Array.isArray(value) ? value.join(', ') : value;
+    if (key === 'showFavorites') return 'Yes';
+    return String(value);
+  };
+
   // ==================== RENDER ====================
   if (loading && properties.length === 0) {
     return (
@@ -373,14 +384,18 @@ const Properties = () => {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-blue-900 mb-2">
-                {filters.listingType === 'rent' || (!filters.listingType && listingType === 'rent') 
+                {filters.listingType === 'rent' 
                   ? 'Properties for Rent' 
-                  : 'Houses for Sale'}
+                  : filters.listingType === 'sale' 
+                  ? 'Houses for Sale' 
+                  : 'All Properties'}
               </h1>
               <p className="text-gray-600">
-                {filters.listingType === 'rent' || (!filters.listingType && listingType === 'rent')
+                {filters.listingType === 'rent'
                   ? 'Find your perfect rental property'
-                  : 'Find your perfect home to buy with detailed property information'
+                  : filters.listingType === 'sale'
+                  ? 'Find your perfect home to buy with detailed property information'
+                  : 'Browse all available properties for sale and rent'
                 }
               </p>
             </div>
@@ -391,7 +406,7 @@ const Properties = () => {
         
           {/* Filter Bar */}
           <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex flex-col lg:flex-row gap-4 mb-4">
+            <div className="flex flex-col lg:flex-row gap-2 mb-4">
               {/* Search input with autocomplete */}
               <div className="flex-1 relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none z-10" />
@@ -406,7 +421,7 @@ const Properties = () => {
                       setShowSuggestions(true);
                     }
                   }}
-                  className="pl-10 h-12 pr-10 bg-white text-black" 
+                  className="pl-10 h-12 pr-10 bg-white text-black w-full" 
                   autoComplete="off"
                 />
                 {isLoadingSuggestions && (
@@ -438,7 +453,7 @@ const Properties = () => {
               </div>
 
               {/* Price dropdown */}
-              <div className="w-full lg:w-48">
+              <div className="w-full lg:w-44 flex-shrink-0">
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="h-12 bg-white text-black">
                     <div className="flex items-center">
@@ -456,19 +471,19 @@ const Properties = () => {
                 </Select>
               </div>
                 
-              <div className="w-full lg:w-40">
+              <div className="w-full lg:w-32 flex-shrink-0">
                 <Select value={propertiesPerPage.toString()} onValueChange={handlePropertiesPerPageChange}>
                   <SelectTrigger className="h-12 bg-white text-black">
-                    <div className="flex items-center">
-                      <span className="text-gray-400 mr-2">View:</span>
-                      <SelectValue>{propertiesPerPage} Per Page</SelectValue>
+                    <div className="flex items-center whitespace-nowrap">
+                      <span className="text-gray-400 mr-1 text-xs">View:</span>
+                      <SelectValue>{propertiesPerPage} / Page</SelectValue>
                     </div>
                   </SelectTrigger> 
                   <SelectContent>
-                    <SelectItem value="5">5 Per Page</SelectItem>
-                    <SelectItem value="15">15 Per Page</SelectItem>
-                    <SelectItem value="25">25 Per Page</SelectItem>
-                    <SelectItem value="50">50 Per Page</SelectItem>
+                    <SelectItem value="5">5 / Page</SelectItem>
+                    <SelectItem value="15">15 / Page</SelectItem>
+                    <SelectItem value="25">25 / Page</SelectItem>
+                    <SelectItem value="50">50 / Page</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -477,7 +492,7 @@ const Properties = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(true)}
-                className="h-12 px-6 flex items-center gap-2 border-blue-900 text-blue-900 bg-white hover:bg-blue-700 hover:text-white hover:border-blue-700"
+                className="h-12 px-4 flex items-center gap-2 border-blue-900 text-blue-900 bg-white hover:bg-blue-700 hover:text-white hover:border-blue-700 whitespace-nowrap flex-shrink-0"
               >
                 <Filter className="w-4 h-4" />
                 More Filters
@@ -486,17 +501,17 @@ const Properties = () => {
       
             {/* Filter pills */}
             {Object.keys(filters).length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {Object.entries(filters).map(([key, value]) => (
                   value && (
                     <Badge
                       key={key}
                       variant="secondary"
-                      className="bg-blue-50 text-blue-900 px-3 py-1 flex items-center gap-2 border border-blue-200"
+                      className="bg-blue-50 text-blue-900 hover:bg-blue-100 hover:text-blue-900 px-3 py-1 flex items-center gap-2 border border-blue-200 rounded-full transition-colors"
                     >
-                      {key}: {String(value)}
+                      <span className="font-medium">{formatFilterKey(key)}:</span> {formatFilterValue(key, value)}
                       <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-600"
+                        className="w-3 h-3 ml-1 cursor-pointer hover:text-red-600 rounded-full"
                         onClick={() => removeFilter(key)}
                       />
                     </Badge>
@@ -506,7 +521,7 @@ const Properties = () => {
             )}
           </div>
 
-          {/* Advanced filters Slide-out Panel - Utilizing the specific force-light utility */}
+          {/* Advanced filters Slide-out Panel */}
           <Sheet open={showFilters} onOpenChange={setShowFilters}>
             <SheetContent side="right" className="force-light overflow-y-auto w-full sm:max-w-md shadow-2xl border-l">
               <SheetHeader className="mb-6">
@@ -526,7 +541,7 @@ const Properties = () => {
               <PropertyCard
                 key={property.id}
                 property={property}
-                showSaleDetails={filters.listingType === 'sale' || (!filters.listingType && listingType === 'sale')}
+                showSaleDetails={filters.listingType === 'sale' || property.listingType === 'sale'}
               />
             ))}
           </div>

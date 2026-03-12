@@ -31,7 +31,6 @@ interface SavedPropertiesProviderProps {
 }
 
 export const SavedPropertiesProvider = ({ children }: SavedPropertiesProviderProps) => {
-  // Property State
   const [savedProperties, setSavedProperties] = useState<Property[]>(() => {
     const stored = localStorage.getItem('savedProperties');
     return stored ? JSON.parse(stored) : [];
@@ -39,7 +38,10 @@ export const SavedPropertiesProvider = ({ children }: SavedPropertiesProviderPro
 
   const addSavedProperty = (property: Property) => {
     setSavedProperties(prev => {
-      if (prev.some(p => p.id === property.id)) return prev;
+      // Check if property is already saved
+      if (prev.some(p => p.id === property.id)) {
+        return prev;
+      }
       const updated = [...prev, property];
       localStorage.setItem('savedProperties', JSON.stringify(updated));
       return updated;

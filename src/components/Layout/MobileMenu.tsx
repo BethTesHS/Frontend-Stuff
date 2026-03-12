@@ -1,21 +1,16 @@
-
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { navigationDropdowns } from './Navigation/navigationConfig';
 import {
-  Building,
-  Search,
   Bell,
   User,
   Heart,
-  TrendingUp,
   Info,
   LayoutDashboard,
   Building2,
   Users,
-  UserCheck,
-  Bed
+  UserCheck
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -84,7 +79,7 @@ const MobileMenu = ({ isOpen, onClose, onLogout }: MobileMenuProps) => {
   const navItems = getNavItems();
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;

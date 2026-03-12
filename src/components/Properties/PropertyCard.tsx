@@ -58,30 +58,32 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
   const reviewCount = property.id ? (String(property.id).length * 3 + 12) % 50 + 10 : 25;
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col">
+    <Card className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 w-full flex flex-col group">
       {/* Image with overlays */}
       <div className="relative w-full h-52 overflow-hidden flex-shrink-0">
         <img
           src={imageUrl}
           alt={property.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
         />
 
         {/* Status badges - top left */}
-        <div className="absolute top-3 left-3 flex gap-1.5">
-          {/* Removed Math.random() so badges don't change on refresh */}
-          {/* Note: You can link these to actual data if you have it: property.isNew, property.isReduced */}
-          
+        <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap z-10">
+          {property.listingType && (
+            <Badge className="bg-white text-gray-800 hover:bg-white text-xs capitalize font-semibold shadow-md">
+              For {property.listingType === 'rent' ? 'Rent' : 'Sale'}
+            </Badge>
+          )}
           {showSaleDetails && property.tenure && (
-            <Badge className="bg-white/90 text-gray-800 text-xs">
+            <Badge className="bg-white text-gray-800 hover:bg-white text-xs capitalize font-semibold shadow-md">
               {property.tenure === 'freehold' ? 'Freehold' : 'Leasehold'}
             </Badge>
           )}
         </div>
 
         {/* Heart / delete button - top right */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 z-10">
           <Button
             variant="ghost"
             size="sm"
@@ -103,7 +105,7 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
         </div>
 
         {/* Price overlay - bottom left */}
-        <div className="absolute bottom-3 left-3">
+        <div className="absolute bottom-3 left-3 z-10">
           <span className="bg-white text-gray-900 font-bold text-sm px-2.5 py-1 rounded-md shadow">
             £{property.price.toLocaleString()}
             {property.listingType === 'rent' && (

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,9 +30,9 @@ const Header = () => {
           <NavigationMenuComponent />
           <UserActions onLogout={handleLogout} />
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - Changed from md:hidden to lg:hidden for tablet support */}
           <button
-            className="md:hidden p-2 touch-target text-blue-900 hover:text-red-600 transition"
+            className="lg:hidden p-2 touch-target text-blue-900 hover:text-red-600 transition"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle mobile menu"
           >

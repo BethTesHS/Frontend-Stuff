@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { LucideIcon } from 'lucide-react';
@@ -30,7 +29,7 @@ const SimpleNavItem = ({ to, icon: Icon, label, isActive, iconColor }: SimpleNav
     <Button
       variant="ghost"
       size="sm"
-      className={`group flex items-center focus:outline-none focus:ring-0 focus-visible:ring-0 text-blue-900 font-medium hover:text-red-600 transition-colors`}
+      className={`group flex items-center focus:outline-none focus:ring-0 focus-visible:ring-0 text-blue-900 font-medium hover:text-red-600 transition-colors rounded-full`}
     >
       {label && !isDashboard && <span>{label}</span>}
       {(!label || isDashboard) && <Icon className={`w-4 h-4 ${getIconColorClass()} group-hover:text-red-600 transition-colors ${isActive ? 'text-red-600' : ''}`} />}

@@ -397,7 +397,7 @@ const Rooms = () => {
           {/* Filter Bar */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
             {/* Top row */}
-            <div className="flex flex-col lg:flex-row gap-4 mb-4">
+            <div className="flex flex-col lg:flex-row gap-2 mb-4">
               {/* Search input */}
               <div className="flex-1 relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -410,7 +410,7 @@ const Rooms = () => {
               </div>
 
               {/* Price dropdown */}
-              <div className="w-full lg:w-48">
+              <div className="w-full lg:w-44">
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="h-12">
                     <div className="flex items-center">
@@ -432,7 +432,7 @@ const Rooms = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(true)}
-                className="h-12 px-6 flex items-center gap-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white"
+                className="h-12 px-4 flex items-center gap-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white"
               >
                 <Filter className="w-4 h-4" />
                 More Filters
@@ -510,6 +510,7 @@ const Rooms = () => {
                     />
                   </PaginationItem>
                   
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <PaginationItem key={page}>
                       <PaginationLink
@@ -522,6 +523,7 @@ const Rooms = () => {
                     </PaginationItem>
                   ))}
                   
+
                   <PaginationItem>
                     <PaginationNext 
                       onClick={handleNextPage}
