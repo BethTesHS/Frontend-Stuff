@@ -1,7 +1,6 @@
 import { 
   Search, 
   Building, 
-  TrendingUp,
   Info,
   Heart,
   Bed
@@ -15,7 +14,7 @@ export const navigationDropdowns = [
     iconColor: 'text-blue-500',
     options: [
       { to: '/find-agent', label: 'Find Estate Agent' },
-      {to: '/find-agency', label: 'Find Agency' }
+      { to: '/find-agency', label: 'Find Agency' }
     ]
   },
   {
@@ -36,7 +35,6 @@ export const navigationDropdowns = [
     options: [
       { to: '/properties?type=buy', label: 'Buy' },
       { to: '/properties?type=rent', label: 'Rent' },
-      { to: '/properties?type=sell', label: 'Sell' }
     ]
   },
   {

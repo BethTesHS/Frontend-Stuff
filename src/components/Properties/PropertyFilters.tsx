@@ -79,8 +79,8 @@ const PropertyFilters = ({ filters, onFiltersChange, onClose }: PropertyFiltersP
             <SelectValue placeholder="Sale or Rent" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="sale" className="cursor-pointer">For Sale</SelectItem>
-            <SelectItem value="rent" className="cursor-pointer">For Rent</SelectItem>
+            <SelectItem value="sale" className="cursor-pointer">To Buy</SelectItem>
+            <SelectItem value="rent" className="cursor-pointer">To Rent</SelectItem>
           </SelectContent>
         </Select>
       </div>

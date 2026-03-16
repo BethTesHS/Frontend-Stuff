@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout/Layout';
 import PropertyFilters from '@/components/Properties/PropertyFilters';
@@ -13,56 +13,59 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
 import { propertyApi } from '@/services/api';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
+// import { mockPropertiesResponse } from '@/utils/mockProperties';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Properties = () => {
   const { isPropertySaved } = useSavedProperties();
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Helper to parse filters from URL on initial load
-  const parseFiltersFromUrl = (): SearchFilters => {
+
+  // ==================== SINGLE SOURCE OF TRUTH (URL) ====================
+  // Derive all state directly from the URL. No more useState sync loops!
+  const filters = useMemo(() => {
     const f: SearchFilters = {};
     if (searchParams.get('minPrice')) f.minPrice = Number(searchParams.get('minPrice'));
     if (searchParams.get('maxPrice')) f.maxPrice = Number(searchParams.get('maxPrice'));
     if (searchParams.get('bedrooms')) f.bedrooms = Number(searchParams.get('bedrooms'));
     if (searchParams.get('passportRating')) f.passportRating = Number(searchParams.get('passportRating'));
-    
+
     const types = searchParams.getAll('propertyType');
     if (types.length > 0) f.propertyType = types;
-    
+
     const typeParam = searchParams.get('type') || searchParams.get('listingType');
-    if (typeParam === 'sale' || typeParam === 'rent') {
-      f.listingType = typeParam; // Only set if strictly 'sale' or 'rent'
+    if (typeParam === 'buy' || typeParam === 'sale' || typeParam === 'sell') {
+      f.listingType = 'sale';
+    } else if (typeParam === 'rent') {
+      f.listingType = 'rent';
     }
 
     if (searchParams.get('showFavorites') === 'true') f.showFavorites = true;
-    return f;
-  };
+    
+    const loc = searchParams.get('location');
+    if (loc) f.location = loc;
 
-  // Core state
-  const [filters, setFilters] = useState<SearchFilters>(parseFiltersFromUrl);
+    return f;
+  }, [searchParams]);
+
+  const searchLocation = searchParams.get('location') || '';
+  const priceRange = searchParams.get('priceRange') || '';
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const propertiesPerPage = Number(searchParams.get('per_page')) || 10;
+
+  // ==================== LOCAL UI STATE ====================
   const [showFilters, setShowFilters] = useState(false);
+  const [inputValue, setInputValue] = useState(searchLocation);
   
-  // SEPARATED: Input vs Search
-  const initialLocation = searchParams.get('location') || '';
-  const [inputValue, setInputValue] = useState(initialLocation); // What user types
-  const [searchLocation, setSearchLocation] = useState(initialLocation); // What filters properties
-  
-  const [priceRange, setPriceRange] = useState(searchParams.get('priceRange') || '');
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [propertiesPerPage, setPropertiesPerPage] = useState(Number(searchParams.get('per_page')) || 10);
   
-  // Autocomplete state
   const [suggestions, setSuggestions] = useState<Array<{value: string, label: string, type: string}>>([]); 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   
-  // Refs
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,34 +73,24 @@ const Properties = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ==================== URL SYNCHRONIZATION ====================
-  // Update URL whenever search state changes
-  useEffect(() => {
-    const params = new URLSearchParams();
-    
-    // Core parameters
-    if (filters.listingType) params.set('type', filters.listingType);
-    
-    if (searchLocation) params.set('location', searchLocation);
-    if (priceRange) params.set('priceRange', priceRange);
-    if (currentPage > 1) params.set('page', currentPage.toString());
-    if (propertiesPerPage !== 10) params.set('per_page', propertiesPerPage.toString());
-
-    // Detailed filters
-    if (filters.minPrice) params.set('minPrice', filters.minPrice.toString());
-    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString());
-    if (filters.bedrooms) params.set('bedrooms', params.get('bedrooms') || filters.bedrooms.toString());
-    if (filters.passportRating) params.set('passportRating', filters.passportRating.toString());
-    
-    if (filters.propertyType) {
-      const types = Array.isArray(filters.propertyType) ? filters.propertyType : [filters.propertyType];
-      types.forEach(t => params.append('propertyType', t));
-    }
-
-    if (filters.showFavorites) params.set('showFavorites', 'true');
-
-    setSearchParams(params, { replace: true });
-  }, [filters, searchLocation, priceRange, currentPage, propertiesPerPage, setSearchParams]);
+  // ==================== URL UPDATER HELPER ====================
+  // Central function to update the URL natively
+  const updateUrlParams = useCallback((updates: Record<string, any>) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') {
+          params.delete(key);
+        } else if (Array.isArray(value)) {
+          params.delete(key);
+          value.forEach(v => params.append(key, v.toString()));
+        } else {
+          params.set(key, value.toString());
+        }
+      });
+      return params;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // ==================== AUTOCOMPLETE LOGIC ====================
   const fetchAutocompleteSuggestions = useCallback(async (searchText: string) => {
@@ -121,9 +114,7 @@ const Properties = () => {
         
         if (data.success && data.data && data.data.length > 0) {
           results = data.data.map((pc: string) => ({
-            value: pc,
-            label: `${pc}`,
-            type: 'postcode'
+            value: pc, label: `${pc}`, type: 'postcode'
           }));
         }
       } else {
@@ -132,16 +123,13 @@ const Properties = () => {
         
         if (data.success && data.data && data.data.length > 0) {
           results = data.data.map((location: string) => ({
-            value: location,
-            label: `${location}`,
-            type: 'location'
+            value: location, label: `${location}`, type: 'location'
           }));
         }
       }
       
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
-      
     } catch (error) {
       console.error('Autocomplete failed:', error);
       setSuggestions([]);
@@ -151,10 +139,9 @@ const Properties = () => {
     }
   }, []);
 
+  // Handle typing debounce
   useEffect(() => {
-    if (autocompleteTimeoutRef.current) {
-      clearTimeout(autocompleteTimeoutRef.current);
-    }
+    if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current);
 
     if (inputValue.length >= 2) {
       autocompleteTimeoutRef.current = setTimeout(() => {
@@ -166,59 +153,51 @@ const Properties = () => {
     }
 
     return () => {
-      if (autocompleteTimeoutRef.current) {
-        clearTimeout(autocompleteTimeoutRef.current);
-      }
+      if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current);
     };
   }, [inputValue, fetchAutocompleteSuggestions]);
 
+  // Push user typing into the URL after delay
   useEffect(() => {
     const searchTimeout = setTimeout(() => {
       if (inputValue !== searchLocation) {
-        setSearchLocation(inputValue);
-        setCurrentPage(1);
+        updateUrlParams({ location: inputValue, page: 1 });
       }
     }, 800);
-
     return () => clearTimeout(searchTimeout);
-  }, [inputValue, searchLocation]);
+  }, [inputValue, searchLocation, updateUrlParams]);
 
   const handleSuggestionSelect = useCallback((selected: {value: string, label: string, type: string}) => {
     setInputValue(selected.value);
-    setSearchLocation(selected.value); 
+    updateUrlParams({ location: selected.value, page: 1 });
     setSuggestions([]);
     setShowSuggestions(false);
-    setCurrentPage(1);
     
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, []);
+    if (searchInputRef.current) searchInputRef.current.focus();
+  }, [updateUrlParams]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      setSearchLocation(inputValue); 
+      updateUrlParams({ location: inputValue, page: 1 });
       setSuggestions([]);
       setShowSuggestions(false);
-      setCurrentPage(1);
     }
-  }, [inputValue]);
+  }, [inputValue, updateUrlParams]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       const searchContainer = searchInputRef.current?.parentElement;
-      
       if (searchContainer && !searchContainer.contains(target)) {
         setShowSuggestions(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // ==================== PROPERTY SEARCH LOGIC ====================
+  // Safely depend on searchParams, because it fully controls our logic
   useEffect(() => {
     const fetchProperties = async () => {
       try {
@@ -234,6 +213,7 @@ const Properties = () => {
           maxPriceFromRange = max ? parseInt(max) : undefined;
         }
         
+        // API
         const searchParamsPayload = {
           page: currentPage,
           per_page: propertiesPerPage,
@@ -248,6 +228,37 @@ const Properties = () => {
         };
 
         const response = await propertyApi.getProperties(searchParamsPayload);
+        
+
+        // Mock filtering simulation matching the derived URL values
+        
+        // if (filters.listingType) {
+        //   response.data.properties = response.data.properties.filter(
+        //     (p: any) => p.listing_type === filters.listingType
+        //   );
+        // }
+        // const finalMinPrice = filters.minPrice || minPriceFromRange;
+        // if (finalMinPrice) {
+        //   response.data.properties = response.data.properties.filter((p: any) => p.price >= finalMinPrice);
+        // }
+        // const finalMaxPrice = filters.maxPrice || maxPriceFromRange;
+        // if (finalMaxPrice) {
+        //   response.data.properties = response.data.properties.filter((p: any) => p.price <= finalMaxPrice);
+        // }
+        // if (propertyTypeArray && propertyTypeArray.length > 0) {
+        //   response.data.properties = response.data.properties.filter(
+        //     (p: any) => propertyTypeArray.includes(p.property_type)
+        //   );
+        // }
+        // if (searchLocation) {
+        //   response.data.properties = response.data.properties.filter(
+        //     (p: any) => p.city.toLowerCase().includes(searchLocation.toLowerCase()) || 
+        //                 p.postcode.toLowerCase().includes(searchLocation.toLowerCase())
+        //   );
+        // }
+        
+        // response.data.pagination.total = response.data.properties.length;
+
         
         if (response.success && response.data && response.data.properties) {
           const transformedProperties = response.data.properties.map((property: any) => ({
@@ -301,43 +312,60 @@ const Properties = () => {
     };
     
     fetchProperties();
-  }, [currentPage, searchLocation, priceRange, filters, propertiesPerPage]);
+  }, [searchParams, filters, priceRange, searchLocation, currentPage, propertiesPerPage]);
   
   // ==================== EVENT HANDLERS ====================
   const handleFiltersChange = (newFilters: SearchFilters) => {
-    setFilters(newFilters);
-    if (newFilters.location) {
-      setSearchLocation(newFilters.location);
-      setInputValue(newFilters.location);
+    updateUrlParams({
+      type: newFilters.listingType,
+      location: newFilters.location,
+      minPrice: newFilters.minPrice,
+      maxPrice: newFilters.maxPrice,
+      bedrooms: newFilters.bedrooms,
+      passportRating: newFilters.passportRating,
+      propertyType: newFilters.propertyType,
+      showFavorites: newFilters.showFavorites ? 'true' : null,
+      page: 1
+    });
+    
+    if (newFilters.location !== undefined) {
+      setInputValue(newFilters.location || '');
     }
-    setCurrentPage(1);
   };
 
   const removeFilter = (filterKey: string) => {
-    const newFilters = { ...filters };
-    delete newFilters[filterKey as keyof SearchFilters];
-    setFilters(newFilters);
+    const keyMap: Record<string, string> = {
+      listingType: 'type',
+      minPrice: 'minPrice',
+      maxPrice: 'maxPrice',
+      bedrooms: 'bedrooms',
+      passportRating: 'passportRating',
+      propertyType: 'propertyType',
+      showFavorites: 'showFavorites',
+      location: 'location'
+    };
+    
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.delete(keyMap[filterKey] || filterKey);
+      if (filterKey === 'listingType') p.delete('listingType'); // Safely catch older variants
+      p.set('page', '1');
+      return p;
+    }, { replace: true });
+
+    if (filterKey === 'location') setInputValue('');
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    updateUrlParams({ page });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePropertiesPerPageChange = (value: string) => {
-    setPropertiesPerPage(Number(value));
-    setCurrentPage(1);
-  };
-
   const handleClearFilters = () => {
-    setFilters({});
     setInputValue('');
-    setSearchLocation('');
-    setPriceRange('');
-    setCurrentPage(1);
+    setSearchParams(new URLSearchParams(), { replace: true });
   };
 
-  // Utility to format filter keys and values for tags
   const formatFilterKey = (key: string) => {
     const map: Record<string, string> = {
       listingType: 'Type',
@@ -353,7 +381,15 @@ const Properties = () => {
   };
 
   const formatFilterValue = (key: string, value: any) => {
-    if (key === 'listingType') return value === 'sale' ? 'Buy' : value === 'rent' ? 'Rent' : 'All';
+    if (key === 'listingType') {
+      if (value === 'sale') {
+        return 'Buy';
+      } else if (value === 'rent') {
+        return 'Rent';
+      } else {
+        return 'All';
+      }
+    }
     if (key === 'minPrice' || key === 'maxPrice') return `£${value.toLocaleString()}`;
     if (key === 'bedrooms') return `${value}+`;
     if (key === 'propertyType') return Array.isArray(value) ? value.join(', ') : value;
@@ -385,9 +421,9 @@ const Properties = () => {
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-blue-900 mb-2">
                 {filters.listingType === 'rent' 
-                  ? 'Properties for Rent' 
+                  ? 'Properties to Rent' 
                   : filters.listingType === 'sale' 
-                  ? 'Houses for Sale' 
+                  ? 'Properties to Buy' 
                   : 'All Properties'}
               </h1>
               <p className="text-gray-600">
@@ -395,7 +431,7 @@ const Properties = () => {
                   ? 'Find your perfect rental property'
                   : filters.listingType === 'sale'
                   ? 'Find your perfect home to buy with detailed property information'
-                  : 'Browse all available properties for sale and rent'
+                  : 'Browse all available properties To Buy and rent'
                 }
               </p>
             </div>
@@ -454,7 +490,7 @@ const Properties = () => {
 
               {/* Price dropdown */}
               <div className="w-full lg:w-44 flex-shrink-0">
-                <Select value={priceRange} onValueChange={setPriceRange}>
+                <Select value={priceRange} onValueChange={(val) => updateUrlParams({ priceRange: val, page: 1 })}>
                   <SelectTrigger className="h-12 bg-white text-black">
                     <div className="flex items-center">
                       <PoundSterlingIcon className="w-4 h-4 mr-2 text-gray-400" />
@@ -472,7 +508,7 @@ const Properties = () => {
               </div>
                 
               <div className="w-full lg:w-32 flex-shrink-0">
-                <Select value={propertiesPerPage.toString()} onValueChange={handlePropertiesPerPageChange}>
+                <Select value={propertiesPerPage.toString()} onValueChange={(val) => updateUrlParams({ per_page: val, page: 1 })}>
                   <SelectTrigger className="h-12 bg-white text-black">
                     <div className="flex items-center whitespace-nowrap">
                       <span className="text-gray-400 mr-1 text-xs">View:</span>

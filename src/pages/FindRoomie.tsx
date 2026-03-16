@@ -18,6 +18,7 @@ import { RoommateProfile } from "@/components/FindRoomie/RoommateProfile";
 import NotificationsComponent from "@/components/Notifications/Notifications";
 import NotificationDropdown from "@/components/Notifications/NotificationDropdown";
 import Messages from "@/components/Messages/Messages";
+import { CreateProfileModal } from "@/components/FindRoomie/CreateProfileModal";
 
 const FindRoomie = () => {
   const { isAuthenticated, user } = useAuth();
@@ -28,6 +29,12 @@ const FindRoomie = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { toast } = useToast();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const storageKey = user ? `roomie_profile_complete_${user.id}` : null;
+  const hasCompletedProfile = storageKey
+    ? localStorage.getItem(storageKey) === "true"
+    : false;
 
   useEffect(() => {
     if (!isMobile) setSidebarOpen(true);
@@ -35,18 +42,27 @@ const FindRoomie = () => {
   }, [isMobile]);
 
   // Guest view - show roomies list with original navbar
-  if (!isAuthenticated) {
+  if (!isAuthenticated || (isAuthenticated && !hasCompletedProfile)) {
     return (
       <Layout>
         <div className="animate-fade-in py-8">
           <div className="px-6 max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Find Your Potential Roomie
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Browse profiles of people looking for their ideal living situation
-              </p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  Find Your Potential Roomie
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Browse profiles of people looking for their ideal living
+                  situation
+                </p>
+              </div>
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 h-12 rounded-lg"
+              >
+                Create Profile
+              </Button>
             </div>
             <FindRoommatesContent
               onMessageClick={(roommate) => {
@@ -55,6 +71,10 @@ const FindRoomie = () => {
                   description: "Please log in to message roommates",
                 });
               }}
+            />
+            <CreateProfileModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
             />
           </div>
         </div>

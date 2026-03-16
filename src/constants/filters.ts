@@ -53,6 +53,6 @@ export const GENDER_PREFERENCES = [
 ];
 
 export const LISTING_TYPES = [
-  { value: 'sale', label: 'For Sale' },
-  { value: 'rent', label: 'For Rent' }
+  { value: 'sale', label: 'To Buy' },
+  { value: 'rent', label: 'To Rent' }
 ];
