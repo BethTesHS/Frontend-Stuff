@@ -1,8 +1,9 @@
-
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail } from 'lucide-react';
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="bg-blue-900 text-white pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -83,7 +84,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-blue-800 mt-8 pt-8 text-center text-blue-300 text-sm">
-          <p>&copy; 2024 Homed. All rights reserved.</p>
+          <p>&copy; {currentYear} Homed. All rights reserved.</p>
         </div>
       </div>
     </footer>

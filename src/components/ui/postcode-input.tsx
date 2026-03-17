@@ -27,7 +27,7 @@ export const PostcodeInput: React.FC<PostcodeInputProps> = ({
   onAddressFound,
   placeholder = "Enter postcode",
   className,
-  label = "Postcode",
+  label = "",
   required = false,
   error
 }) => {

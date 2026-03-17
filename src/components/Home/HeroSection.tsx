@@ -1,3 +1,4 @@
+// src/components/Home/HeroSection.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -70,57 +71,74 @@ const HeroSection = () => {
             backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`
           }}
         >
-          <div className="text-center px-4 max-w-4xl z-10 relative">
+          <div className="text-center px-4 w-full max-w-5xl z-10 relative">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-white mb-4">
               Welcome to Homed
             </h1>
-            <p className="text-xl md:text-2xl text-white mb-8">
+            <p className="text-xl md:text-2xl text-white mb-10">
               Your Trusted Partner in UK Property Search
             </p>
 
-            <div className="flex flex-col sm:flex-row w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden shadow-xl">
-              <div className="flex-grow p-2">
-                <PostcodeInput
-                  value={location}
-                  onChange={setLocation}
-                  onAddressFound={(address) => {
-                    setLocation(address.city);
-                  }}
-                  placeholder="Search by City, Neighborhood or Postcode"
-                  className="w-full h-full px-4 py-3 focus:outline-none text-gray-700"
-                />
+            {/* REFACTORED SEARCH BAR */}
+            <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl sm:rounded-full p-4 sm:p-2 shadow-2xl flex flex-col sm:flex-row items-center gap-3 sm:gap-0 border border-white/20 transition-all">
+              
+              {/* Input Section */}
+              <div className="w-full flex-1 flex items-center sm:px-4 min-w-0">
+                {/* Search Icon visible only on Desktop */}
+                <Search className="w-5 h-5 text-gray-400 mr-2 hidden sm:block shrink-0" />
+                <div className="flex-1 w-full">
+                  <PostcodeInput
+                    value={location}
+                    onChange={setLocation}
+                    onAddressFound={(address) => {
+                      setLocation(address.city);
+                    }}
+                    label=""
+                    placeholder="Postcode, City, or Neighborhood"
+                    className="w-full bg-transparent border border-gray-200 rounded-full shadow-none focus-visible:ring-1 focus-visible:ring-gray-200 focus:outline-none text-gray-800 text-sm sm:text-base placeholder:text-gray-400 px-4 h-12"
+                  />
+                </div>
               </div>
-              <div className="flex">
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="border-l px-4 py-3 focus:outline-none text-gray-700 bg-gray-50">
-                    <SelectValue placeholder="Any Price" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0-500">£0 - £500</SelectItem>
-                    <SelectItem value="500-1000">£500 - £1,000</SelectItem>
-                    <SelectItem value="1000-2000">£1,000 - £2,000</SelectItem>
-                    <SelectItem value="2000+">£2,000+</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {/* Filters & Button Section */}
+              <div className="w-full sm:w-auto flex items-center gap-3 sm:gap-0 shrink-0 sm:border-l sm:border-gray-200 mt-1 sm:mt-0">
+                
+                {/* Select Filter */}
+                <div className="flex-1 sm:flex-none">
+                  <Select value={priceRange} onValueChange={setPriceRange}>
+                    <SelectTrigger className="w-full sm:w-40 min-w-max whitespace-nowrap h-12 border border-gray-200 sm:border-0 rounded-full sm:rounded-none shadow-none focus:ring-1 focus:ring-gray-200 sm:focus:ring-0 focus:ring-offset-0 text-gray-700 bg-transparent text-xs sm:text-sm font-medium outline-none [&>span]:line-clamp-none [&>span]:w-full [&>span]:text-center px-4">
+                      <SelectValue placeholder="Any Price" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs sm:text-sm min-w-max">
+                      <SelectItem value="any" className="text-xs sm:text-sm">Any Price</SelectItem>
+                      <SelectItem value="0-500" className="text-xs sm:text-sm">£0 - £500</SelectItem>
+                      <SelectItem value="500-1000" className="text-xs sm:text-sm">£500 - £1,000</SelectItem>
+                      <SelectItem value="1000-2000" className="text-xs sm:text-sm">£1,000 - £2,000</SelectItem>
+                      <SelectItem value="2000+" className="text-xs sm:text-sm">£2,000+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Search Button - Now wider on mobile by restoring text and padding */}
                 <button
                   onClick={handleSearch}
-                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 font-medium transition-colors"
+                  className="bg-red-600 hover:bg-red-700 text-white h-12 px-6 sm:px-8 rounded-full font-bold transition-all flex items-center justify-center shrink-0 shadow-md sm:shadow-none sm:ml-1"
                 >
-                  <Search className="w-4 h-4 mr-2 inline" />
-                  Search
+                  <Search className="w-4 h-4 mr-2 shrink-0" />
+                  <span className="inline text-sm sm:text-base">Search</span>
                 </button>
               </div>
             </div>
 
-            <div className="mt-6 text-white text-sm">
-              <span className="mr-4">
-                <CheckCircle className="w-4 h-4 mr-1 inline" /> Over {stats.total_active_listings}+ Properties
+            <div className="mt-8 text-white text-sm flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 font-medium">
+              <span className="flex items-center bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
+                <CheckCircle className="w-4 h-4 mr-2 text-green-400" /> Over {stats.total_active_listings}+ Properties
               </span>
-              <span className="mr-4">
-                <CheckCircle className="w-4 h-4 mr-1 inline" /> Expert Agents Available
+              <span className="flex items-center bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
+                <CheckCircle className="w-4 h-4 mr-2 text-green-400" /> Expert Agents Available
               </span>
-              <span>
-                <CheckCircle className="w-4 h-4 mr-1 inline" /> Personalized Service
+              <span className="flex items-center bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
+                <CheckCircle className="w-4 h-4 mr-2 text-green-400" /> Personalized Service
               </span>
             </div>
           </div>
