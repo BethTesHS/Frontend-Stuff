@@ -5,6 +5,7 @@ import { Mail, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout/Layout';
 import { handleGoogleAuth } from '@/services/googleAuth';
+import {authApi} from '@/services/api';
 
 const Login = () => {
   const { login, loginWithSSO } = useAuth();
@@ -32,7 +33,18 @@ const Login = () => {
       navigate(redirectPath);
     } catch (error: any) {
       const errorMessage = error.message || 'Invalid credentials. Please try again.';
-      toast.error(errorMessage);
+
+      if (errorMessage.includes('verify your email')) {
+        try {
+          await authApi.resendVerification(formData.email);
+          toast.warning('Your email is not verified. A new verification email has been sent to your inbox.');
+        } catch {
+          toast.error(errorMessage)
+        }
+      } else {
+        toast.error(errorMessage);
+      }
+
       setLoading(false);
     }
   };

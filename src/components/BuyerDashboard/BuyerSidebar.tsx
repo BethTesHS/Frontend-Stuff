@@ -6,7 +6,8 @@ import {
   Home,
   X,
   History,
-  Heart
+  Heart,
+  Users
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Link } from "react-router-dom"
@@ -31,9 +32,16 @@ interface NavigationItem {
 export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, isCollapsed = false }: BuyerSidebarProps) {
   const { user, logout } = useAuth()
 
+  const intentLabel = user?.buyerIntent === 'rent'
+    ? 'Renter'
+    : user?.buyerIntent === 'find_roommate'
+    ? 'Roommate Seeker'
+    : 'Home Buyer';
+
   const navigationItems: NavigationItem[] = [
     { title: "Dashboard", value: "dashboard", icon: Home },
     { title: "Saved Properties", value: "saved", icon: Heart },
+    { title: "Find Roommate", value: "find-roomie", icon: Users },
     { title: "Messages", value: "messages", icon: MessageCircle },
     { title: "Calendar", value: "calendar", icon: Calendar },
     { title: "Notifications", value: "notifications", icon: Bell },
@@ -114,7 +122,7 @@ export function BuyerSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
               <h2 className="font-semibold text-gray-800 dark:text-gray-100">
                 {user?.firstName} {user?.lastName}
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Buyer</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{intentLabel}</p>
             </div>
           )}
         </div>

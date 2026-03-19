@@ -31,6 +31,7 @@ interface User {
   isVerified?: boolean;
   manualVerificationStatus?: 'not_started' | 'pending' | 'verified';
   isPlatformTenant?: boolean;
+  buyerIntent?: 'buy' | 'rent' | 'find_roommate';
 }
 
 interface AuthContextType {

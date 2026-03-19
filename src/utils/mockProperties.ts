@@ -1,3 +1,5 @@
+// src/utils/mockProperties.ts
+
 export const mockPropertiesResponse = {
   success: true,
   data: {
@@ -10,27 +12,27 @@ export const mockPropertiesResponse = {
     properties: [
       {
         id: "prop_101",
-        title: "Modern 2-Bed City Apartment",
-        description: "A beautifully presented two bedroom apartment located in the heart of the city with stunning views.",
-        price: 450000,
+        title: "Zahra Heights Apartment",
+        description: "A beautifully presented modern apartment located in Zahra Heights on Menelik Road, Kilimani. Features stunning city views, premium finishes, and excellent natural light.",
+        price: 18500000, // Adjusted price for realism in the area (can be KES or kept to your base currency)
         listing_type: "sale",
         property_type: "apartment",
-        bedrooms: 2,
-        bathrooms: 2,
+        bedrooms: 3,
+        bathrooms: 3,
         reception_rooms: 1,
-        passport_rating: 8.5,
+        passport_rating: 9.0,
         status: "active",
-        street: "123 High Street",
-        city: "London",
-        county: "Greater London",
-        postcode: "E1 6AN",
-        coordinates: { lat: 51.5171, lng: -0.0763 },
+        street: "Menelik Road, Kilimani",
+        city: "Nairobi",
+        county: "Nairobi County",
+        postcode: "00505",
+        coordinates: { lat: -1.296772, lng: 36.784169 }, // Exact coordinates for Menelik Rd, Kilimani
         primary_image_url: "https://images.unsplash.com/photo-1502672260266-1c1c2c49e5d9?auto=format&fit=crop&w=800&q=80",
         images: [
           "https://images.unsplash.com/photo-1502672260266-1c1c2c49e5d9?auto=format&fit=crop&w=800&q=80",
           "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
         ],
-        features: ["Balcony", "Gym", "24/7 Concierge"]
+        features: ["Balcony", "Gym", "24/7 Security", "Swimming Pool"]
       },
       {
         id: "prop_102",
@@ -47,8 +49,8 @@ export const mockPropertiesResponse = {
         street: "45 Oakwood Drive",
         city: "Manchester",
         county: "Greater Manchester",
-        postcode: "M20 2AB",
-        coordinates: { lat: 53.421, lng: -2.234 },
+        postcode: "M20 2AA",
+        // coordinates: { lat: 53.421, lng: -2.234 },
         primary_image_url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
         images: [
           "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
@@ -71,7 +73,7 @@ export const mockPropertiesResponse = {
         city: "Birmingham",
         county: "Greater Manchester", // Intentional for filter testing
         postcode: "B1 1AA",
-        coordinates: { lat: 52.4862, lng: -1.8904 },
+        // coordinates: { lat: 52.4862, lng: -1.8904 },
         primary_image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
         images: [],
         features: ["Close to Station", "Fully Furnished", "Bills Included"]
@@ -92,7 +94,7 @@ export const mockPropertiesResponse = {
         city: "Surrey",
         county: "Surrey",
         postcode: "GU1 1AA",
-        coordinates: { lat: 51.2362, lng: -0.5704 },
+        // coordinates: { lat: 51.2362, lng: -0.5704 },
         primary_image_url: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
         images: [
           "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80"
@@ -115,7 +117,7 @@ export const mockPropertiesResponse = {
         city: "Bristol",
         county: "West Midlands",
         postcode: "BS8 1TH",
-        coordinates: { lat: 51.4545, lng: -2.5879 },
+        // coordinates: { lat: 51.4545, lng: -2.5879 },
         primary_image_url: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80",
         images: [],
         features: ["Split Level", "Newly Renovated", "Pet Friendly"]
@@ -136,7 +138,7 @@ export const mockPropertiesResponse = {
         city: "Leeds",
         county: "West Yorkshire",
         postcode: "LS1 2AB",
-        coordinates: { lat: 53.8008, lng: -1.5491 },
+        // coordinates: { lat: 53.8008, lng: -1.5491 },
         primary_image_url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
         images: [],
         features: ["Single Story", "Quiet Location", "Conservatory"]

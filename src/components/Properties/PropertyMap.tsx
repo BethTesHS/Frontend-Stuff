@@ -1,223 +1,170 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useNavigate } from 'react-router-dom';
 import { Property } from '@/types';
 
-// Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+// CRITICAL: This CSS import fixes the "map not generating/loading tiles" issue
+import 'leaflet/dist/leaflet.css';
+
+// --- EXACT PINPOINT ICON ---
+const exactPinpointIcon = L.divIcon({
+  className: 'bg-transparent border-none',
+  html: `
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#dc2626" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.3));">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+      <circle cx="12" cy="10" r="3" fill="white"></circle>
+    </svg>
+  `,
+  iconSize: [36, 36],       
+  iconAnchor: [18, 36],     // Anchors the very bottom tip
+  popupAnchor: [0, -36],    
 });
+
+// Helper component to auto-center the map when coordinates load or change
+const ChangeView = ({ center, zoom }: { center: [number, number]; zoom: number }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] !== 0 && center[1] !== 0) {
+      map.setView(center, zoom, { animate: true });
+    }
+  }, [center, zoom, map]);
+  return null;
+};
+
+// --- ASYNC POSTCODE MARKER ---
+// This component resolves the postcode to coordinates before rendering the pin
+const PropertyMarker = ({ property }: { property: Property }) => {
+  const navigate = useNavigate();
+  const [position, setPosition] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    const resolveLocation = async () => {
+      const postcode = property.address?.postcode || (property as any).postcode;
+
+      // 1. Try UK Postcode lookup first
+      if (postcode) {
+        try {
+          const cleanPostcode = postcode.replace(/\s+/g, '');
+          const res = await fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`);
+          const data = await res.json();
+
+          if (data.status === 200 && data.result) {
+            setPosition([data.result.latitude, data.result.longitude]);
+            return; // Success!
+          }
+        } catch (err) {
+          console.warn("Postcode API lookup failed for:", postcode);
+        }
+      }
+
+      // 2. Fallback to existing coordinates (for international properties like Kenya)
+      const lat = property.latitude || property.address?.coordinates?.lat || (property as any).coordinates?.lat;
+      const lng = property.longitude || property.address?.coordinates?.lng || (property as any).coordinates?.lng;
+
+      if (lat && lng) {
+        setPosition([lat, lng]);
+      }
+    };
+
+    resolveLocation();
+  }, [property]);
+
+  if (!position) return null;
+
+  return (
+    <Marker position={position} icon={exactPinpointIcon}>
+      <Popup className="property-popup rounded-xl">
+        <div 
+          className="p-1 cursor-pointer w-48"
+          onClick={() => navigate(`/property/${property.id}`)}
+        >
+          <img 
+            src={(property as any).primary_image_url || property.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=400&q=80'} 
+            alt={property.title} 
+            className="w-full h-24 object-cover rounded-lg mb-2"
+          />
+          <h4 className="font-bold text-blue-900 text-sm truncate">{property.title}</h4>
+          <p className="text-gray-500 text-xs truncate mb-2">{property.address?.street || property.address?.city}</p>
+          <div className="font-black text-red-600">£{property.price?.toLocaleString()}</div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+};
 
 interface PropertyMapProps {
   properties: Property[];
   center?: [number, number];
   zoom?: number;
-  onBoundsChange?: (bounds: any) => void;
-  selectedPostcode?: {
-    lat: number;
-    lng: number;
-    postcode: string;
-  };
   height?: string;
 }
 
-// Component to handle map updates
-const MapUpdater: React.FC<{ center?: [number, number]; zoom?: number }> = ({ center, zoom }) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (center && zoom) {
-      map.setView(center, zoom);
-    }
-  }, [map, center, zoom]);
-  
-  return null;
-};
-
 const PropertyMap: React.FC<PropertyMapProps> = ({ 
   properties, 
-  center = [51.505, -0.09],
-  zoom = 13,
-  onBoundsChange,
-  selectedPostcode,
-  height = 'h-96'
+  center, 
+  zoom = 15, 
+  height = "h-[400px]" 
 }) => {
-  const mapRef = useRef<any>(null);
-  
-  // Get OS Maps API key from environment
-  const OS_MAPS_API_KEY = import.meta.env.VITE_OS_MAPS_API_KEY;
+  const [mapCenter, setMapCenter] = useState<[number, number]>([51.5074, -0.1278]); // Default London
 
-  // Create custom property marker icon
-  const createPropertyIcon = (price: number, listingType: string) => {
-    const priceText = `£${price.toLocaleString()}`;
-    const bgColor = listingType === 'rent' ? '#10B981' : '#3B82F6';
-    
-    return L.divIcon({
-      className: 'custom-property-marker',
-      html: `
-        <div style="
-          background: white;
-          border: 2px solid ${bgColor};
-          border-radius: 8px;
-          padding: 4px 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-          font-size: 12px;
-          font-weight: 600;
-          color: ${bgColor};
-          white-space: nowrap;
-          text-align: center;
-        ">
-          ${priceText}
-        </div>
-      `,
-      iconSize: [80, 30],
-      iconAnchor: [40, 30],
-    });
-  };
-
-  const handleBoundsChange = () => {
-    if (mapRef.current && onBoundsChange) {
-      const map = mapRef.current;
-      const bounds = map.getBounds();
-      onBoundsChange({
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest()
-      });
+  useEffect(() => {
+    if (center && center[0] !== 0) {
+      setMapCenter(center);
+      return;
     }
-  };
 
-  // Use selected postcode coordinates if available
-  const mapCenter = selectedPostcode ? [selectedPostcode.lat, selectedPostcode.lng] as [number, number] : center;
-  const mapZoom = selectedPostcode ? 15 : zoom;
+    // Auto-center map based on the first property's postcode
+    if (properties.length > 0) {
+      const p = properties[0];
+      const postcode = p.address?.postcode || (p as any).postcode;
+
+      const fallbackCoordinates = () => {
+        const lat = p.latitude || p.address?.coordinates?.lat || (p as any).coordinates?.lat;
+        const lng = p.longitude || p.address?.coordinates?.lng || (p as any).coordinates?.lng;
+        if (lat && lng) setMapCenter([lat, lng]);
+      };
+
+      if (postcode) {
+        const cleanPostcode = postcode.replace(/\s+/g, '');
+        fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 200 && data.result) {
+              setMapCenter([data.result.latitude, data.result.longitude]);
+            } else {
+              fallbackCoordinates();
+            }
+          })
+          .catch(fallbackCoordinates);
+      } else {
+        fallbackCoordinates();
+      }
+    }
+  }, [center, properties]);
 
   return (
-    <div className={`w-full ${height} relative rounded-lg overflow-hidden border border-gray-200 shadow-md`}>
-      <MapContainer
-        center={mapCenter}
-        zoom={mapZoom}
-        className="w-full h-full"
-        ref={mapRef}
-        whenReady={handleBoundsChange}
-        scrollWheelZoom={true}
+    <div className={`w-full ${height} relative z-0 rounded-xl overflow-hidden`}>
+      <MapContainer 
+        center={mapCenter} 
+        zoom={zoom} 
+        scrollWheelZoom={true} 
+        style={{ height: '100%', width: '100%', zIndex: 1 }}
       >
-        {/* OS Maps Tile Layer - Road style */}
+        {/* Modern, clean Map Tiles */}
         <TileLayer
-          url={`https://api.os.uk/maps/raster/v1/zxy/Road_3857/{z}/{x}/{y}.png?key=${OS_MAPS_API_KEY}`}
-          attribution='&copy; <a href="https://www.ordnancesurvey.co.uk/">Ordnance Survey</a>'
-          maxZoom={20}
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         
-        {/* Map updater for postcode changes */}
-        <MapUpdater center={mapCenter} zoom={mapZoom} />
-        
-        {/* Property Markers */}
-        {properties.map((property) => {
-          const lat = property.latitude || property.address?.coordinates?.lat;
-          const lng = property.longitude || property.address?.coordinates?.lng;
-          
-          if (!lat || !lng) {
-            console.warn(`Property ${property.id} has no coordinates`);
-            return null;
-          }
-          
-          return (
-            <Marker
-              key={property.id}
-              position={[lat, lng]}
-              icon={createPropertyIcon(property.price, property.listingType || property.type || 'sale')}
-            >
-              <Popup className="custom-popup" maxWidth={300}>
-                <div className="p-2">
-                  <div className="mb-2">
-                    {property.images && property.images.length > 0 && (
-                      <img
-                        src={property.images[0]}
-                        alt={property.title}
-                        className="w-full h-24 object-cover rounded mb-2"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-sm mb-1 line-clamp-2 text-gray-900">{property.title}</h3>
-                  <p className="text-blue-600 font-bold text-lg">£{property.price.toLocaleString()}</p>
-                  <div className="flex items-center text-sm text-gray-600 mt-1">
-                    <span>{property.bedrooms} bed</span>
-                    <span className="mx-2">•</span>
-                    <span>{property.bathrooms} bath</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {property.address?.city}, {property.address?.postcode}
-                  </p>
-                  <a 
-                    href={`/property/${property.id}`}
-                    className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors w-full block text-center font-medium"
-                  >
-                    View Details
-                  </a>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-        
-        {/* Selected Postcode Marker */}
-        {selectedPostcode && (
-          <Marker 
-            position={[selectedPostcode.lat, selectedPostcode.lng]}
-            icon={L.divIcon({
-              className: 'custom-search-marker',
-              html: `
-                <div style="
-                  background: #EF4444;
-                  border: 3px solid white;
-                  border-radius: 50%;
-                  width: 20px;
-                  height: 20px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                "></div>
-              `,
-              iconSize: [20, 20],
-              iconAnchor: [10, 10],
-            })}
-          >
-            <Popup>
-              <div className="text-center p-2">
-                <h3 className="font-semibold">Search Location</h3>
-                <p className="text-sm text-gray-600">{selectedPostcode.postcode}</p>
-              </div>
-            </Popup>
-          </Marker>
-        )}
-        
-        {/* No properties message */}
-        {properties.length === 0 && !selectedPostcode && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded shadow z-[1000]">
-            <p className="text-sm text-gray-600">No properties to display on map</p>
-          </div>
-        )}
-      </MapContainer>
+        <ChangeView center={mapCenter} zoom={zoom} />
 
-      {/* Minimize attribution styling */}
-      <style>{`
-        .leaflet-control-attribution {
-          font-size: 8px !important;
-          background: rgba(255, 255, 255, 0.7) !important;
-          padding: 2px 5px !important;
-          opacity: 0.7;
-          border-radius: 3px;
-        }
-        .leaflet-control-attribution:hover {
-          opacity: 1 !important;
-        }
-      `}</style>
+        {/* Render the intelligent postcode markers */}
+        {properties.map((property) => (
+          <PropertyMarker key={property.id} property={property} />
+        ))}
+
+      </MapContainer>
     </div>
   );
 };

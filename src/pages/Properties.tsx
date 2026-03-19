@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
-import { propertyApi } from '@/services/api';
+// import { propertyApi } from '@/services/api';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
-// import { mockPropertiesResponse } from '@/utils/mockProperties';
+import { mockPropertiesResponse } from '@/utils/mockProperties';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -203,8 +203,11 @@ const Properties = () => {
       try {
         setLoading(true);
         
+        // Add fake network delay for mock data
+        await new Promise(resolve => setTimeout(resolve, 600));
+
         const propertyTypeArray = Array.isArray(filters.propertyType) ? filters.propertyType : 
-                                 filters.propertyType ? [filters.propertyType] : undefined;
+                                  filters.propertyType ? [filters.propertyType] : undefined;
 
         let minPriceFromRange, maxPriceFromRange;
         if (priceRange) {
@@ -213,51 +216,47 @@ const Properties = () => {
           maxPriceFromRange = max ? parseInt(max) : undefined;
         }
         
-        // API
-        const searchParamsPayload = {
-          page: currentPage,
-          per_page: propertiesPerPage,
-          listing_type: filters.listingType || undefined,
-          location: searchLocation || undefined,
-          property_type: propertyTypeArray,
-          min_price: filters.minPrice || minPriceFromRange || undefined,
-          max_price: filters.maxPrice || maxPriceFromRange || undefined,
-          bedrooms: filters.bedrooms || undefined,
-          passport_rating: filters.passportRating || undefined,
-          status: 'active',
-        };
-
-        const response = await propertyApi.getProperties(searchParamsPayload);
-        
+        // Deep clone mock response so filters don't permanently alter the original object
+        const response = JSON.parse(JSON.stringify(mockPropertiesResponse));
 
         // Mock filtering simulation matching the derived URL values
+        if (filters.listingType) {
+          response.data.properties = response.data.properties.filter(
+            (p: any) => p.listing_type === filters.listingType
+          );
+        }
         
-        // if (filters.listingType) {
-        //   response.data.properties = response.data.properties.filter(
-        //     (p: any) => p.listing_type === filters.listingType
-        //   );
-        // }
-        // const finalMinPrice = filters.minPrice || minPriceFromRange;
-        // if (finalMinPrice) {
-        //   response.data.properties = response.data.properties.filter((p: any) => p.price >= finalMinPrice);
-        // }
-        // const finalMaxPrice = filters.maxPrice || maxPriceFromRange;
-        // if (finalMaxPrice) {
-        //   response.data.properties = response.data.properties.filter((p: any) => p.price <= finalMaxPrice);
-        // }
-        // if (propertyTypeArray && propertyTypeArray.length > 0) {
-        //   response.data.properties = response.data.properties.filter(
-        //     (p: any) => propertyTypeArray.includes(p.property_type)
-        //   );
-        // }
-        // if (searchLocation) {
-        //   response.data.properties = response.data.properties.filter(
-        //     (p: any) => p.city.toLowerCase().includes(searchLocation.toLowerCase()) || 
-        //                 p.postcode.toLowerCase().includes(searchLocation.toLowerCase())
-        //   );
-        // }
+        const finalMinPrice = filters.minPrice || minPriceFromRange;
+        if (finalMinPrice) {
+          response.data.properties = response.data.properties.filter((p: any) => p.price >= finalMinPrice);
+        }
         
-        // response.data.pagination.total = response.data.properties.length;
+        const finalMaxPrice = filters.maxPrice || maxPriceFromRange;
+        if (finalMaxPrice) {
+          response.data.properties = response.data.properties.filter((p: any) => p.price <= finalMaxPrice);
+        }
+        
+        if (propertyTypeArray && propertyTypeArray.length > 0) {
+          response.data.properties = response.data.properties.filter(
+            (p: any) => propertyTypeArray.includes(p.property_type)
+          );
+        }
+        
+        if (searchLocation) {
+          response.data.properties = response.data.properties.filter(
+            (p: any) => p.city.toLowerCase().includes(searchLocation.toLowerCase()) || 
+                        p.postcode.toLowerCase().includes(searchLocation.toLowerCase())
+          );
+        }
+        
+        // Update pagination metadata based on filtered results
+        response.data.pagination.total = response.data.properties.length;
+        response.data.pagination.pages = Math.ceil(response.data.properties.length / propertiesPerPage) || 1;
+
+        // Apply local pagination slice
+        const startIndex = (currentPage - 1) * propertiesPerPage;
+        const endIndex = startIndex + propertiesPerPage;
+        response.data.properties = response.data.properties.slice(startIndex, endIndex);
 
         
         if (response.success && response.data && response.data.properties) {

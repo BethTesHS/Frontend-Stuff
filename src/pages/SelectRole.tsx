@@ -26,6 +26,8 @@ const SelectRole = () => {
   const [showTenantTypeSelection, setShowTenantTypeSelection] = useState(false);
   const [showExternalTenantForm, setShowExternalTenantForm] = useState(false);
   const [selectedTenantType, setSelectedTenantType] = useState('');
+  const [showBuyerIntentSelection, setShowBuyerIntentSelection] = useState(false);
+  const [selectedBuyerIntent, setSelectedBuyerIntent] = useState<'buy' | 'rent' | 'find_roommate' | ''>('');
 
   useEffect(() => {
     console.log('SelectRole: Component mounted');
@@ -111,9 +113,9 @@ const SelectRole = () => {
   const roleOptions = [
     {
       value: 'buyer',
-      label: 'Buyer',
-      description: 'Looking to purchase a property',
-      icon: Home,
+      label: 'Home Seeker',
+      description: 'Looking to buy, rent or find a roommate',
+      icon: Users,
       color: 'text-blue-600',
     },
     {
@@ -152,6 +154,12 @@ const SelectRole = () => {
     if (selectedRole === 'tenant') {
       console.log('Setting showTenantTypeSelection to true');
       setShowTenantTypeSelection(true);
+      return;
+    }
+
+    // Special handling for buyer role — ask for intent first
+    if (selectedRole === 'buyer') {
+      setShowBuyerIntentSelection(true);
       return;
     }
 
@@ -298,8 +306,41 @@ const SelectRole = () => {
     setShowTenantTypeSelection(false);
     setShowExternalTenantForm(false);
     setShowTenantVerification(false);
+    setShowBuyerIntentSelection(false);
     setSelectedRole('');
     setSelectedTenantType('');
+    setSelectedBuyerIntent('');
+  };
+
+  const handleBuyerIntentContinue = async () => {
+    if (!selectedBuyerIntent) return;
+    setLoading(true);
+    setPageLoading(true);
+    try {
+      const response = await profileApi.selectRole('buyer');
+      if (!response.success || !response.data) {
+        throw new Error(response.message || response.error || 'Failed to set role');
+      }
+      const responseData = response.data;
+      const updatedUserData = {
+        ...user,
+        role: responseData?.role?.name || responseData?.user?.role || 'buyer',
+        profileComplete: responseData?.profile?.is_profile_complete || true,
+        buyerIntent: selectedBuyerIntent,
+      };
+      updateUser(updatedUserData);
+      toast.success('Welcome! Your account is ready.');
+      navigate('/buyer-dashboard');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error setting up account. Please try again.';
+      toast.error(errorMessage);
+      if (errorMessage.includes('Session expired') || errorMessage.includes('log in again')) {
+        navigate('/');
+      }
+    } finally {
+      setLoading(false);
+      setPageLoading(false);
+    }
   };
 
   const handleExternalTenantComplete = async () => {
@@ -441,6 +482,80 @@ const SelectRole = () => {
                   className="w-full sm:w-auto min-w-[200px]"
                 >
                   Continue
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show buyer intent selection
+  if (showBuyerIntentSelection) {
+    const intentOptions = [
+      {
+        value: 'buy' as const,
+        label: 'Buy a Property',
+        description: "I'm looking to purchase a property",
+        icon: Home,
+        color: 'text-blue-600',
+      },
+      {
+        value: 'rent' as const,
+        label: 'Rent a Property',
+        description: "I'm looking to rent a place to live",
+        icon: Building2,
+        color: 'text-emerald-600',
+      },
+      {
+        value: 'find_roommate' as const,
+        label: 'Find a Roommate',
+        description: "I'm looking to share a place with someone",
+        icon: Users,
+        color: 'text-purple-600',
+      },
+    ];
+
+    return (
+      <Layout showFooter={false}>
+        <div className="min-h-screen bg-white px-4 sm:px-10 md:px-40 flex justify-center py-5">
+          <div className="max-w-[960px] w-full">
+            <div className="flex flex-wrap justify-between gap-3 p-4">
+              <p className="text-foreground tracking-light text-2xl sm:text-[32px] font-bold leading-tight min-w-0">
+                What are you looking for?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+              {intentOptions.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => setSelectedBuyerIntent(option.value)}
+                  className={`flex flex-col gap-3 rounded-lg border p-6 cursor-pointer transition-all hover:bg-accent hover:shadow-md min-h-[160px] ${
+                    selectedBuyerIntent === option.value
+                      ? 'border-primary ring-2 ring-primary bg-primary/5'
+                      : 'border-border bg-card'
+                  }`}
+                >
+                  <div className={option.color}>
+                    <option.icon size={24} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-foreground text-base font-bold leading-tight">{option.label}</h2>
+                    <p className="text-muted-foreground text-sm font-normal leading-normal">{option.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between p-4 gap-4">
+              <Button variant="outline" onClick={handleBackToRoleSelection} className="w-full sm:w-auto min-w-[200px]">
+                Back to Role Selection
+              </Button>
+              {selectedBuyerIntent && (
+                <Button onClick={handleBuyerIntentContinue} disabled={loading} className="w-full sm:w-auto min-w-[200px]">
+                  {loading ? 'Setting up your account...' : 'Continue'}
                 </Button>
               )}
             </div>

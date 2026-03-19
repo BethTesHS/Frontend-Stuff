@@ -40,11 +40,13 @@ import { Property, PropertyHistory } from '@/types';
 import SharePropertyPopover from '@/components/Properties/SharePropertyPopover';
 import BrochureRequestDialog from '@/components/Properties/BrochureRequestDialog';
 import IntelligenceReportModal from '@/components/Properties/IntelligenceReportModal';
-import { propertyApi, findAgentApi } from '@/services/api';
 import PropertyMap from '@/components/Properties/PropertyMap';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
+
+// Import the mock data
+import { mockPropertiesResponse } from '@/utils/mockProperties';
 
 // Agent type
 type Agent = {
@@ -106,42 +108,101 @@ const PropertyDetails = () => {
     const loadPropertyData = async () => {
       try {
         setLocalLoading(true);
-        
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const [propertyResponse, historyResponse, imagesResponse] = await Promise.allSettled([
-          propertyApi.getProperty(parseInt(propertyId)),
-          fetch(`${API_BASE_URL}/api/properties/${propertyId}/history`).then(res => res.ok ? res.json() : { data: [] }),
-          fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`).then(res => res.ok ? res.json() : { data: { images: [] } })
-        ]);
 
-        if (propertyResponse.status === 'fulfilled' && propertyResponse.value.success) {
-          const propertyData = propertyResponse.value.data.property;
-          setProperty(propertyData);
+// // API
+//         const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+//         const [propertyResponse, historyResponse, imagesResponse] = await Promise.allSettled([
+//           propertyApi.getProperty(parseInt(propertyId)),
+//           fetch(`${API_BASE_URL}/api/properties/${propertyId}/history`).then(res => res.ok ? res.json() : { data: [] }),
+//           fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`).then(res => res.ok ? res.json() : { data: { images: [] } })
+//         ]);
+
+//         if (propertyResponse.status === 'fulfilled' && propertyResponse.value.success) {
+//           const propertyData = propertyResponse.value.data.property;
+//           setProperty(propertyData);
           
-          if (propertyData.images && propertyData.images.length > 0) {
-            const fixedImageUrls = propertyData.images.map((url: string) => {
-              let fixedUrl = url.replace('/api/properties/images/', '/properties/images/');
-              if (fixedUrl.startsWith('http://')) {
-                fixedUrl = fixedUrl.replace('http://', 'https://');
-              }
-              return fixedUrl;
-            });
-            setPropertyImages(fixedImageUrls);
-          }
+//           if (propertyData.images && propertyData.images.length > 0) {
+//             const fixedImageUrls = propertyData.images.map((url: string) => {
+//               let fixedUrl = url.replace('/api/properties/images/', '/properties/images/');
+//               if (fixedUrl.startsWith('http://')) {
+//                 fixedUrl = fixedUrl.replace('http://', 'https://');
+//               }
+//               return fixedUrl;
+//             });
+//             setPropertyImages(fixedImageUrls);
+//           }
           
-          if (propertyData.agent && propertyData.agent.id) {
-            loadAgentDetails(propertyData.agent.id);
-          }
+//           if (propertyData.agent && propertyData.agent.id) {
+//             loadAgentDetails(propertyData.agent.id);
+//           }
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // Format ID to handle both '101' and 'prop_101'
+        const normalizedId = propertyId.startsWith('prop_') ? propertyId : `prop_${propertyId}`;
+        
+        // Find property in mock data
+        const mockProp = mockPropertiesResponse.data.properties.find(
+          p => p.id === normalizedId || p.id === propertyId
+        );
+
+        if (mockProp) {
+          // Transform mock data to fit the Property interface expected by this component
+          const transformedProperty: any = {
+            id: mockProp.id,
+            title: mockProp.title,
+            description: mockProp.description,
+            price: mockProp.price,
+            listingType: mockProp.listing_type,
+            type: mockProp.property_type,
+            bedrooms: mockProp.bedrooms,
+            bathrooms: mockProp.bathrooms,
+            receptions: mockProp.reception_rooms,
+            passportRating: mockProp.passport_rating,
+            status: mockProp.status,
+            features: mockProp.features,
+            address: {
+              street: mockProp.street,
+              city: mockProp.city,
+              postcode: mockProp.postcode,
+              county: mockProp.county,
+              coordinates: mockProp.coordinates
+            },
+            // Fake extra data for a complete UI experience
+            createdAt: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
+            updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+            tenure: 'Freehold',
+            propertySize: 1200 + Math.floor(Math.random() * 800),
+            energyRating: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
+            yearBuilt: 2010 + Math.floor(Math.random() * 12),
+            councilTaxBand: ['C', 'D', 'E'][Math.floor(Math.random() * 3)],
+            agent: { id: 1 } 
+          };
+
+          setProperty(transformedProperty);
+          
+          // Set Images
+          const imagesToUse = mockProp.images && mockProp.images.length > 0 
+            ? mockProp.images 
+            : [mockProp.primary_image_url].filter(Boolean);
+          
+          setPropertyImages(imagesToUse);
+          
+          // Trigger mock agent load
+          loadAgentDetails(1);
+
+          // Generate mock history based on the property price
+          setPropertyHistory([
+            { id: 1, property_id: mockProp.id, date: '2025-01-15', event_type: 'Listed', price: mockProp.price * 1.05 },
+            { id: 2, property_id: mockProp.id, date: '2025-02-10', event_type: 'Price Reduced', price: mockProp.price }
+          ] as any);
+
         } else {
           setProperty(null);
         }
-
-        if (historyResponse.status === 'fulfilled') {
-          setPropertyHistory(historyResponse.value.data?.history || []);
-        }
-
       } catch (error) {
-        console.error('PropertyDetails: Error loading property data:', error);
+        console.error('PropertyDetails: Error loading mock property data:', error);
         setProperty(null);
       } finally {
         setLocalLoading(false);
@@ -154,13 +215,26 @@ const PropertyDetails = () => {
   const loadAgentDetails = async (agentId: number) => {
     try {
       setAgentLoading(true);
-      const response = await findAgentApi.getAgentDetails(agentId);
+      // Simulate network delay for agent fetch
+      await new Promise(resolve => setTimeout(resolve, 400));
       
-      if (response.success && response.data) {
-        setAgent(response.data.agent);
-      }
+      // Set Mock Agent
+      setAgent({
+        id: agentId,
+        name: "Eleanor Rigby",
+        specialization: "Luxury Residential",
+        location: property?.address?.city || "London, UK",
+        rating: 4.9,
+        reviews: 142,
+        description: "Expert in matching clients with their perfect homes.",
+        type: 'estate',
+        phone: "+44 20 7946 0888",
+        email: "eleanor.r@homed.co.uk",
+        agency: "Homed Premier Agents",
+        is_featured: true
+      });
     } catch (error) {
-      console.error('Error loading agent details:', error);
+      console.error('Error loading mock agent details:', error);
     } finally {
       setAgentLoading(false);
     }
@@ -274,7 +348,7 @@ const PropertyDetails = () => {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Header Content moved to Left Column so Right Sidebar can go higher */}
+            {/* Header Content */}
             <div>
               <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">{property.title}</h1>
               
@@ -282,8 +356,6 @@ const PropertyDetails = () => {
                 <MapPin className="w-5 h-5 mr-1.5 text-primary-600" />
                 <span className="text-lg">{property.address.street}, {property.address.city}, {property.address.postcode}</span>
               </div>
-
-
 
               {/* Clickable Reviews Trigger */}
               <Dialog>
@@ -492,7 +564,7 @@ const PropertyDetails = () => {
               </CardContent>
             </Card>
 
-            {/* MAP SECTION */}
+            {/* MAP SECTION - Automatically handles postcode fetching now */}
             <Card className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl overflow-hidden">
               <CardHeader className="bg-white border-b border-gray-50 pb-4">
                 <CardTitle className="flex items-center text-xl">
@@ -507,31 +579,27 @@ const PropertyDetails = () => {
                   </p>
                 </div>
                 
-                <div className="rounded-xl overflow-hidden shadow-inner border border-gray-100">
-                  {(property.latitude && property.longitude) ? (
-                    <PropertyMap
-                      properties={[property]}
-                      center={[property.latitude, property.longitude]}
-                      zoom={16}
-                      height="h-[400px]"
-                    />
-                  ) : property.address?.coordinates?.lat && property.address?.coordinates?.lng ? (
-                    <PropertyMap
-                      properties={[property]}
-                      center={[property.address.coordinates.lat, property.address.coordinates.lng]}
-                      zoom={16}
-                      height="h-[400px]"
-                    />
-                  ) : (
-                    <div className="bg-gray-50 p-10 text-center flex flex-col items-center justify-center h-[300px]">
-                      <div className="bg-gray-100 p-4 rounded-full mb-4">
-                        <MapPin className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <p className="text-gray-600 font-medium">
-                        Map coordinates not available for this property
-                      </p>
+                {/* Wrapper div acts as a clickable preview overlay to disable 
+                  scrolling in the page context and redirect to the full screen map 
+                */}
+                <div 
+                  className="rounded-xl overflow-hidden shadow-inner border border-gray-100 relative group cursor-pointer"
+                  onClick={() => navigate(`/property/${property.id}/map`)}
+                >
+                  {/* Click interception overlay */}
+                  <div className="absolute inset-0 z-[1000] bg-black/5 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                    <div className="bg-blue-900 text-white px-5 py-2.5 rounded-full font-bold opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0 shadow-xl flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                      View Full Map
                     </div>
-                  )}
+                  </div>
+
+                  {/* Clean PropertyMap call relies on built-in logic */}
+                  <PropertyMap
+                    properties={[property]}
+                    zoom={16}
+                    height="h-[350px]"
+                  />
                 </div>
               </CardContent>
             </Card>

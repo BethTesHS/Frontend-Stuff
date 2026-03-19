@@ -25,6 +25,7 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import Properties from '@/pages/Properties';
 import PropertyDetails from '@/pages/PropertyDetails';
+import PropertyMapFullScreen from '@/pages/PropertyMapFullScreen'; // <-- IMPORT HERE
 import Contact from '@/pages/Contact';
 import NotFound from '@/pages/NotFound';
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -155,6 +156,7 @@ const AppRouter: React.FC = () => {
             {/* Property Routes */}
             <Route path="/properties" element={<Properties />} />
             <Route path="/property/:id" element={<PropertyDetails />} />
+            <Route path="/property/:id/map" element={<PropertyMapFullScreen />} /> {/* <-- ADDED ROUTE HERE */}
             <Route path="/my-properties" element={<MyProperties />} />
             <Route path="/post-property" element={<PostProperty />} />
             <Route
@@ -183,10 +185,9 @@ const AppRouter: React.FC = () => {
             <Route path="/saved" element={<Saved />} />
             
             {/* Room Routes */}
-            {/* Room Routes */}
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<RoomDetails />} />
-            <Route path="/find-roomie" element={<FindRoomie />} /> {/* Updated this line */}
+            <Route path="/find-roomie" element={<FindRoomie />} />
             <Route
               path="/post-spare-room"
               element={

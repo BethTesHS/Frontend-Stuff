@@ -16,6 +16,8 @@ import { BuyerHistory } from "@/components/BuyerDashboard/BuyerHistory";
 import { BuyerProfile } from "@/components/BuyerDashboard/BuyerProfile";
 import Messages from "@/components/Messages/Messages";
 import NotificationsComponent from "@/components/TenantDashboard/TenantNotifications";
+import { FindRoommatesContent } from "@/components/FindRoomie/FindRoommatesContent";
+import { RoommateProfile } from "@/components/FindRoomie/RoommateProfile";
 
 import {
   DropdownMenu,
@@ -54,7 +56,8 @@ const BuyerDashboard = () => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
   
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const defaultTab = user?.buyerIntent === 'find_roommate' ? 'find-roomie' : 'dashboard';
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -129,6 +132,14 @@ const BuyerDashboard = () => {
         return <NotificationsComponent user={user} />;
       case "history":
         return <BuyerHistory />;
+      case "find-roomie":
+        return (
+          <FindRoommatesContent
+            onMessageClick={() => handleTabChange("messages")}
+          />
+        );
+      case "roommate-profile":
+        return <RoommateProfile />;
       case "profile":
         return <BuyerProfile />;
       default:
@@ -215,7 +226,9 @@ const BuyerDashboard = () => {
                       </div>
                       <div className="hidden md:block text-left">
                         <p className="font-medium text-gray-800 dark:text-gray-200">{user?.firstName || ''} {user?.lastName || ''}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Buyer</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {user?.buyerIntent === 'rent' ? 'Renter' : user?.buyerIntent === 'find_roommate' ? 'Roommate Seeker' : 'Home Buyer'}
+                        </p>
                       </div>
                       <ChevronDown size={16} className="hidden md:block text-gray-600 dark:text-gray-400" />
                     </button>
