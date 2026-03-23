@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
-// import { propertyApi } from '@/services/api';
+import { propertyApi } from '@/services/api';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
-import { mockPropertiesResponse } from '@/utils/mockProperties';
+// removed mock import; using real API via propertyApi
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -202,94 +202,41 @@ const Properties = () => {
     const fetchProperties = async () => {
       try {
         setLoading(true);
-        
-        // Add fake network delay for mock data
-        await new Promise(resolve => setTimeout(resolve, 600));
-
         const propertyTypeArray = Array.isArray(filters.propertyType) ? filters.propertyType : 
                                   filters.propertyType ? [filters.propertyType] : undefined;
 
-        let minPriceFromRange, maxPriceFromRange;
-        if (priceRange) {
-          const [min, max] = priceRange.split('-').map(p => p.replace('+', '').replace('£', '').replace(',', ''));
-          minPriceFromRange = parseInt(min);
-          maxPriceFromRange = max ? parseInt(max) : undefined;
-        }
-        
-        // Deep clone mock response so filters don't permanently alter the original object
-        const response = JSON.parse(JSON.stringify(mockPropertiesResponse));
+        // Build API params (snake_case expected by backend API)
+        const params: any = {
+          page: currentPage,
+          per_page: propertiesPerPage,
+        };
 
-        // Mock filtering simulation matching the derived URL values
-        if (filters.listingType) {
-          response.data.properties = response.data.properties.filter(
-            (p: any) => p.listing_type === filters.listingType
-          );
-        }
-        
-        const finalMinPrice = filters.minPrice || minPriceFromRange;
-        if (finalMinPrice) {
-          response.data.properties = response.data.properties.filter((p: any) => p.price >= finalMinPrice);
-        }
-        
-        const finalMaxPrice = filters.maxPrice || maxPriceFromRange;
-        if (finalMaxPrice) {
-          response.data.properties = response.data.properties.filter((p: any) => p.price <= finalMaxPrice);
-        }
-        
-        if (propertyTypeArray && propertyTypeArray.length > 0) {
-          response.data.properties = response.data.properties.filter(
-            (p: any) => propertyTypeArray.includes(p.property_type)
-          );
-        }
-        
-        if (searchLocation) {
-          response.data.properties = response.data.properties.filter(
-            (p: any) => p.city.toLowerCase().includes(searchLocation.toLowerCase()) || 
-                        p.postcode.toLowerCase().includes(searchLocation.toLowerCase())
-          );
-        }
-        
-        // Update pagination metadata based on filtered results
-        response.data.pagination.total = response.data.properties.length;
-        response.data.pagination.pages = Math.ceil(response.data.properties.length / propertiesPerPage) || 1;
+        if (searchLocation) params.location = searchLocation;
+        if (propertyTypeArray && propertyTypeArray.length > 0) params.property_type = propertyTypeArray;
+        if (filters.listingType) params.listing_type = filters.listingType;
+        if (filters.minPrice) params.min_price = filters.minPrice;
+        if (filters.maxPrice) params.max_price = filters.maxPrice;
+        if (filters.bedrooms) params.bedrooms = filters.bedrooms;
 
-        // Apply local pagination slice
-        const startIndex = (currentPage - 1) * propertiesPerPage;
-        const endIndex = startIndex + propertiesPerPage;
-        response.data.properties = response.data.properties.slice(startIndex, endIndex);
+        const response = await propertyApi.getProperties(params);
 
-        
-        if (response.success && response.data && response.data.properties) {
+        if (response && response.success && response.data && response.data.properties) {
           const transformedProperties = response.data.properties.map((property: any) => ({
             ...property,
             address: {
-              street: property.street || '',
-              city: property.city || '',
-              postcode: property.postcode || '',
-              county: property.county || '',
-              coordinates: property.coordinates
+              street: property.street || property.address || '',
+              city: property.city || property.address?.city || '',
+              postcode: property.postcode || property.address?.postcode || '',
+              county: property.county || property.address?.county || '',
+              coordinates: property.coordinates || property.address?.coordinates
             },
             images: property.images && property.images.length > 0
-              ? property.images.map((url: string) => {
-                  let fixedUrl = url.replace('/api/properties/images/', '/properties/images/');
-                  if (fixedUrl.startsWith('http://')) {
-                    fixedUrl = fixedUrl.replace('http://', 'https://');
-                  }
-                  return fixedUrl;
-                })
-              : (property.primary_image_url
-                  ? [(() => {
-                      let fixedUrl = property.primary_image_url.replace('/api/properties/images/', '/properties/images/');
-                      if (fixedUrl.startsWith('http://')) {
-                        fixedUrl = fixedUrl.replace('http://', 'https://');
-                      }
-                      return fixedUrl;
-                    })()]
-                  : []),
-            listingType: property.listing_type,
-            type: property.property_type,
+              ? property.images.map((url: string) => url.startsWith('http') ? url : `${API_BASE_URL}${url}`)
+              : property.primary_image_url ? [property.primary_image_url.startsWith('http') ? property.primary_image_url : `${API_BASE_URL}${property.primary_image_url}`] : [],
+            listingType: property.listing_type || property.listingType,
+            type: property.property_type || property.type,
             features: property.features || [],
-            id: property.id?.toString() || Math.random().toString(),
+            id: property.id?.toString() || String(Math.random())
           }));
 
           setProperties(transformedProperties);

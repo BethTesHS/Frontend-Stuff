@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PropertyMap from '@/components/Properties/PropertyMap';
-import { mockPropertiesResponse } from '@/utils/mockProperties';
+import { propertyApi } from '@/services/api';
 import { Property } from '@/types';
 
 const PropertyMapFullScreen = () => {
@@ -16,30 +16,50 @@ const PropertyMapFullScreen = () => {
     if (!id) return;
     
     setLoading(true);
-    
-    // Format ID to handle both '101' and 'prop_101'
-    const normalizedId = id.startsWith('prop_') ? id : `prop_${id}`;
-    
-    // Find property in mock data
-    const mockProp = mockPropertiesResponse.data.properties.find(
-      p => p.id === normalizedId || p.id === id
-    );
-
-    if (mockProp) {
-      setProperty({
-        ...mockProp,
-        listingType: mockProp.listing_type,
-        address: {
-          street: mockProp.street,
-          city: mockProp.city,
-          postcode: mockProp.postcode,
-          county: mockProp.county,
-          coordinates: mockProp.coordinates
+    const load = async () => {
+      try {
+        // try numeric id
+        let numericId: number | null = null;
+        if (/^prop_/.test(id)) {
+          const parts = id.split('_');
+          const maybe = Number(parts[1]);
+          if (!isNaN(maybe)) numericId = maybe;
+        } else {
+          const maybe = Number(id);
+          if (!isNaN(maybe)) numericId = maybe;
         }
-      } as any);
-    }
-    
-    setLoading(false);
+
+        if (numericId === null) {
+          setProperty(null);
+          return;
+        }
+
+        const response = await propertyApi.getProperty(numericId as number);
+        if (response && response.success && response.data && response.data.property) {
+          const p = response.data.property;
+          setProperty({
+            ...p,
+            listingType: p.listing_type || p.listingType,
+            address: {
+              street: p.street || p.address || '',
+              city: p.city || p.address?.city || '',
+              postcode: p.postcode || p.address?.postcode || '',
+              county: p.county || p.address?.county || '',
+              coordinates: p.coordinates || p.address?.coordinates
+            }
+          } as any);
+        } else {
+          setProperty(null);
+        }
+      } catch (err) {
+        console.error('PropertyMapFullScreen: failed to load property', err);
+        setProperty(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, [id]);
 
   if (loading) {

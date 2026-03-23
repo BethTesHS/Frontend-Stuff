@@ -45,8 +45,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
-// Import the mock data
-import { mockPropertiesResponse } from '@/utils/mockProperties';
+import { propertyApi } from '@/services/api';
 
 // Agent type
 type Agent = {
@@ -108,96 +107,80 @@ const PropertyDetails = () => {
     const loadPropertyData = async () => {
       try {
         setLocalLoading(true);
+        // parse numeric id where possible (support 'prop_123' and '123')
+        let numericId: number | null = null;
+        if (/^prop_/.test(propertyId)) {
+          const parts = propertyId.split('_');
+          const maybe = Number(parts[1]);
+          if (!isNaN(maybe)) numericId = maybe;
+        } else {
+          const maybe = Number(propertyId);
+          if (!isNaN(maybe)) numericId = maybe;
+        }
 
-// // API
-//         const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-//         const [propertyResponse, historyResponse, imagesResponse] = await Promise.allSettled([
-//           propertyApi.getProperty(parseInt(propertyId)),
-//           fetch(`${API_BASE_URL}/api/properties/${propertyId}/history`).then(res => res.ok ? res.json() : { data: [] }),
-//           fetch(`${API_BASE_URL}/api/properties/${propertyId}/images`).then(res => res.ok ? res.json() : { data: { images: [] } })
-//         ]);
+        if (numericId === null) {
+          // Non-numeric id handling: try fetch as string key (best-effort)
+          console.warn('PropertyDetails: non-numeric id — attempting fallback will set not found');
+          setProperty(null);
+          return;
+        }
 
-//         if (propertyResponse.status === 'fulfilled' && propertyResponse.value.success) {
-//           const propertyData = propertyResponse.value.data.property;
-//           setProperty(propertyData);
-          
-//           if (propertyData.images && propertyData.images.length > 0) {
-//             const fixedImageUrls = propertyData.images.map((url: string) => {
-//               let fixedUrl = url.replace('/api/properties/images/', '/properties/images/');
-//               if (fixedUrl.startsWith('http://')) {
-//                 fixedUrl = fixedUrl.replace('http://', 'https://');
-//               }
-//               return fixedUrl;
-//             });
-//             setPropertyImages(fixedImageUrls);
-//           }
-          
-//           if (propertyData.agent && propertyData.agent.id) {
-//             loadAgentDetails(propertyData.agent.id);
-//           }
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 600));
+        const response = await propertyApi.getProperty(numericId as number);
 
-        // Format ID to handle both '101' and 'prop_101'
-        const normalizedId = propertyId.startsWith('prop_') ? propertyId : `prop_${propertyId}`;
-        
-        // Find property in mock data
-        const mockProp = mockPropertiesResponse.data.properties.find(
-          p => p.id === normalizedId || p.id === propertyId
-        );
+        if (response && response.success && response.data && response.data.property) {
+          const p = response.data.property;
 
-        if (mockProp) {
-          // Transform mock data to fit the Property interface expected by this component
           const transformedProperty: any = {
-            id: mockProp.id,
-            title: mockProp.title,
-            description: mockProp.description,
-            price: mockProp.price,
-            listingType: mockProp.listing_type,
-            type: mockProp.property_type,
-            bedrooms: mockProp.bedrooms,
-            bathrooms: mockProp.bathrooms,
-            receptions: mockProp.reception_rooms,
-            passportRating: mockProp.passport_rating,
-            status: mockProp.status,
-            features: mockProp.features,
+            id: p.id?.toString() || String(numericId),
+            title: p.title || p.name || '',
+            description: p.description || '',
+            price: p.price || p.monthly_rent || 0,
+            listingType: p.listing_type || p.listingType || 'sale',
+            type: p.property_type || p.type,
+            bedrooms: p.bedrooms || 0,
+            bathrooms: p.bathrooms || 0,
+            receptions: p.reception_rooms || p.receptions || 0,
+            passportRating: p.passport_rating || p.passportRating,
+            status: p.status || 'available',
+            features: p.features || [],
             address: {
-              street: mockProp.street,
-              city: mockProp.city,
-              postcode: mockProp.postcode,
-              county: mockProp.county,
-              coordinates: mockProp.coordinates
+              street: p.street || p.address || '',
+              city: p.city || p.address?.city || '',
+              postcode: p.postcode || p.address?.postcode || '',
+              county: p.county || p.address?.county || '',
+              coordinates: p.coordinates || p.address?.coordinates
             },
-            // Fake extra data for a complete UI experience
-            createdAt: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
-            updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-            tenure: 'Freehold',
-            propertySize: 1200 + Math.floor(Math.random() * 800),
-            energyRating: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
-            yearBuilt: 2010 + Math.floor(Math.random() * 12),
-            councilTaxBand: ['C', 'D', 'E'][Math.floor(Math.random() * 3)],
-            agent: { id: 1 } 
+            createdAt: p.created_at || new Date().toISOString(),
+            updatedAt: p.updated_at || new Date().toISOString(),
+            tenure: p.tenure || 'Freehold',
+            propertySize: p.property_size || p.propertySize,
+            energyRating: p.energy_rating || p.energyRating,
+            yearBuilt: p.year_built || p.yearBuilt,
+            councilTaxBand: p.council_tax_band || p.councilTaxBand,
+            agent: p.agent || p.agent_id || null
           };
 
           setProperty(transformedProperty);
-          
-          // Set Images
-          const imagesToUse = mockProp.images && mockProp.images.length > 0 
-            ? mockProp.images 
-            : [mockProp.primary_image_url].filter(Boolean);
-          
-          setPropertyImages(imagesToUse);
-          
-          // Trigger mock agent load
-          loadAgentDetails(1);
 
-          // Generate mock history based on the property price
-          setPropertyHistory([
-            { id: 1, property_id: mockProp.id, date: '2025-01-15', event_type: 'Listed', price: mockProp.price * 1.05 },
-            { id: 2, property_id: mockProp.id, date: '2025-02-10', event_type: 'Price Reduced', price: mockProp.price }
-          ] as any);
+          // images
+          const imagesToUse = Array.isArray(p.images) && p.images.length > 0
+            ? p.images
+            : p.primary_image_url ? [p.primary_image_url] : [];
 
+          setPropertyImages(imagesToUse.map((url: string) => url.startsWith('http') ? url : `${location.origin}${url}`));
+
+          // If the property response contains agent id, try to load agent details (fallback to mock loader)
+          const agentId = (p.agent && p.agent.id) || p.agent_id || (p.agent && typeof p.agent === 'number' ? p.agent : null);
+          if (agentId) loadAgentDetails(Number(agentId));
+
+          // If the API provided history or price events use them, otherwise create minimal history
+          if (p.history && Array.isArray(p.history)) {
+            setPropertyHistory(p.history as any);
+          } else {
+            setPropertyHistory([
+              { id: 1, property_id: p.id, date: new Date().toISOString(), event_type: 'Listed', price: p.price }
+            ] as any);
+          }
         } else {
           setProperty(null);
         }
