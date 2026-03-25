@@ -182,7 +182,6 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
                   disabled={isMarkingAllRead}
                   className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
-                  {isMarkingAllRead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Mark all read ({unreadCount})
                 </Button>
               )}
@@ -228,12 +227,7 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-              {loading && notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
-                  <p className="text-muted-foreground">Loading notifications...</p>
-                </div>
-              ) : notifications.length === 0 ? (
+              {loading && notifications.length === 0 ? null : notifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="text-lg font-medium text-foreground mb-2">No notifications found</h3>
@@ -302,7 +296,6 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
                                 disabled={markingReadIds.has(notification.id)}
                                 className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                               >
-                                {markingReadIds.has(notification.id) && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                                 Mark as read
                               </Button>
                             )}
@@ -320,7 +313,6 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
                         disabled={loading}
                         className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
                       >
-                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Load More
                       </Button>
                     </div>

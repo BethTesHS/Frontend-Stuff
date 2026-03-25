@@ -65,7 +65,7 @@ const AgentDashboard = () => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
   
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('agentDashboard_tab') || "dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -89,6 +89,8 @@ const AgentDashboard = () => {
     }
   }, [location.state, navigate, location.pathname]);
 
+  useEffect(() => { sessionStorage.setItem('agentDashboard_tab', activeTab); }, [activeTab]);
+
   const handleTabChange = (tab: string, mode: 'default' | 'improve' = 'default') => {
     if (tab === 'post-spare-room') {
       setSpareRoomModalOpen(true);
@@ -106,14 +108,7 @@ const AgentDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading Agent Dashboard...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!hasAccess) {

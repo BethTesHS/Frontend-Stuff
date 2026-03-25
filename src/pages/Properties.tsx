@@ -12,10 +12,11 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MapPin, Filter, X, PoundSterlingIcon } from 'lucide-react';
 import { propertyApi } from '@/services/api';
+import { postcodeApi } from '@/services/postcodeApi';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 // removed mock import; using real API via propertyApi
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const Properties = () => {
   const { isPropertySaved } = useSavedProperties();
@@ -62,9 +63,8 @@ const Properties = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   
-  const [suggestions, setSuggestions] = useState<Array<{value: string, label: string, type: string}>>([]); 
+  const [suggestions, setSuggestions] = useState<Array<{value: string, label: string, type: string}>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout>();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -100,42 +100,32 @@ const Properties = () => {
       return;
     }
     
-    setIsLoadingSuggestions(true);
-    
     try {
-      const postcodePattern = /^[A-Z]{1,2}[0-9R][0-9A-Z]?/i;
-      const isPostcodeFormat = postcodePattern.test(searchText.replace(/\s/g, ''));
-      
+      // Postcode area prefix: 1-2 letters optionally followed by digits/alphanumeric (e.g. sw, e, w1, ec1)
+      const postcodeAreaPattern = /^[A-Z]{1,2}[0-9A-Z]{0,3}$/i;
+      const isPostcodeFormat = postcodeAreaPattern.test(searchText.trim().replace(/\s/g, ''));
+
       let results: Array<{value: string, label: string, type: string}> = [];
-      
+
       if (isPostcodeFormat) {
-        const response = await fetch(`${API_BASE_URL}/api/postcodes/autocomplete?partial=${searchText.replace(/\s/g, '')}`);
-        const data = await response.json();
-        
+        const data = await postcodeApi.autocomplete(searchText);
         if (data.success && data.data && data.data.length > 0) {
-          results = data.data.map((pc: string) => ({
-            value: pc, label: `${pc}`, type: 'postcode'
-          }));
-        }
-      } else {
-        const response = await fetch(`${API_BASE_URL}/api/postcodes/locations/autocomplete?query=${searchText}`);
-        const data = await response.json();
-        
-        if (data.success && data.data && data.data.length > 0) {
-          results = data.data.map((location: string) => ({
-            value: location, label: `${location}`, type: 'location'
-          }));
+          results = data.data.map((pc: string) => ({ value: pc, label: pc, type: 'postcode' }));
         }
       }
-      
+
+      // Always also fetch location suggestions and append
+      const locData = await postcodeApi.locationsAutocomplete(searchText);
+      if (locData.success && locData.data && locData.data.length > 0) {
+        locData.data.forEach((loc: string) => results.push({ value: loc, label: loc, type: 'location' }));
+      }
+
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } catch (error) {
       console.error('Autocomplete failed:', error);
       setSuggestions([]);
       setShowSuggestions(false);
-    } finally {
-      setIsLoadingSuggestions(false);
     }
   }, []);
 
@@ -345,13 +335,7 @@ const Properties = () => {
 
   // ==================== RENDER ====================
   if (loading && properties.length === 0) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   const displayedProperties = filters.showFavorites
@@ -397,7 +381,7 @@ const Properties = () => {
                   placeholder="Please enter location or postcode (press Enter to search)"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   onFocus={() => {
                     if (suggestions.length > 0) {
                       setShowSuggestions(true);
@@ -406,11 +390,6 @@ const Properties = () => {
                   className="pl-10 h-12 pr-10 bg-white text-black w-full" 
                   autoComplete="off"
                 />
-                {isLoadingSuggestions && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <div className="animate-spin h-4 w-4 border-2 border-gray-300 rounded-full border-t-red-600"></div>
-                  </div>
-                )}
   
                 {/* Autocomplete Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (

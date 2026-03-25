@@ -80,16 +80,7 @@ const Login = () => {
   };
 
   if (pageLoading) {
-    return (
-      <Layout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mb-4"></div>
-            <p className="text-gray-700 font-semibold text-lg">Signing you in...</p>
-          </div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   return (

@@ -255,7 +255,7 @@ export function AgencyReports() {
   const getStatusIcon = (status: Report['status']) => {
     switch (status) {
       case 'ready': return <CheckCircle className="w-4 h-4" />;
-      case 'generating': return <Clock className="w-4 h-4 animate-spin" />;
+      case 'generating': return <Clock className="w-4 h-4" />;
       case 'scheduled': return <CalendarIcon className="w-4 h-4" />;
       case 'error': return <AlertTriangle className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;

@@ -113,12 +113,7 @@ export const AgentNotificationDropdown = ({ onShowAll }: AgentNotificationDropdo
             )}
           </div>
           <CardContent className="p-0 overflow-y-auto max-h-80">
-            {loading ? (
-              <div className="p-6 text-center">
-                <Loader2 className="w-6 h-6 mx-auto animate-spin text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">Loading...</p>
-              </div>
-            ) : notifications.length === 0 ? (
+            {loading ? null : notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                 <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
                 <p className="text-sm">No notifications yet</p>
@@ -149,9 +144,6 @@ export const AgentNotificationDropdown = ({ onShowAll }: AgentNotificationDropdo
                       <div className="flex-shrink-0 flex flex-col items-center space-y-1 mt-1">
                         {!notification.read && (
                           <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                        )}
-                        {markingReadIds.has(notification.id) && (
-                          <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
                         )}
                       </div>
                     </div>

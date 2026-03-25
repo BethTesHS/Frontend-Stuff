@@ -84,14 +84,7 @@ const BuyerDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
-          <p className="text-sm text-muted-foreground">Loading Buyer Dashboard...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!hasAccess) {

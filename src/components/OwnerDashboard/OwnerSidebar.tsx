@@ -15,6 +15,7 @@ import {
   BarChart2,
   Scale,
   UserCheck,
+  BedDouble,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -32,8 +33,7 @@ interface OwnerSidebarProps {
 }
 
 const navigationItems = [
-  { title: "Property Managers", value: "property-managers", icon: UserCheck },
-  { title: "Rooms", value: "spare-rooms", icon: Eye },
+  { title: "Managers", value: "property-managers", icon: UserCheck },
   { title: "Messages", value: "messages", icon: MessageCircle },
   { title: "Calendar", value: "calendar", icon: Calendar },
   { title: "Complaints", value: "complaints", icon: AlertTriangle },
@@ -53,6 +53,8 @@ export function OwnerSidebar({
   const { user, logout } = useAuth()
   const propertiesActive = activeTab === "properties" || activeTab === "property-performance" || activeTab === "compare-market"
   const [propertiesExpanded, setPropertiesExpanded] = useState(propertiesActive)
+  const roomsActive = activeTab === "spare-rooms" || activeTab === "room-performance" || activeTab === "room-compare-market"
+  const [roomsExpanded, setRoomsExpanded] = useState(roomsActive)
 
   const handleTabClick = (tabValue: string) => {
     onTabChange(tabValue)
@@ -177,6 +179,73 @@ export function OwnerSidebar({
                 }`}
               >
                 <Scale size={15} className={activeTab === "compare-market" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
+                <span className="font-medium">Compare Market</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Rooms - expandable group */}
+        <div>
+          <div
+            onClick={() => {
+              if (isCollapsed) {
+                handleTabClick("spare-rooms")
+              } else {
+                setRoomsExpanded(!roomsExpanded)
+              }
+            }}
+            className={`p-3 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} cursor-pointer rounded-lg transition-all ${
+              roomsActive
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300'
+            }`}
+            title={isCollapsed ? "Rooms" : undefined}
+          >
+            <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+              <BedDouble className={roomsActive ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'} size={20} />
+              {!isCollapsed && <span className="font-medium">Rooms</span>}
+            </div>
+            {!isCollapsed && (
+              roomsExpanded
+                ? <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
+                : <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />
+            )}
+          </div>
+
+          {!isCollapsed && roomsExpanded && (
+            <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
+              <div
+                onClick={() => handleTabClick("spare-rooms")}
+                className={`p-2 flex items-center space-x-2 cursor-pointer rounded-lg transition-all text-sm ${
+                  activeTab === "spare-rooms"
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <List size={15} className={activeTab === "spare-rooms" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
+                <span className="font-medium">My Rooms</span>
+              </div>
+              <div
+                onClick={() => handleTabClick("room-performance")}
+                className={`p-2 flex items-center space-x-2 cursor-pointer rounded-lg transition-all text-sm ${
+                  activeTab === "room-performance"
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <BarChart2 size={15} className={activeTab === "room-performance" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
+                <span className="font-medium">Performance</span>
+              </div>
+              <div
+                onClick={() => handleTabClick("room-compare-market")}
+                className={`p-2 flex items-center space-x-2 cursor-pointer rounded-lg transition-all text-sm ${
+                  activeTab === "room-compare-market"
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <Scale size={15} className={activeTab === "room-compare-market" ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'} />
                 <span className="font-medium">Compare Market</span>
               </div>
             </div>

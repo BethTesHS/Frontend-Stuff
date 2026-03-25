@@ -57,13 +57,7 @@ const PostProperty = () => {
   ];
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -635,14 +629,7 @@ const PostProperty = () => {
                   className="w-full bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 py-3 text-lg font-semibold" 
                   disabled={submitting}
                 >
-                  {submitting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Posting Property...</span>
-                    </div>
-                  ) : (
-                    'Post Property'
-                  )}
+                  {submitting ? 'Posting Property...' : 'Post Property'}
                 </Button>
               </form>
             </div>

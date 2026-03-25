@@ -96,9 +96,6 @@ const VerifyEmail = () => {
             <CardContent className="p-6 sm:p-8 pt-0 space-y-6">
               {verificationStatus === "loading" && (
                 <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
-                    <RefreshCw className="h-8 w-8 text-red-600 animate-spin" />
-                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">
                     Verifying your email...
                   </h3>

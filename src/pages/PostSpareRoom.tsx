@@ -109,6 +109,7 @@ const PostSpareRoom = ({ isOpen, onClose }: PostSpareRoomModalProps ) => {
   const [agentDetailsFetched, setAgentDetailsFetched] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (user && !agentDetailsFetched) {
       if (user.role === "agent" || user.role === "owner") {
         fetchUserProperties();
@@ -117,7 +118,7 @@ const PostSpareRoom = ({ isOpen, onClose }: PostSpareRoomModalProps ) => {
       }
       fetchAgentDetails();
     }
-  }, [user, agentDetailsFetched]);
+  }, [isOpen, user, agentDetailsFetched]);
 
   const fetchAgentDetails = async () => {
     if (agentDetailsFetched) return;
@@ -140,7 +141,6 @@ const PostSpareRoom = ({ isOpen, onClose }: PostSpareRoomModalProps ) => {
       }
     } catch (error) {
       console.error("Failed to fetch agent details:", error);
-      setAgentDetailsFetched(false); // Allow retry on error
     }
   };
 
@@ -523,16 +523,7 @@ const PostSpareRoom = ({ isOpen, onClose }: PostSpareRoomModalProps ) => {
                   disabled={isSubmitting}
                   className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white shadow-lg py-6 text-lg font-semibold transition-all duration-200 active:scale-[0.98]"
                 >
-                  {isSubmitting ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="animate-spin h-5 w-5" />
-                      <span>Posting Room...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      Post Spare Room Listing
-                    </div>
-                  )}
+                  {isSubmitting ? 'Posting Room...' : 'Post Spare Room Listing'}
                 </Button>
 
                 <Button

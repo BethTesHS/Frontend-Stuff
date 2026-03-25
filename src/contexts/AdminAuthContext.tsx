@@ -190,16 +190,11 @@ export const AdminAuthProvider = ({ children }: AdminAuthProviderProps) => {
               if (response.admin) {
                 setAdmin(response.admin);
                 setAdminProfile(response.admin);
+                scheduleTokenRefresh(token);
               }
 
-              // Schedule automatic refresh
-              scheduleTokenRefresh(token);
             } catch (error) {
               console.error('[AdminAuth] Token validation failed:', error);
-              // Clear invalid auth data
-              tokenStorage.removeItem('admin_token');
-              tokenStorage.removeItem('admin_profile');
-              setAdmin(null);
             }
           } catch (e) {
             console.error('[AdminAuth] Failed to parse stored admin:', e);

@@ -170,11 +170,7 @@ export function AgentMaintenance() {
       </div>
 
       {/* Schedules List */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
-      ) : schedules.length === 0 ? (
+      {loading ? null : schedules.length === 0 ? (
         <div className="bg-card border rounded-xl p-12 text-center">
           <Wrench className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
           <h3 className="text-lg font-semibold text-foreground mb-1">No maintenance schedules</h3>
@@ -336,9 +332,7 @@ export function AgentMaintenance() {
                 disabled={submitting}
                 className="flex-1"
               >
-                {submitting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                ) : editingSchedule ? (
+                {submitting ? 'Saving...' : editingSchedule ? (
                   'Update Schedule'
                 ) : (
                   'Create Schedule'

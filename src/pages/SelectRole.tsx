@@ -101,13 +101,7 @@ const SelectRole = () => {
   // Show loading while checking authentication
   if (authLoading || (!isAuthenticated || !user)) {
     console.log('SelectRole: Loading or not authenticated, showing loading');
-    return (
-      <Layout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   const roleOptions = [
@@ -394,13 +388,7 @@ const SelectRole = () => {
 
   if (pageLoading) {
     console.log('Rendering tenant type selection page');
-    return (
-      <Layout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   console.log('Current state - showTenantTypeSelection:', showTenantTypeSelection, 'showExternalTenantForm:', showExternalTenantForm, 'showTenantVerification:', showTenantVerification);

@@ -32,13 +32,15 @@ const TenantDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('tenantDashboard_tab') || "dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [isExternalTenantCheck, setIsExternalTenantCheck] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => { sessionStorage.setItem('tenantDashboard_tab', activeTab); }, [activeTab]);
 
   useEffect(() => {
     const checkExternalTenant = async () => {
@@ -86,14 +88,7 @@ const TenantDashboard = () => {
   }, [isMobile]);
 
   if (loading || isExternalTenantCheck) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-500"></div>
-          <p className="text-sm text-muted-foreground">Authenticating...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!hasAccess) return null;

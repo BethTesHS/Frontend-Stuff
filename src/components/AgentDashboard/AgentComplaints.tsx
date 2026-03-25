@@ -137,11 +137,7 @@ export const AgentComplaints = () => {
 
       {/* Complaints List */}
       <div className="space-y-4">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-          </div>
-        ) : filtered.length === 0 ? (
+        {loading ? null : filtered.length === 0 ? (
           <div className="bg-card border rounded-xl p-12 text-center">
             <AlertTriangle className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
             <h3 className="text-lg font-semibold text-foreground mb-1">No complaints found</h3>

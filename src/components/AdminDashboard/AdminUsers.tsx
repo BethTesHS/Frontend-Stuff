@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Users, CheckCircle, UserX, Search, UserMinus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from "@/hooks/useDebounce";
 
 export const AdminUsers = () => {
   const { toast } = useToast();
@@ -23,11 +24,12 @@ export const AdminUsers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
+  const debouncedSearch = useDebounce(userSearchQuery, 500);
 
   useEffect(() => {
     loadUsers();
-  }, [currentPage, roleFilter, statusFilter, userSearchQuery]);
+  }, [currentPage, roleFilter, statusFilter, debouncedSearch]);
 
   const loadUsers = async () => {
     try {
@@ -37,15 +39,33 @@ export const AdminUsers = () => {
       const response = await adminApi.getUsers({
         page: currentPage,
         limit: itemsPerPage,
-        search: userSearchQuery || undefined,
-        role: roleFilter !== 'all' ? roleFilter : undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined
+        search: debouncedSearch || undefined,
+        role: roleFilter !== "all" ? roleFilter : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
       });
 
       if (response.success && response.users) {
-        setUsers(response.users);
-        setTotalUsers(response.total || response.users.length);
-        setTotalPages(response.pages || Math.ceil((response.total || response.users.length) / itemsPerPage));
+       const mappedUsers = response.users.map((u: any) => {
+         const rawRole = u.role_name || u.role || "user";
+         const rawStatus = u.is_active ? "active" : u.status || "inactive";
+
+         return {
+           ...u,
+           id: u.auth_id || u.id,
+           name:
+             `${u.first_name || ""} ${u.last_name || ""}`.trim() ||
+             "Unknown User",
+           role: rawRole.toLowerCase(),
+           status: rawStatus.toLowerCase(),
+           joinedDate: u.created_at
+             ? new Date(u.created_at).toLocaleDateString()
+             : "N/A",
+         };
+       });
+
+      setUsers(mappedUsers);
+      setTotalUsers(response.total || 0);
+      setTotalPages(response.pages || 1);
       } else {
         toast({
           title: "Error",
@@ -134,14 +154,7 @@ export const AdminUsers = () => {
   };
 
   if (usersLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 dark:border-gray-400 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const activeUsersCount = users.filter(u => u.status === 'active').length;

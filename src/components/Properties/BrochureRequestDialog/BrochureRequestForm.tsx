@@ -144,12 +144,7 @@ const BrochureRequestForm = ({ property, onSuccess }: BrochureRequestFormProps) 
         className="w-full"
         disabled={!validateForm() || isSubmitting}
       >
-        {isSubmitting ? (
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Processing...</span>
-          </div>
-        ) : (
+        {isSubmitting ? 'Processing...' : (
           <div className="flex items-center space-x-2">
             {deliveryMethod === 'email' ? (
               <Mail className="w-4 h-4" />

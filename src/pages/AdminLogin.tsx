@@ -32,8 +32,9 @@ const AdminLogin = () => {
     try {
       const { adminApi } = await import('@/services/adminApi');
       const response = await adminApi.login({
-        username: credentials.username,
+        email: credentials.username,
         password: credentials.password,
+        remember_me: false
       });
 
       console.log('🎯 Admin login response:', {
@@ -46,6 +47,7 @@ const AdminLogin = () => {
 
       // Use the AdminAuthContext login method to store token and admin data
       // This will automatically set up token refresh
+      // adminLogin(response.token, response.admin, response.session_id);
       adminLogin(response.token, response.admin, response.session_id);
 
       console.log('[AdminLogin] Login successful, token refresh scheduled');
@@ -118,14 +120,7 @@ const AdminLogin = () => {
               className="w-full bg-gray-800 hover:bg-gray-900 text-white"
               disabled={isLoading}
             >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Authenticating...</span>
-                </div>
-              ) : (
-                'Access Admin Panel'
-              )}
+              {isLoading ? 'Authenticating...' : 'Access Admin Panel'}
             </Button>
           </form>
 

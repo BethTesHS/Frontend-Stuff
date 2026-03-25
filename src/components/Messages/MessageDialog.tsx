@@ -164,12 +164,7 @@ export const MessageDialog = ({
             onClick={handleSendMessage}
             disabled={sending || !message.trim() || message.length > 1000}
           >
-            {sending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
+            {sending ? 'Sending...' : (
               <>
                 <Send className="w-4 h-4 mr-2" />
                 Send Message

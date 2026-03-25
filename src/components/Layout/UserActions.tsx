@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogIn, LogOut } from 'lucide-react';
-import LoadingSpinner from '@/components/ui/loading-spinner';
 
 interface UserActionsProps {
   onLogout: () => void;
@@ -25,8 +24,7 @@ const UserActions = ({ onLogout }: UserActionsProps) => {
 
   return (
     <>
-      {isLoading && <LoadingSpinner />}
-      <div className="hidden md:flex items-center gap-3">
+<div className="hidden md:flex items-center gap-3">
         {isAuthenticated ? (
           <button
             onClick={onLogout}

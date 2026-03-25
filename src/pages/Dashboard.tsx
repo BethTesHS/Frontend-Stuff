@@ -50,13 +50,7 @@ const Dashboard = () => {
   }, [loading, hasAccess, user, navigate]);
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -65,16 +59,7 @@ const Dashboard = () => {
   }
 
   // Show a brief loading state while redirecting
-  return (
-    <Layout>
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to your dashboard...</p>
-        </div>
-      </div>
-    </Layout>
-  );
+  return null;
 };
 
 export default Dashboard;

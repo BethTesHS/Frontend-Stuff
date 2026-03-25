@@ -98,12 +98,7 @@ export const ProfileUpdateDialog = ({ children }: ProfileUpdateDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-blue-400/20 border-t-blue-400 rounded-full animate-spin mr-3" />
-            <span className="text-gray-600">Loading profile data...</span>
-          </div>
-        ) : (
+        {loading ? null : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-gray-700 font-medium text-sm">Full Name *</Label>
@@ -182,12 +177,7 @@ export const ProfileUpdateDialog = ({ children }: ProfileUpdateDialogProps) => {
                 disabled={submitting}
                 className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
               >
-                {submitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
-                    Updating...
-                  </>
-                ) : (
+                {submitting ? 'Updating...' : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
                     Update Profile

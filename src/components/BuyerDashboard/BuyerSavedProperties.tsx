@@ -44,11 +44,7 @@ export const BuyerSavedProperties = () => {
         <p className="text-sm text-muted-foreground">Properties you've saved for later</p>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-        </div>
-      ) : savedProperties.length > 0 ? (
+      {loading ? null : savedProperties.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {savedProperties.map((saved: any) => (
             <Card key={saved.id} className="overflow-hidden hover:shadow-lg transition-shadow">

@@ -370,14 +370,7 @@ export function OwnerBookings() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Scheduling...
-                      </>
-                    ) : (
-                      'Schedule Viewing'
-                    )}
+                    {isSubmitting ? 'Scheduling...' : 'Schedule Viewing'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -482,12 +475,7 @@ export function OwnerBookings() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <span className="ml-3 text-gray-600">Loading viewings...</span>
-            </div>
-          ) : (
+          {loading ? null : (
             <div className="space-y-4">
               {filteredBookings.map((booking) => {
                 const dateTime = formatDateTime(booking.scheduled_date);
@@ -760,14 +748,7 @@ export function OwnerBookings() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Viewing'
-                )}
+                {isSubmitting ? 'Updating...' : 'Update Viewing'}
               </Button>
             </DialogFooter>
           </form>

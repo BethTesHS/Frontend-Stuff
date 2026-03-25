@@ -390,7 +390,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         const user: User = {
-          id: userData.id?.toString() || '',
+          id: userData.id?.toString() || userData.sub || '',
           email: userData.email || '',
           firstName: userData.first_name || '',
           lastName: userData.last_name || '',
@@ -890,14 +890,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const isAuthenticated = !!user && !!getAuthToken();
 
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   const value = {
     user,

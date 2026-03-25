@@ -1,14 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, FileText } from 'lucide-react';
+import { Bot, FileText, Loader2 } from 'lucide-react';
 import { AdminProfileComponent } from '@/components/Admin/AdminProfile';
+import { adminApi } from '@/services/adminApi';
+import { useState, useEffect } from 'react';
 
 interface AdminSupportProps {
   stats: any;
 }
 
 export const AdminSupport = ({ stats }: AdminSupportProps) => {
+  const [health, setHealth] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const data = await adminApi.getSystemHealth();
+        setHealth(data);
+      } catch (error) {
+        console.error("Health check failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHealth();
+  }, []);
+
+  const getStatusColor = (status: string) => {
+    return status?.toLowerCase() === "healthy"
+      ? "bg-green-500 hover:bg-green-600 dark:bg-green-600"
+      : "bg-red-500 hover:bg-red-600 dark:bg-red-600";
+  };
   return (
     <div className="space-y-6">
       <AdminProfileComponent />
@@ -42,26 +66,40 @@ export const AdminSupport = ({ stats }: AdminSupportProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">Server Status</span>
-                <Badge className="bg-gray-700 dark:bg-gray-600">Online</Badge>
+            {loading ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="animate-spin text-gray-400" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">Database</span>
-                <Badge className="bg-gray-700 dark:bg-gray-600">Healthy</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">File Storage</span>
-                <Badge className="bg-gray-700 dark:bg-gray-600">Available</Badge>
-              </div>
-              {stats && (
+            ) : (
+              <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Admin Sessions</span>
-                  <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">{stats.active_sessions} active</Badge>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Server Status</span>
+                  <Badge className={getStatusColor(health?.server)}>{health?.server || 'Unknown'}</Badge>
                 </div>
-              )}
-            </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Database</span>
+                  <Badge className={getStatusColor(health?.database)}>{health?.database || 'Unknown'}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">File Storage (S3)</span>
+                  <Badge className={getStatusColor(health?.s3)}>{health?.s3 || 'Unknown'}</Badge>
+                </div>
+                {stats && (
+                  <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Admin Sessions</span>
+                    <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">{stats.active_sessions} active</Badge>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full text-sm text-gray-800 dark:text-gray-300"
+              onClick={() => { setLoading(true); }}
+            >
+              Refresh Health Status
+            </Button>
           </CardContent>
         </Card>
       </div>

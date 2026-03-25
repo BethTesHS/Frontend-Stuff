@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building, MapPin, Bed, Bath, DollarSign, Edit, AlertTriangle, Plus, Loader2, Wand2, BarChart2 } from 'lucide-react';
+import { Building, MapPin, Bed, Bath, Edit, AlertTriangle, Wand2, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PropertyToggle } from '@/components/Properties/PropertyToggle';
+import { EditPropertyDialog } from '@/components/Properties/EditPropertyDialog';
 import { propertyApi } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -14,14 +14,14 @@ interface PropertyManagementListProps {
   onCompare?: (property: any) => void;
 }
 
-export const PropertyManagementList = ({ 
-  selectionMode = 'default', 
+export const PropertyManagementList = ({
+  selectionMode = 'default',
   onAnalyze,
   onCompare,
 }: PropertyManagementListProps) => {
-  const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editProperty, setEditProperty] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -87,7 +87,7 @@ export const PropertyManagementList = ({
         >
           <div
             className="relative h-48 cursor-pointer"
-            onClick={() => navigate(`/property/${property.id}`)}
+            onClick={() => window.open(`/property/${property.id}`, '_self')}
           >
             <img
               src={
@@ -153,7 +153,7 @@ export const PropertyManagementList = ({
                     variant="outline"
                     size="sm"
                     className="flex-1 dark:border-gray-700"
-                    onClick={() => navigate(`/edit-property/${property.id}`)}
+                    onClick={() => setEditProperty(property)}
                   >
                     <Edit className="w-4 h-4 mr-1" /> Edit
                   </Button>
@@ -173,6 +173,15 @@ export const PropertyManagementList = ({
           </CardContent>
         </Card>
       ))}
+
+      <EditPropertyDialog
+        property={editProperty}
+        open={!!editProperty}
+        onClose={() => setEditProperty(null)}
+        onSaved={updated =>
+          setProperties(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
+        }
+      />
     </div>
   );
 };

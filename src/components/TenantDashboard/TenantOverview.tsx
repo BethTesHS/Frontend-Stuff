@@ -97,12 +97,7 @@ export const TenantOverview = ({ user, setActiveTab, navigate, dashboardData, da
   ];
 
   if (dashboardLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500"></div>
-        <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
-      </div>
-    );
+    return null;
   }
 
   if (dashboardData?.error) {

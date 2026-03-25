@@ -118,14 +118,9 @@ const PropertyDetails = () => {
           if (!isNaN(maybe)) numericId = maybe;
         }
 
-        if (numericId === null) {
-          // Non-numeric id handling: try fetch as string key (best-effort)
-          console.warn('PropertyDetails: non-numeric id — attempting fallback will set not found');
-          setProperty(null);
-          return;
-        }
-
-        const response = await propertyApi.getProperty(numericId as number);
+        // If we could parse a numeric id, prefer that. Otherwise pass the raw id (string) to the API.
+        const idToFetch = numericId !== null ? (numericId as number) : propertyId;
+        const response = await propertyApi.getProperty(idToFetch);
 
         if (response && response.success && response.data && response.data.property) {
           const p = response.data.property;
@@ -270,13 +265,7 @@ const PropertyDetails = () => {
   };
 
   if (localLoading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!property) {
@@ -567,7 +556,7 @@ const PropertyDetails = () => {
                 */}
                 <div 
                   className="rounded-xl overflow-hidden shadow-inner border border-gray-100 relative group cursor-pointer"
-                  onClick={() => navigate(`/property/${property.id}/map`)}
+                  onClick={() => navigate(``)}
                 >
                   {/* Click interception overlay */}
                   <div className="absolute inset-0 z-[1000] bg-black/5 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
@@ -713,11 +702,7 @@ const PropertyDetails = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-5 bg-white">
-                    {agentLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                      </div>
-                    ) : (
+                    {agentLoading ? null : (
                       <div className="space-y-5">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-3">

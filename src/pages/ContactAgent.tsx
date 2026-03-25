@@ -338,12 +338,7 @@ const ContactAgent = () => {
                 <CardTitle className="text-lg">Your Agent</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-sm text-gray-600 mt-2">Loading agent details...</p>
-                  </div>
-                ) : agent ? (
+                {isLoading ? null : agent ? (
                   <>
                     {/* Agent Avatar and Basic Info */}
                     <div className="flex items-center space-x-4">

@@ -25,12 +25,14 @@ const ExternalTenantDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('externalTenantDashboard_tab') || "dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
-  
+
+  useEffect(() => { sessionStorage.setItem('externalTenantDashboard_tab', activeTab); }, [activeTab]);
+
   // Handle special tab navigation cases
   const handleTabChange = (tab: string) => {
     if (tab === 'post-spare-room') {
@@ -97,11 +99,7 @@ const ExternalTenantDashboard = () => {
   }, [user]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
-      </div>
-    );
+    return null;
   }
 
   if (!hasAccess) return null;

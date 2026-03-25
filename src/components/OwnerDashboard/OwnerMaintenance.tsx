@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Wrench, Plus, Edit2, Trash2, Calendar, Clock, AlertTriangle, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  Wrench,
+  Plus,
+  Edit2,
+  Trash2,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  MapPin,
+  CalendarClock,
+  ListFilter,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,12 +24,33 @@ interface ScheduleWithComplaint extends MaintenanceSchedule {
   complaint?: Complaint;
 }
 
+type FilterOption = 'all' | 'upcoming' | 'past';
+
+const urgencyBorderColor: Record<string, string> = {
+  urgent: 'border-l-red-500',
+  high: 'border-l-orange-500',
+  medium: 'border-l-yellow-400',
+  low: 'border-l-green-500',
+};
+
+const urgencyBadgeColor: Record<string, string> = {
+  urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  low: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+};
+
+function isUpcoming(dateStr: string) {
+  return new Date(dateStr) >= new Date(new Date().toDateString());
+}
+
 export function OwnerMaintenance() {
   const [schedules, setSchedules] = useState<ScheduleWithComplaint[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithComplaint | null>(null);
+  const [filter, setFilter] = useState<FilterOption>('all');
 
   // Form state
   const [selectedComplaint, setSelectedComplaint] = useState<number | ''>('');
@@ -32,21 +63,18 @@ export function OwnerMaintenance() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch complaints - using agent endpoint to get all complaints for owner's properties
         const complaintsResponse = await complaintsApi.getAgentComplaints();
-        const complaintsList = Array.isArray(complaintsResponse.complaints) 
-          ? complaintsResponse.complaints 
+        const complaintsList = Array.isArray(complaintsResponse.complaints)
+          ? complaintsResponse.complaints
           : complaintsResponse.data?.complaints || [];
         setComplaints(complaintsList);
 
-        // Fetch schedules
         const schedulesData = await maintenanceApi.getAllSchedules();
-        // Enrich with complaint data
-        const enrichedSchedules = schedulesData.map(schedule => ({
-          ...schedule,
-          complaint: complaintsList.find(c => c.id === schedule.complaint_id)
+        const enriched = schedulesData.map(s => ({
+          ...s,
+          complaint: complaintsList.find(c => c.id === s.complaint_id),
         }));
-        setSchedules(enrichedSchedules);
+        setSchedules(enriched);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load maintenance schedules');
@@ -54,13 +82,23 @@ export function OwnerMaintenance() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
+  const counts = {
+    all: schedules.length,
+    upcoming: schedules.filter(s => isUpcoming(s.scheduled_date)).length,
+    past: schedules.filter(s => !isUpcoming(s.scheduled_date)).length,
+  };
+
+  const filtered = schedules.filter(s => {
+    if (filter === 'upcoming') return isUpcoming(s.scheduled_date);
+    if (filter === 'past') return !isUpcoming(s.scheduled_date);
+    return true;
+  });
+
   const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!selectedComplaint || !scheduledDate || !scheduledTime) {
       toast.error('Please fill in all required fields');
       return;
@@ -72,29 +110,23 @@ export function OwnerMaintenance() {
         complaint_id: Number(selectedComplaint),
         scheduled_date: scheduledDate,
         scheduled_time: scheduledTime,
-        notes
+        notes,
       };
 
       if (editingSchedule?.id) {
-        // Update existing
         const updated = await maintenanceApi.updateSchedule(editingSchedule.id, scheduleData);
-        setSchedules(prev => prev.map(s => s.id === editingSchedule.id ? { ...updated, complaint: editingSchedule.complaint } : s));
-        toast.success('Maintenance schedule updated successfully');
+        setSchedules(prev =>
+          prev.map(s => s.id === editingSchedule.id ? { ...updated, complaint: editingSchedule.complaint } : s)
+        );
+        toast.success('Schedule updated');
       } else {
-        // Create new
         const created = await maintenanceApi.createSchedule(scheduleData as MaintenanceSchedule);
         const complaint = complaints.find(c => c.id === Number(selectedComplaint));
         setSchedules(prev => [...prev, { ...created, complaint }]);
-        toast.success('Maintenance schedule created successfully');
+        toast.success('Schedule created');
       }
 
-      // Reset form
-      setSelectedComplaint('');
-      setScheduledDate('');
-      setScheduledTime('');
-      setNotes('');
-      setShowCreateModal(false);
-      setEditingSchedule(null);
+      handleCloseModal();
     } catch (error) {
       console.error('Error saving schedule:', error);
       toast.error(editingSchedule ? 'Failed to update schedule' : 'Failed to create schedule');
@@ -109,24 +141,22 @@ export function OwnerMaintenance() {
     setScheduledDate(schedule.scheduled_date);
     setScheduledTime(schedule.scheduled_time);
     setNotes(schedule.notes || '');
-    setShowCreateModal(true);
+    setShowModal(true);
   };
 
   const handleDelete = async (scheduleId: number) => {
     if (!confirm('Are you sure you want to delete this maintenance schedule?')) return;
-
     try {
       await maintenanceApi.deleteSchedule(scheduleId);
       setSchedules(prev => prev.filter(s => s.id !== scheduleId));
-      toast.success('Maintenance schedule deleted successfully');
+      toast.success('Schedule deleted');
     } catch (error) {
-      console.error('Error deleting schedule:', error);
       toast.error('Failed to delete schedule');
     }
   };
 
   const handleCloseModal = () => {
-    setShowCreateModal(false);
+    setShowModal(false);
     setEditingSchedule(null);
     setSelectedComplaint('');
     setScheduledDate('');
@@ -134,211 +164,317 @@ export function OwnerMaintenance() {
     setNotes('');
   };
 
-  const getComplaintBadgeColor = (urgency?: string) => {
-    switch (urgency) {
-      case 'urgent':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-      case 'high':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-      default:
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center">
-            <Wrench className="w-8 h-8 mr-3 text-blue-600" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Wrench className="w-6 h-6 text-blue-500" />
             Maintenance Scheduling
           </h1>
-          <p className="text-muted-foreground text-base">
-            Schedule and manage maintenance dates for property complaints
+          <p className="text-muted-foreground text-sm mt-1">
+            Schedule and manage repair dates for property complaints
           </p>
         </div>
-        <Button 
-          onClick={() => setShowCreateModal(true)}
-          className="gap-2"
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Create Maintenance Date
-        </Button>
+          Schedule Repair
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+            <ListFilter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground">{counts.all}</p>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+            <CalendarClock className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{counts.upcoming}</p>
+            <p className="text-xs text-muted-foreground">Upcoming</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{counts.past}</p>
+            <p className="text-xs text-muted-foreground">Completed</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2">
+        {([
+          { label: 'All', value: 'all' as FilterOption, icon: ListFilter },
+          { label: 'Upcoming', value: 'upcoming' as FilterOption, icon: CalendarClock },
+          { label: 'Past', value: 'past' as FilterOption, icon: CheckCircle2 },
+        ] as { label: string; value: FilterOption; icon: any }[]).map(opt => {
+          const Icon = opt.icon;
+          const active = filter === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setFilter(opt.value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                active
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
+                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {opt.label}
+              <span className={`ml-0.5 px-1.5 text-[10px] rounded-full font-semibold ${
+                active
+                  ? 'bg-white/20 dark:bg-gray-900/20 text-inherit'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}>
+                {counts[opt.value]}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Schedules List */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
-      ) : schedules.length === 0 ? (
-        <div className="bg-card border rounded-xl p-12 text-center">
-          <Wrench className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
-          <h3 className="text-lg font-semibold text-foreground mb-1">No maintenance schedules</h3>
-          <p className="text-muted-foreground text-sm mb-6">
-            Create a maintenance schedule to get started
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {schedules.map(schedule => (
-            <div key={schedule.id} className="bg-card border rounded-xl p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg">
-                      {schedule.complaint?.issue_type || 'Unknown Issue'}
-                    </h3>
-                    {schedule.complaint?.urgency && (
-                      <Badge className={`text-xs ${getComplaintBadgeColor(schedule.complaint.urgency)}`}>
-                        {schedule.complaint.urgency}
-                      </Badge>
-                    )}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 animate-pulse">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+                    <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
                   </div>
-                  
-                  <div className="space-y-2 text-sm text-muted-foreground mb-3">
-                    <p>{schedule.complaint?.description}</p>
-                    <div className="flex items-center gap-4 text-foreground font-medium">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(schedule.scheduled_date).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-12 text-center">
+            <Wrench className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-30" />
+            <h3 className="text-base font-semibold text-foreground mb-1">No schedules found</h3>
+            <p className="text-muted-foreground text-sm">
+              {filter === 'all'
+                ? 'No maintenance schedules yet. Click "Schedule Repair" to create one.'
+                : filter === 'upcoming'
+                ? 'No upcoming maintenance scheduled.'
+                : 'No past maintenance records.'}
+            </p>
+          </div>
+        ) : (
+          filtered.map(schedule => {
+            const urgency = schedule.complaint?.urgency || 'low';
+            const borderColor = urgencyBorderColor[urgency] || 'border-l-gray-300';
+            const upcoming = isUpcoming(schedule.scheduled_date);
+
+            return (
+              <div
+                key={schedule.id}
+                className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 border-l-4 ${borderColor} rounded-xl overflow-hidden`}
+              >
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Left content */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0 w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                        <Wrench className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {schedule.scheduled_time}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-foreground text-sm sm:text-base">
+                            {schedule.complaint?.issue_type || 'Maintenance Work'}
+                          </h3>
+                          {schedule.complaint?.urgency && (
+                            <Badge className={`text-xs ${urgencyBadgeColor[urgency]}`}>
+                              {urgency}
+                            </Badge>
+                          )}
+                          <Badge
+                            className={`text-xs ${
+                              upcoming
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                            }`}
+                          >
+                            {upcoming ? 'Upcoming' : 'Completed'}
+                          </Badge>
+                        </div>
+
+                        {schedule.complaint?.description && (
+                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                            {schedule.complaint.description}
+                          </p>
+                        )}
+
+                        <div className="mt-2 flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            {new Date(schedule.scheduled_date).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {schedule.scheduled_time}
+                          </div>
+                          {schedule.complaint?.house_number && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3" />
+                              {schedule.complaint.house_number}
+                            </div>
+                          )}
+                        </div>
+
+                        {schedule.notes && (
+                          <div className="mt-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-muted-foreground">
+                              <span className="font-semibold text-foreground">Notes: </span>
+                              {schedule.notes}
+                            </p>
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleEdit(schedule)}
+                        className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => schedule.id && handleDelete(schedule.id)}
+                        className="p-2 rounded-lg border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
-                  {schedule.notes && (
-                    <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm">
-                      <p className="text-muted-foreground"><strong>Notes:</strong> {schedule.notes}</p>
+                  {schedule.complaint && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2">
+                      <AlertTriangle className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        Linked complaint: <span className="font-medium text-foreground">{schedule.complaint.ticket_number}</span>
+                        {schedule.complaint.tenant_name && (
+                          <> · Tenant: <span className="font-medium text-foreground">{schedule.complaint.tenant_name}</span></>
+                        )}
+                      </span>
                     </div>
                   )}
                 </div>
-
-                <div className="flex gap-2 ml-4 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(schedule)}
-                    className="gap-1"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                    onClick={() => schedule.id && handleDelete(schedule.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
 
-      {/* Create/Edit Modal */}
-      <Dialog open={showCreateModal} onOpenChange={handleCloseModal}>
+      {/* Create / Edit Modal */}
+      <Dialog open={showModal} onOpenChange={handleCloseModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingSchedule ? 'Edit Maintenance Date' : 'Create Maintenance Date'}
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-blue-500" />
+              {editingSchedule ? 'Edit Schedule' : 'Schedule a Repair'}
             </DialogTitle>
             <DialogDescription>
-              {editingSchedule 
-                ? 'Update the maintenance schedule details'
-                : 'Schedule a new maintenance date for a complaint'
-              }
+              {editingSchedule
+                ? 'Update the maintenance schedule details.'
+                : 'Link a complaint and set a date and time for the repair.'}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCreateOrUpdate} className="space-y-4">
-            {/* Complaint Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Complaint *</label>
+          <form onSubmit={handleCreateOrUpdate} className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Complaint *</label>
               <select
                 value={selectedComplaint}
-                onChange={(e) => setSelectedComplaint(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={e => setSelectedComplaint(e.target.value ? Number(e.target.value) : '')}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600"
                 required
               >
-                <option value="">Choose a complaint...</option>
-                {complaints.map(complaint => (
-                  <option key={complaint.id} value={complaint.id}>
-                    {complaint.issue_type} - {complaint.house_number} ({complaint.ticket_number})
+                <option value="">Select a complaint…</option>
+                {complaints.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.issue_type} — {c.house_number} ({c.ticket_number})
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Date Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Maintenance Date *</label>
-              <Input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                required
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Date *</label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Time *</label>
+                <Input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={e => setScheduledTime(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            {/* Time Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Maintenance Time *</label>
-              <Input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Additional Notes</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Notes</label>
               <Textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional information for the maintenance..."
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Any instructions for the maintenance visit…"
                 className="resize-none min-h-[80px]"
               />
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button
+            <div className="flex gap-3 pt-2">
+              <button
                 type="button"
-                variant="outline"
                 onClick={handleCloseModal}
-                className="flex-1"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1"
+                className="flex-1 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-60"
               >
-                {submitting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                ) : editingSchedule ? (
-                  'Update Schedule'
-                ) : (
-                  'Create Schedule'
-                )}
-              </Button>
+                {submitting ? 'Saving…' : editingSchedule ? 'Update' : 'Create'}
+              </button>
             </div>
           </form>
         </DialogContent>

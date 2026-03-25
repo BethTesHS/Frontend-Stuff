@@ -291,11 +291,7 @@ export const TenantTenancy = () => {
                     disabled={!moveOutDate || !!dateError || isSubmitting}
                     className="w-full sm:w-auto bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-10 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-30"
                   >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "Submit Notice"
-                    )}{" "}
+                    {isSubmitting ? "Submitting..." : "Submit Notice"}{" "}
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
@@ -413,7 +409,6 @@ export const TenantTenancy = () => {
                   disabled={isSubmitting || rating === 0}
                   className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-bold flex items-center justify-center gap-2"
                 >
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}{" "}
                   Submit Review
                 </button>
               </div>

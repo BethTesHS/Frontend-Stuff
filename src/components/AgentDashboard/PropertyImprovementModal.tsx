@@ -79,14 +79,7 @@ export const PropertyImprovementModal = ({
         </DialogHeader>
 
         <div className="p-6">
-          {analyzing ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-              <p className="text-sm text-slate-500 font-medium">
-                Evaluating market competitiveness...
-              </p>
-            </div>
-          ) : (
+          {analyzing ? null : (
             <div className="space-y-6">
               {/* 1. THE ISSUES */}
               <div className="space-y-4">

@@ -79,12 +79,7 @@ export default function ExternalTenantNotifications() {
 
       <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-900">
         <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12 text-center text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-              Loading notifications...
-            </div>
-          ) : notifications.length === 0 ? (
+          {loading ? null : notifications.length === 0 ? (
             <div className="p-12 flex flex-col items-center justify-center text-center">
               <Bell className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">You're all caught up!</h3>

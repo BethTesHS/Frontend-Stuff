@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import LoadingSpinner from '@/components/ui/loading-spinner';
 import { 
   UserCheck, 
   MapPin, 
@@ -250,13 +249,7 @@ const TenantApprovalRequests = ({ onApprove, onReject }: TenantApprovalRequestsP
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">

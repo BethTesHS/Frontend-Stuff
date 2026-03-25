@@ -35,11 +35,7 @@ export const BuyerHistory = () => {
         <p className="text-sm text-muted-foreground">All properties you've viewed or requested to view</p>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-        </div>
-      ) : viewings.length > 0 ? (
+      {loading ? null : viewings.length > 0 ? (
         <div className="space-y-4">
           {viewings.map((viewing: any) => (
             <Card key={viewing.id} className="overflow-hidden hover:shadow-lg transition-shadow">

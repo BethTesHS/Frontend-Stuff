@@ -118,11 +118,7 @@ export const AgentTenancy = () => {
                 disabled={loading}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-70"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin w-4 h-4" />
-                ) : (
-                  "Acknowledge & Proceed"
-                )}
+                {loading ? "Processing..." : "Acknowledge & Proceed"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -173,7 +169,6 @@ export const AgentTenancy = () => {
                   disabled={loading || !terminationReason}
                   className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
                 >
-                  {loading && <Loader2 className="animate-spin w-4 h-4" />}
                   Issue Official Termination
                 </button>
               </div>
@@ -200,11 +195,7 @@ export const AgentTenancy = () => {
                 disabled={loading || !inspectionDate}
                 className="flex items-center gap-2 px-8 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-md"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin w-4 h-4" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
+                <Plus className="w-4 h-4" />
                 Confirm Inspection Date
               </button>
             </div>
@@ -281,11 +272,7 @@ export const AgentTenancy = () => {
                 disabled={status !== "INSPECTION_SET" || loading}
                 className="w-full bg-red-50 dark:bg-red-900/10 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-500 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-30"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin w-4 h-4 mx-auto" />
-                ) : (
-                  "Finalize Closure"
-                )}
+                {loading ? "Processing..." : "Finalize Closure"}
               </button>
             </div>
           </div>

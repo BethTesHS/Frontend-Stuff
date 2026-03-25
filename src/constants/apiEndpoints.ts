@@ -1,6 +1,7 @@
-// constants/apiEndpoints.ts
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
+
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 
 export const API_ENDPOINTS = {
   // Auth endpoints
@@ -18,19 +19,17 @@ export const API_ENDPOINTS = {
 
   // Property endpoints
   PROPERTIES: {
-    BASE: '/properties',
-    CREATE: '/properties/create',
-    CREATE_WITH_FILES: '/properties/create-with-files',
-    MY_PROPERTIES: '/properties/my-properties',
-    FEATURED: '/properties/featured',
-    SEARCH: '/properties/search',
-    DRAFT: '/properties/draft',
-    MARKET_COMPARISON: (id: number) => `/properties/${id}/market-comparison`,
-    UPDATE: (id: number) => `/properties/${id}/update`,
-    UPLOAD_IMAGES: (id: number) => `/properties/${id}/upload-images`,
-    SET_PRIMARY_IMAGE: (id: number, imageId: number) => `/properties/${id}/set-primary-image/${imageId}`,
-    IMAGES: (id: number) => `/properties/${id}/images`,
-    STATUS: (id: string) => `/properties/${id}/status`,
+    BASE: '/property',
+    LIST: '/property/list',
+    DETAIL: '/property',
+    CREATE: '/property',
+    MY_PROPERTIES: '/property/my',
+    FEATURED: '/property/featured',
+    SEARCH: '/property/search',
+    DRAFT: '/property/draft',
+    MARKET_COMPARISON: (id: number) => `/property/${id}/market-comparison`,
+    UPDATE: '/property',
+    STATUS: (id: string) => `/property/${id}/status`,
     AGENT_STATS: '/agent/stats',
     OWNER_STATS: '/my-properties/stats',
     OWNER_ACTIVITIES: '/owner/activities',
@@ -38,11 +37,22 @@ export const API_ENDPOINTS = {
     AGENT_ACTIVITIES: '/api/agent/recent-activities',
   },
 
+  // Property image endpoints
+  PROPERTY_IMAGE: {
+    LIST: '/property_image/list',             // GET    — paginated list; optional ?is_primary= filter
+    DETAIL: '/property_image',                // GET    — single record by ?property_image_id=
+    UPLOAD_URL: '/property_image/upload_url', // GET    — pre-signed S3 URL (?property_id=&filename=)
+    CREATE: '/property_image',                // POST   — save metadata only (no file upload)
+    UPLOAD: '/property_image/upload',         // POST   — multipart: property_id, image_id, file, is_primary, alt_text
+    UPDATE: '/property_image',                // PUT    — update record (image_id, alt_text, is_primary, …)
+    DELETE: '/property_image',                // DELETE — remove record by image_id
+  },
+
   // Profile endpoints
   PROFILES: {
     BASE: '/profiles',
     ME: '/profiles/me',
-    SETUP: '/profiles/setup',
+    SETUP: '/user_profile',
     SELECT_ROLE: '/profiles/select-role',
     CURRENT_ROLE: '/profiles/current-role',
     UPDATE: '/profiles/update',
@@ -62,12 +72,12 @@ export const API_ENDPOINTS = {
 
   // Notification endpoints
   NOTIFICATIONS: {
-    BASE: '/api/notifications',
-    UNREAD_COUNT: '/api/notifications/unread-count',
-    MARK_ALL_READ: '/api/notifications/mark-all-read',
-    MARK_READ: (id: string) => `/api/notifications/${id}/read`,
-    DELETE: (id: string) => `/api/notifications/${id}`,
-    PREFERENCES: '/api/notification-preferences',
+    BASE: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    MARK_ALL_READ: '/notifications/mark-all-read',
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    DELETE: (id: string) => `/notifications/${id}`,
+    PREFERENCES: '/notification-preferences',
     TEST: '/notifications/test',
   },
 
@@ -94,12 +104,14 @@ export const API_ENDPOINTS = {
 
   // Admin endpoints
   ADMIN: {
-    LOGIN: '/admin/login',
-    PROFILE: '/admin/profile',
-    STATS: '/admin/dashboard/stats',
-    LOGOUT: '/admin/logout',
-    SESSIONS: '/admin/sessions',
-    REVOKE_SESSION: (sessionId: string) => `/admin/sessions/${sessionId}`,
+    LOGIN: '/auth/login',
+    PROFILE: '/admin/me',
+    STATS: '/admin/stats',
+    LOGOUT: '/admin_session/logout',
+    SESSIONS: '/admin_session/list',
+    REVOKE_SESSION: (sessionId: string) => `/admin_session?admin_session_id=${sessionId}`,
+    SETTINGS_LIST: '/admin-settings/list',
+    SETTINGS_BASE: '/admin-settings',
     DASHBOARD_MESSAGES: '/admin/dashboard/messages',
     DASHBOARD_CONVERSATIONS: '/admin/dashboard/conversations',
     DASHBOARD_SUMMARY: '/admin/dashboard/summary',
@@ -111,12 +123,36 @@ export const API_ENDPOINTS = {
     MESSAGING_STATS: '/admin/dashboard/stats',
     EXTERNAL_TENANT_PROFILE: (userId: string) => `/admin/external-tenants/${userId}`,
     // User management endpoints
-    USERS: '/admin/users',
+    USERS: '/auth/admin/users',
     SUSPEND_USER: (userId: string) => `/admin/users/${userId}/suspend`,
     UNSUSPEND_USER: (userId: string) => `/admin/users/${userId}/unsuspend`,
     
-    TASKS: "/admin/tasks",
-    TASK_ACTION: (taskId: string) => `/admin/tasks/${taskId}/action`,
+    TASKS: '/celery_tasks/list',
+    TASKS_BASE: '/celery_tasks',
+    TASK_TRIGGER: '/celery_tasks/trigger',
+    TASK_REGISTERED: '/celery_tasks/registered',
+    TASK_STATUS: (taskId: string) => `/celery_tasks/status/${taskId}`,
+
+    ADMIN_BASE: '/admin/notifications',
+
+    TENANT_VERIFICATION: {
+      LIST: '/tenant_verification_request/list',
+      GET_ITEM: (id: number) => `/tenant_verification_request/${id}`,
+      UPDATE: '/tenant_verification_request',
+      DELETE: '/tenant_verification_request',
+    },
+
+    HEALTH_CHECK: '/health-checker',
+  },
+  
+  TENANT_VERIFICATION: {
+    VALIDATE_PIN: '/tenant_verification/validate-pin',
+    SUBMIT_REQUEST: '/tenant_verification/submit-request',
+    MY_REQUESTS: '/tenant_verification/requests',
+    APPROVE: (id: number) => `/tenant_verification/approve/${id}`,
+    REJECT: (id: number) => `/tenant_verification/reject/${id}`,
+    CREATE_PIN: '/tenant_verification/pins/create',
+    GET_PINS: '/tenant_verification/pins',
   },
 
   BUYER: {
@@ -152,6 +188,15 @@ export const API_ENDPOINTS = {
 
   // Universal chat endpoint (for all user types)
   CHAT: '/api/buyer/chat',
+
+  // Postcode endpoints
+  POSTCODE: {
+    LOOKUP: '/postcode',
+    AUTOCOMPLETE: '/postcode/autocomplete',
+    VALIDATE: '/postcode/validate',
+    SEARCH_PLACES: '/postcode/search-places',
+    LOCATIONS_AUTOCOMPLETE: '/postcode/locations/autocomplete',
+  },
 } as const;
 
 export { API_BASE_URL };

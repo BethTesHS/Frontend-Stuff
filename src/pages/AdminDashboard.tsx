@@ -21,10 +21,12 @@ const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
   const { theme, toggleTheme } = useTheme();
   
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('adminDashboard_tab') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
+
+  useEffect(() => { sessionStorage.setItem('adminDashboard_tab', activeTab); }, [activeTab]);
+
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -48,19 +50,7 @@ const AdminDashboard = () => {
   }, [isAdminAuthenticated]);
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
-            <Shield className="w-8 h-8 text-gray-600 dark:text-gray-400 animate-pulse" />
-          </div>
-          <p className="text-gray-800 dark:text-gray-100 text-lg font-semibold">Verifying admin access...</p>
-          <div className="mt-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 dark:border-gray-400 mx-auto"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!isAdminAuthenticated) return null;

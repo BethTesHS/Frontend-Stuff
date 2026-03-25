@@ -185,7 +185,7 @@ const PropertyCard = ({ property, showDeleteOnly = false, showSaleDetails = fals
         </div>
 
         <div className="mt-auto">
-          <Link to={`/property/${property.id}`} className="block">
+          <Link to={`/property/${property.property_id ?? property.id}`} className="block">
             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
               View Details
             </Button>

@@ -131,14 +131,7 @@ export const MarketComparisonModal = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="animate-spin text-blue-600" size={32} />
-              <p className="text-sm text-gray-500">
-                Crunching market averages...
-              </p>
-            </div>
-          ) : comparisonData ? (
+          {loading ? null : comparisonData ? (
             <div className="space-y-6">
               {/* Context Header */}
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-gray-800">

@@ -371,11 +371,7 @@ const PropertyInsights = ({ propertyId }: PropertyInsightsProps) => {
             onClick={handleDownload}
             disabled={downloading}
           >
-            {downloading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
+            <Download className="w-4 h-4 mr-2" />
             {downloading ? 'Downloading…' : 'Download Full Report'}
           </Button>
         </div>
@@ -655,11 +651,7 @@ const PropertyInsights = ({ propertyId }: PropertyInsightsProps) => {
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
-            {downloading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
+            <Download className="w-4 h-4 mr-2" />
             Download PDF
           </Button>
         </div>

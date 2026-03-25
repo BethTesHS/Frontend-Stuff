@@ -218,18 +218,7 @@ const ProfileSetup = () => {
   };
 
   if (loading || loadingProfile) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">
-              {loadingProfile ? 'Loading your profile...' : 'Loading...'}
-            </p>
-          </div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -663,10 +652,7 @@ const ProfileSetup = () => {
                     disabled={submitting}
                   >
                     {submitting ? (
-                      <div className="flex items-center space-x-4">
-                        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary-foreground"></div>
-                        <span className="text-lg">Setting up profile...</span>
-                      </div>
+                      <span className="text-lg">Setting up profile...</span>
                     ) : (
                       <span className="text-lg">Complete Profile Setup</span>
                     )}

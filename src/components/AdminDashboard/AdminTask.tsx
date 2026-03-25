@@ -1,86 +1,94 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Search,
-  Plus,
-  Clock,
-  RefreshCcw,
-  AlertCircle,
-  Play,
-  XCircle,
-  Trash2,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { adminApi, Task, TaskStats } from "@/services/adminApi";
-import { MOCK_TASKS, MOCK_TASK_STATS } from "@/utils/mockTaskData";
+import { Search, Plus, Play, Trash2, Loader2, X, Check } from "lucide-react";
+import { adminApi, Task } from "@/services/adminApi";
 import { AdminCreateTaskModal } from "./AdminCreateTaskModal";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminTask = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [stats, setStats] = useState<TaskStats>({
-    active: 0,
-    idle: 0,
-    offline: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all tasks");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const tasksPerPage = 3; 
+  const { toast } = useToast();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const stats = useMemo(
+    () => ({
+      active: tasks.filter((t) => t.status === true || t.status === 1).length,
+      inactive: tasks.filter((t) => t.status === false || t.status === 0)
+        .length,
+    }),
+    [tasks],
+  );
 
   const loadData = useCallback(async () => {
     try {
       if (tasks.length === 0) setLoading(true);
-      // const data = await adminApi.getTasks();
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setTasks(MOCK_TASKS);
-      setStats(MOCK_TASK_STATS);
+      const response = await adminApi.getTasks(currentPage, 10);
+      const taskList = Array.isArray(response.data) ? response.data : [];
+      setTasks(taskList);
     } catch (error) {
       console.error("Failed to load tasks:", error);
     } finally {
       setLoading(false);
     }
-  }, [tasks.length]);
+  }, [currentPage, tasks.length]);
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const interval = setInterval(loadData, 15000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, searchQuery]);
-
-  const handleAction = async (
-    taskId: string,
-    action: "retry" | "revoke" | "delete",
-  ) => {
-    setActionId(`${taskId}-${action}`);
+  const handleAction = async (id: number, action: "delete" | "trigger" | "toggle") => {
+    setActionId(`${id}-${action}`);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (action === "delete") {
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      if (action === "toggle") {
+        const task = tasks.find((t) => t.celery_tasks_id === id);
+        if (task) {
+          await adminApi.updateTask({ ...task, status: !task.status });
+          toast({
+            title: "Status Updated",
+            description: "Task status changed successfully.",
+          });
+          await loadData();
+        }
+      } else if (action === "delete") {
+        await adminApi.deleteTask(id);
+        setTasks((prev) => prev.filter((t) => t.celery_tasks_id !== id));
+
+        toast({
+          title: "Schedule Deleted",
+          description: `Task has been removed successfully.`,
+        });
+
+        setTimeout(() => loadData(), 500);
       } else {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId
-              ? {
-                  ...t,
-                  status: action === "retry" ? "running" : "failed",
-                  error: action === "revoke" ? "Revoked" : undefined,
-                }
-              : t,
-          ),
-        );
+        const task = tasks.find((t) => t.celery_tasks_id === id);
+        if (task) {
+          let parsedArgs = {};
+          try {
+            parsedArgs = task.task_args ? JSON.parse(task.task_args) : {};
+          } catch (e) {
+            console.error("JSON Parse error for task args", e);
+          }
+          await adminApi.triggerTask(task.celery_tasks_name);
+          toast({
+            title: "Task Triggered",
+            description: `${task.celery_tasks_name} is now running.`,
+          });
+        }
       }
+    } catch (error: any) {
+      toast({
+        title: "Action Failed",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
       await loadData();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Action failed");
     } finally {
       setActionId(null);
     }
@@ -88,301 +96,197 @@ const AdminTask = () => {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch =
-        task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.id.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = filter === "all tasks" || task.status === filter;
-      return matchesSearch && matchesFilter;
+      const nameMatch = task.celery_tasks_name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const idMatch = String(task.celery_tasks_id).includes(searchQuery);
+      const isActive = task.status === true || task.status === 1;
+
+      if (filter === "active") return (nameMatch || idMatch) && isActive;
+      if (filter === "inactive") return (nameMatch || idMatch) && !isActive;
+      return nameMatch || idMatch;
     });
   }, [tasks, searchQuery, filter]);
-
-  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
 
   if (loading && tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="text-gray-500 dark:text-gray-400">
-          Loading task monitor...
-        </p>
+        <p className="text-gray-500">Connecting to Task Service...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
-          label="ACTIVE"
+          label="ACTIVE SCHEDULES"
           value={stats.active}
-          sub="Workers"
           color="border-emerald-500"
         />
         <StatCard
-          label="IDLE"
-          value={stats.idle}
-          sub=""
-          color="border-blue-500"
-        />
-        <StatCard
-          label="OFFLINE"
-          value={stats.offline}
-          sub=""
-          color="border-red-500"
+          label="PAUSED / INACTIVE"
+          value={stats.inactive}
+          color="border-gray-400"
         />
       </div>
 
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-2xl">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div className="relative flex-1">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               size={18}
             />
             <input
               type="text"
-              placeholder="Search tasks or ID..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+              placeholder="Search by name or ID..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
           >
-            <Plus size={18} /> Create New Task
+            <Plus size={18} /> New Schedule
           </button>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {["All Tasks", "Running", "Pending", "Completed", "Failed"].map(
-            (t) => (
-              <button
-                key={t}
-                onClick={() => setFilter(t.toLowerCase())}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  filter === t.toLowerCase()
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                {t}
-              </button>
-            ),
-          )}
+        <div className="flex gap-2">
+          {["All Tasks", "Active", "Inactive"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilter(t.toLowerCase())}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                filter === t.toLowerCase()
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* List Container */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
-          <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Recent Jobs
-          </h2>
-          <span className="text-xs text-gray-400">
-            Showing {filteredTasks.length > 0 ? indexOfFirstTask + 1 : 0}-
-            {Math.min(indexOfLastTask, filteredTasks.length)} of{" "}
-            {filteredTasks.length}
-          </span>
-        </div>
-
-        {currentTasks.length === 0 ? (
-          <div className="bg-white dark:bg-gray-900 p-12 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
-            <p className="text-gray-500 dark:text-gray-400">
-              No tasks found matching your criteria.
-            </p>
-          </div>
-        ) : (
-          currentTasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onAction={handleAction}
-              loadingAction={actionId}
-            />
-          ))
-        )}
-
-        {/* Pagination UI - Always verify totalPages > 1 */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-6">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              <ChevronLeft
-                size={20}
-                className="text-gray-600 dark:text-gray-400"
-              />
-            </button>
-
-            <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
-                    currentPage === i + 1
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              <ChevronRight
-                size={20}
-                className="text-gray-600 dark:text-gray-400"
-              />
-            </button>
-          </div>
-        )}
+        {filteredTasks.map((task) => (
+          <TaskItem
+            key={task.celery_tasks_id}
+            task={task}
+            onAction={handleAction}
+            onEdit={(t: Task) => { setEditingTask(t); setIsModalOpen(true); }}
+            loadingAction={actionId}
+          />
+        ))}
       </div>
 
       <AdminCreateTaskModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        initialData={editingTask}
+        onClose={() => { setIsModalOpen(false); setEditingTask(null); }}
         onCreated={loadData}
       />
     </div>
   );
 };
 
-const StatCard = ({ label, value, sub, color }: any) => (
-  <div
-    className={`bg-white dark:bg-gray-900 p-6 rounded-xl border-l-4 ${color} shadow-sm border border-gray-200 dark:border-gray-800`}
-  >
-    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-      {label}
-    </p>
-    <div className="flex items-baseline gap-2 mt-1">
-      <span className="text-3xl font-bold dark:text-white">{value}</span>
-      {sub && <span className="text-sm text-gray-400">{sub}</span>}
-    </div>
-  </div>
-);
-
-const TaskItem = ({
-  task,
-  onAction,
-  loadingAction,
-}: {
-  task: Task;
-  onAction: any;
-  loadingAction: string | null;
-}) => {
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case "running":
-        return "text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800";
-      case "pending":
-        return "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800";
-      case "completed":
-        return "text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800";
-      case "failed":
-        return "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
+const TaskItem = ({ task, onAction, onEdit, loadingAction }: any) => {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const isActive = task.status === true || task.status === 1;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden group hover:border-blue-400 dark:hover:border-blue-900 transition-all">
-      <div className="p-5 flex flex-col gap-4">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm group hover:border-blue-400 transition-all">
+      <div className="p-5">
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg">
-              {task.name}
+              {task.celery_tasks_name}
             </h3>
-            <p className="text-xs font-mono text-gray-400 mt-1 uppercase">
-              ID: {task.id}
+            <p className="text-xs font-mono text-gray-400 mt-1">
+              ID: {task.celery_tasks_id} | UID: {task.task_uid || "NONE"}
             </p>
           </div>
 
-          <div className="flex items-center gap-1">
-            {task.status === "failed" && (
-              <button
-                onClick={() => onAction(task.id, "retry")}
-                className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg flex items-center gap-1 text-xs font-bold"
-              >
-                {loadingAction === `${task.id}-retry` ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : (
-                  <Play size={16} />
-                )}
-                RETRY
-              </button>
-            )}
-
-            {(task.status === "running" || task.status === "pending") && (
-              <button
-                onClick={() => onAction(task.id, "revoke")}
-                className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg flex items-center gap-1 text-xs font-bold"
-              >
-                {loadingAction === `${task.id}-revoke` ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : (
-                  <XCircle size={16} />
-                )}
-                CANCEL
-              </button>
-            )}
-
-            <button
-              onClick={() => onAction(task.id, "delete")}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => onEdit(task)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
+              title="Edit Schedule"
             >
-              {loadingAction === `${task.id}-delete` ? (
+              Edit
+            </button>
+            <button
+              onClick={() => onAction(task.celery_tasks_id, "trigger")}
+              disabled={loadingAction !== null}
+              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors"
+            >
+              {loadingAction === `${task.celery_tasks_id}-trigger` ? (
                 <Loader2 className="animate-spin" size={16} />
               ) : (
-                <Trash2 size={16} />
+                <Play size={16} />
               )}
+              RUN NOW
             </button>
+            {showConfirm ? (
+              <div className="flex items-center gap-1 animate-in slide-in-from-right-2 duration-200">
+                <button
+                  onClick={() => onAction(task.celery_tasks_id, "delete")}
+                  className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                  title="Confirm Delete"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                  title="Cancel"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="p-2 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                disabled={loadingAction !== null}
+              >
+                {loadingAction === `${task.celery_tasks_id}-delete` ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+              </button>
+            )}
 
             <span
-              className={`ml-2 px-3 py-1 rounded text-[10px] font-bold uppercase border ${getStatusStyle(task.status)}`}
+              className={`px-3 py-1 rounded text-[10px] font-bold uppercase border ${isActive ? "text-emerald-600 border-emerald-200" : "text-gray-400 border-gray-200"}`}
             >
-              ● {task.status}
+              ● {isActive ? "Active" : "Inactive"}
             </span>
           </div>
         </div>
 
-        {task.error && (
-          <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/20">
-            <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2 font-medium">
-              <AlertCircle size={14} /> Error: {task.error}
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-8 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
           <Detail
-            icon={<Clock size={16} />}
-            label="Duration"
-            value={task.duration}
+            label="Schedule"
+            value={`${task.schedule_type}: ${task.schedule_value || "None"}`}
+          />
+          <Detail label="Priority" value={task.priority} />
+          <Detail
+            label="Retry"
+            value={task.retry_on_failure ? "Enabled" : "Disabled"}
+          />
+          <Detail 
+            label="Arguments" 
+            value={task.task_args && task.task_args !== "{}" ? task.task_args : "None"} 
+            isMono={true}
           />
           <Detail
-            icon={<RefreshCcw size={16} />}
-            label={
-              task.status === "completed"
-                ? "Finished"
-                : task.status === "failed"
-                  ? "Failed At"
-                  : "ETA"
-            }
-            value={task.eta || task.finishedAt || task.failedAt || "--:--"}
+            label="Created"
+            value={new Date(task.created_at).toLocaleDateString()}
           />
         </div>
       </div>
@@ -390,15 +294,25 @@ const TaskItem = ({
   );
 };
 
-const Detail = ({ icon, label, value }: any) => (
-  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-    {icon}
-    <div>
-      <p className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">
-        {label}
-      </p>
-      <p className="font-semibold">{value}</p>
-    </div>
+const Detail = ({ label, value, isMono }: any) => (
+  <div>
+    <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">
+      {label}
+    </p>
+    <p
+      className={`text-sm font-semibold dark:text-white truncate ${isMono ? "font-mono text-[11px] text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-1 rounded" : ""}`}
+    >
+      {value}
+    </p>
+  </div>
+);
+
+const StatCard = ({ label, value, color }: any) => (
+  <div
+    className={`bg-white dark:bg-gray-900 p-6 rounded-xl border-l-4 ${color} shadow-sm border border-gray-200 dark:border-gray-800`}
+  >
+    <p className="text-xs font-bold text-gray-500 uppercase">{label}</p>
+    <p className="text-3xl font-bold dark:text-white mt-1">{value}</p>
   </div>
 );
 

@@ -48,14 +48,7 @@ const NotificationPreferencesComponent = () => {
   };
 
   if (loading || !preferences) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-gray-400" />
-          <p className="text-gray-500">Loading preferences...</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (

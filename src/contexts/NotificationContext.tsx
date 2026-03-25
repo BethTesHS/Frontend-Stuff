@@ -41,20 +41,26 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Error fetching unread count:', error);
       // Mark backend as unavailable to prevent repeated requests
-      setBackendAvailable(false);
-      setUnreadCount(0); // Reset count when backend is unavailable
+      // setBackendAvailable(false);
+      // setUnreadCount(0); // Reset count when backend is unavailable
     }
   };
 
   // Mark notification as read
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notificationId: string | number) => {
     try {
-      const response = await notificationApi.markAsRead(notificationId);
-      if (response.success && response.data) {
-        setUnreadCount(response.data.unread_count);
+      const idStr = notificationId.toString();
+      const response = await notificationApi.markAsRead(idStr);
+      if (response.success) {
+        if (response.data && typeof response.data.unread_count === "number") {
+          setUnreadCount(response.data.unread_count);
+        } else {
+          // Fallback: decrement locally if backend doesn't return count
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error("Error marking notification as read:", error);
       throw error;
     }
   };
@@ -83,6 +89,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (user) {
       refreshUnreadCount();
+    } else {
+      setUnreadCount(0); // Reset count on logout
     }
   }, [user]);
 

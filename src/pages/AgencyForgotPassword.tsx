@@ -42,11 +42,7 @@ const AgencyForgotPassword = () => {
   };
 
   if (agencyLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return null;
   }
 
   if (emailSent) {
@@ -173,14 +169,7 @@ const AgencyForgotPassword = () => {
                 className="w-full h-12 text-base font-semibold"
                 disabled={loading}
               >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Sending...
-                  </div>
-                ) : (
-                  'Send Reset Link'
-                )}
+                {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>
             </form>
           </CardContent>

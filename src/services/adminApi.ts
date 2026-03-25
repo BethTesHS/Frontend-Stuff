@@ -2,17 +2,19 @@ import { API_BASE_URL, API_ENDPOINTS } from '../constants/apiEndpoints';
 import { tokenStorage, getAdminToken, setAdminProfile } from '@/utils/tokenStorage';
 
 interface AdminLoginRequest {
-  username: string;
+  email: string;
   password: string;
   secret?: string;
+  remember_me?:boolean;
 }
 
 interface AdminLoginResponse {
   success: boolean;
-  message: string;
+  message?: string;
   token: string;
   admin: AdminProfile;
   session_id: string;
+  data: any
 }
 
 interface AdminProfile {
@@ -57,15 +59,20 @@ interface AdminStatsResponse {
   };
   generated_at: string;
 }
+export type TaskPriority = "Low" | "Medium" | "High";
+
 export interface Task {
-  id: string;
-  name: string;
-  status: 'running' | 'pending' | 'completed' | 'failed';
-  duration: string;
-  eta?: string;
-  finishedAt?: string;
-  failedAt?: string;
-  error?: string;
+  celery_tasks_id: number;
+  status: boolean | string | number; 
+  celery_tasks_name: string;
+  task_uid: string | null;
+  schedule_type: "crontab" | "interval";
+  schedule_value: string | null;
+  priority: TaskPriority;
+  retry_on_failure: boolean;
+  task_args: string | null;
+  created_at: string;
+  modified_at: string;
 }
 
 export interface TaskStats {
@@ -74,15 +81,38 @@ export interface TaskStats {
   offline: number;
 }
 export interface CreateTaskPayload {
-  title: string;
-  duration: {
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
+  celery_tasks_name: string;
+  schedule_type: "crontab" | "interval";
+  schedule_value?: string;
+  duration_days?: number;
+  duration_hours?: number;
+  duration_minutes?: number;
+  duration_seconds?: number;
+  priority?: TaskPriority;
+  retry_on_failure?: boolean;
+  task_args?: string;
+  crontab_expression?: string;
+}
+export interface UpdateTaskPayload extends CreateTaskPayload {
+  celery_tasks_id: number;
+  status?: boolean | string | number;
+}
+export interface SendResponse<T> {
+  data: T;
+  message: string;
+  pageinfo?: {
+    current_page: number;
+    total_pages: number;
+    page_limit: number;
   };
-  priority: "low" | "medium" | "high";
-  retryOnFailure: boolean;
+  type: string;
+  status: number;
+}
+
+export interface HealthStatus {
+  server: string;
+  database: string;
+  s3: string;
 }
 
 class AdminApiService {
@@ -118,19 +148,29 @@ class AdminApiService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
+        credentials: "include"
       },
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Login failed");
+    const result = await response.json();
+    if (result.status >= 400) {
+      throw new Error(result.message || "Authentication failed");
     }
 
-    const data = await response.json();
+    const authData = result.data;
+
+    const user = authData.user;
+    if (!user?.is_admin && user?.role?.toLowerCase() !== "admin") {
+      throw new Error("Access Denied: Administrative privileges required.");
+    }
+
     return {
-      ...data,
-      admin: data.admin || data.user,
-    };
+      success: true,
+      token: authData.access_token,
+      admin: user,
+      session_id: authData.session_id,
+      data: authData,
+    };;
   }
 
   async getProfile(): Promise<{
@@ -230,19 +270,41 @@ class AdminApiService {
 
     return response.json();
   }
+  
+  async getSystemHealth(): Promise<HealthStatus> {
+  const response = await fetch(
+    `${API_BASE_URL}${API_ENDPOINTS.ADMIN.HEALTH_CHECK}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }, 
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch system health");
+  }
+  const result = await response.json();
+  return result.data; 
+}
 
   async logout(): Promise<void> {
-    const response = await fetch(
-      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGOUT}`,
-      {
-        method: "POST",
-        headers: this.getAuthHeaders(),
-      },
-    );
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.ADMIN.LOGOUT}`,
+        {
+          method: "POST",
+          headers: this.getAuthHeaders(),
+        },
+      );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Logout failed");
+      if (!response.ok) {
+        console.warn("Backend logout failed, proceeding with local logout.");
+      }
+    } catch (error) {
+      console.error("Network error during logout:", error);
+    } finally {
+      sessionStorage.removeItem("admin_token");
+      sessionStorage.removeItem("admin_profile");
+      window.location.href = "/admin-login";
     }
   }
 
@@ -642,7 +704,7 @@ class AdminApiService {
       queryParams.set("role", params.role);
     if (params?.status && params.status !== "all")
       queryParams.set("status", params.status);
-    if (params?.page) queryParams.set("page", params.page.toString());
+    if (params?.page) queryParams.set("page_no", params.page.toString());
     if (params?.limit) queryParams.set("limit", params.limit.toString());
 
     const queryString = queryParams.toString();
@@ -684,9 +746,20 @@ class AdminApiService {
       }
     }
 
-    const data = await response.json();
-    console.log("[AdminAPI] Users data received:", data);
-    return data;
+    const result = await response.json();
+    console.log("[AdminAPI] Users data received:", result);
+    if (result.status === 200 || result.type === "Success") {
+      const pageInfo = result.pageinfo || result.page_info || result.pageInfo;
+      return {
+        success: true,
+        users: Array.isArray(result.data) ? result.data : [],
+        total: pageInfo?.total_count || 0,
+        page: pageInfo?.current_page || 1,
+        pages: pageInfo?.total_pages || 1,
+      };
+    }
+
+    return { success: false, users: [] };
   }
 
   async suspendUser(
@@ -745,49 +818,81 @@ class AdminApiService {
   }
 
   // TASK MANAGEMENT ENDPOINTS
-  async getTasks(): Promise<{ tasks: Task[]; stats: TaskStats }> {
+  async getTasks(page = 1, limit = 10): Promise<SendResponse<Task[]>> {
     const response = await fetch(
-      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`,
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}?page_no=${page}&limit=${limit}`,
       {
         method: "GET",
         headers: this.getAuthHeaders(),
-      },
+      }
     );
     if (!response.ok) throw new Error("Failed to fetch tasks");
     return await response.json();
   }
-
-  // 2. Perform actions on tasks (retry, revoke, delete)
-  async performTaskAction(
-    taskId: string,
-    action: "retry" | "revoke" | "delete",
-  ): Promise<void> {
-    const url =
-      action === "delete"
-        ? `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}/${taskId}`
-        : `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_ACTION(taskId)}`;
-
-    const response = await fetch(url, {
-      method: action === "delete" ? "DELETE" : "POST",
-      headers: this.getAuthHeaders(),
-      body: action !== "delete" ? JSON.stringify({ action }) : undefined,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Failed to ${action} task`);
-    }
-  }
-  async createTask(payload: CreateTaskPayload): Promise<void> {
+  async getRegisteredTasks(): Promise<SendResponse<string[]>> {
     const response = await fetch(
-      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS}`,
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_REGISTERED}`,
       {
-        method: "POST",
+        method: "GET",
         headers: this.getAuthHeaders(),
-        body: JSON.stringify(payload),
+      }
+    );
+    const result = await response.json();
+    if (!response.ok || result.status >= 400) {
+      throw new Error(result.message || "Failed to fetch registered tasks");
+    }
+    return result;
+  }
+
+  async triggerTask(taskName: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASK_TRIGGER}`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ 
+        task_name: taskName, 
+        args: [], 
+        kwargs: {} 
+      }),
+    });
+    if (!response.ok) throw new Error("Failed to trigger task");
+  }
+
+  async deleteTask(celeryTasksId: number): Promise<void> {
+    const response = await fetch(
+      `${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS_BASE}`,
+      {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ celery_tasks_id: celeryTasksId }),
       },
     );
-    if (!response.ok) throw new Error("Failed to create task");
+    const result = await response.json();
+    if (!response.ok || result.status >= 400) {
+      throw new Error(result.message || "Failed to delete task");
+    }
+  }
+
+  async createTask(payload: CreateTaskPayload): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS_BASE}`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok || (result.status && result.status >= 400)) {
+      throw new Error(result.message || "Failed to create task schedule");
+    }
+  }
+  async updateTask(payload: UpdateTaskPayload): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TASKS_BASE}`, {
+      method: "PUT",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok || result.status >= 400) {
+      throw new Error(result.message || "Failed to update task");
+    }
   }
 }
 

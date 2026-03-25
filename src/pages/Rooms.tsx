@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Room, RoomFilters as RoomFiltersType } from '@/types/room';
 import { spareRoomApi } from '@/services/spareRoomApi';
+import { postcodeApi } from '@/services/postcodeApi';
 import RoomCard from '@/components/Rooms/RoomCard';
 import RoomFilters from '@/components/Rooms/RoomFilters';
 import Layout from '@/components/Layout/Layout';
@@ -76,6 +77,56 @@ const Rooms = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const roomsPerPage = 5;
+
+  const [suggestions, setSuggestions] = useState<Array<{value: string, label: string, type: string}>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const autocompleteTimeoutRef = useRef<NodeJS.Timeout>();
+  const locationInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchLocationSuggestions = useCallback(async (searchText: string) => {
+    if (searchText.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      const postcodeAreaPattern = /^[A-Z]{1,2}[0-9A-Z]{0,3}$/i;
+      const isPostcodeFormat = postcodeAreaPattern.test(searchText.trim().replace(/\s/g, ''));
+
+      let results: Array<{value: string, label: string, type: string}> = [];
+
+      if (isPostcodeFormat) {
+        const data = await postcodeApi.autocomplete(searchText);
+        if (data.success && data.data && data.data.length > 0) {
+          results = data.data.map((pc: string) => ({ value: pc, label: pc, type: 'postcode' }));
+        }
+      }
+
+      const locData = await postcodeApi.locationsAutocomplete(searchText);
+      if (locData.success && locData.data && locData.data.length > 0) {
+        locData.data.forEach((loc: string) => results.push({ value: loc, label: loc, type: 'location' }));
+      }
+
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current);
+    if (searchLocation.length >= 2) {
+      autocompleteTimeoutRef.current = setTimeout(() => {
+        fetchLocationSuggestions(searchLocation);
+      }, 300);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    return () => { if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current); };
+  }, [searchLocation, fetchLocationSuggestions]);
 
   // URL Synchronization
   useEffect(() => {
@@ -364,13 +415,7 @@ const Rooms = () => {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   const activeFilters = getActiveFilters();
@@ -400,13 +445,41 @@ const Rooms = () => {
             <div className="flex flex-col lg:flex-row gap-2 mb-4">
               {/* Search input */}
               <div className="flex-1 relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                 <Input
+                  ref={locationInputRef}
                   placeholder="Enter location, neighborhood, or transport links..."
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setShowSuggestions(false);
+                    if (e.key === 'Escape') setShowSuggestions(false);
+                  }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                   className="pl-10 h-12"
                 />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.value}
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setSearchLocation(suggestion.value);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span>{suggestion.label}</span>
+                        {suggestion.type === 'postcode' && (
+                          <span className="ml-auto text-xs text-gray-400">Postcode</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Price dropdown */}

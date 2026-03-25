@@ -437,11 +437,7 @@ export const BoostListingModal = ({ open, onClose }: BoostListingModalProps) => 
                 onClick={handlePayment}
                 disabled={processing}
               >
-                {processing ? (
-                  <><Loader2 size={15} className="animate-spin mr-1" /> Processing...</>
-                ) : (
-                  <><CreditCard size={15} className="mr-1" /> Pay KES {selectedPlan?.price.toLocaleString()}</>
-                )}
+                {processing ? 'Processing...' : <><CreditCard size={15} className="mr-1" /> Pay KES {selectedPlan?.price.toLocaleString()}</>}
               </Button>
             </div>
           )}

@@ -142,13 +142,7 @@ const Notifications = () => {
   };
 
   if (authLoading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -274,7 +268,7 @@ const Notifications = () => {
                       disabled={loading}
                       className={user?.role === 'owner' ? 'bg-white/20 border-white/20 text-gray-700 hover:bg-white/30' : 'bg-white/20 border-white/20 text-white hover:bg-white/30'}
                     >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
                     </Button>
                     {unreadCount > 0 && (
@@ -285,7 +279,6 @@ const Notifications = () => {
                         disabled={isMarkingAllRead}
                         className={user?.role === 'owner' ? 'bg-white/20 border-white/20 text-gray-700 hover:bg-white/30' : 'bg-white/20 border-white/20 text-white hover:bg-white/30'}
                       >
-                        {isMarkingAllRead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Mark all as read ({unreadCount})
                       </Button>
                     )}
@@ -338,12 +331,7 @@ const Notifications = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-0 overflow-y-auto">
-              {loading && notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-gray-400" />
-                  <p className="text-gray-500">Loading notifications...</p>
-                </div>
-              ) : notifications.length === 0 ? (
+              {loading && notifications.length === 0 ? null : notifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications found</h3>
@@ -414,9 +402,6 @@ const Notifications = () => {
                                 disabled={markingReadIds.has(notification.id)}
                                 className={`${styles.buttonClass} text-sm`}
                               >
-                                {markingReadIds.has(notification.id) && (
-                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                )}
                                 Mark as read
                               </Button>
                             )}
@@ -435,7 +420,6 @@ const Notifications = () => {
                         disabled={loading}
                         className={styles.buttonClass}
                       >
-                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Load More Notifications
                       </Button>
                     </div>

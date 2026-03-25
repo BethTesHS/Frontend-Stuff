@@ -42,7 +42,7 @@ const OwnerDashboard = () => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
   
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('ownerDashboard_tab') || 'overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [listPropertyOpen, setListPropertyOpen] = useState(false);
@@ -51,6 +51,8 @@ const OwnerDashboard = () => {
   const [isSelectingAgent, setIsSelectingAgent] = useState(false);
   const [spareRoomModalOpen, setSpareRoomModalOpen] = useState(false);
   const [propertyMode, setPropertyMode] = useState<"default" | "improve">("default");
+
+  useEffect(() => { sessionStorage.setItem('ownerDashboard_tab', activeTab); }, [activeTab]);
 
   // Handle success message from property listing
   useEffect(() => {
@@ -63,11 +65,7 @@ const OwnerDashboard = () => {
   }, [location.state, navigate, location.pathname]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-500"></div>
-      </div>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -111,6 +109,8 @@ const OwnerDashboard = () => {
       case 'property-performance':
         return <OwnerPropertyPerformance />;
       case "compare-market": return <OwnerCompareMarket />;
+      case "room-performance": return <OwnerPropertyPerformance />;
+      case "room-compare-market": return <OwnerCompareMarket />;
       case "property-managers": return <PropertyManagers />;
       case 'messages':
         return <Messages />;;

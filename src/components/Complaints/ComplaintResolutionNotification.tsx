@@ -190,12 +190,7 @@ export const ComplaintResolutionNotification = ({
                   disabled={rating === 0 || isSubmitting}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-lg"
                 >
-                  {isSubmitting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Submitting...</span>
-                    </div>
-                  ) : (
+                  {isSubmitting ? 'Submitting...' : (
                     <div className="flex items-center space-x-2">
                       <Star className="w-4 h-4" />
                       <span>Submit Review</span>

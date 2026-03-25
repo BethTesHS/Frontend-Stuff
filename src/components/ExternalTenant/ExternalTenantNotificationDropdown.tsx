@@ -67,11 +67,7 @@ export function ExternalTenantNotificationDropdown({ onShowAll }: { onShowAll: (
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
           </div>
           <CardContent className="p-0 overflow-y-auto max-h-80">
-            {loading ? (
-              <div className="p-6 text-center">
-                <Loader2 className="w-6 h-6 mx-auto animate-spin text-gray-400 mb-2" />
-              </div>
-            ) : notifications.length === 0 ? (
+            {loading ? null : notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500">No new notifications</div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">

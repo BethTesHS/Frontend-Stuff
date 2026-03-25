@@ -3,7 +3,7 @@ import { Input } from './input';
 import { Label } from './label';
 import { Button } from './button';
 import { usePostcodeLookup } from '@/hooks/usePostcodeLookup';
-import { Loader2, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PostcodeInputProps {
@@ -83,11 +83,7 @@ export const PostcodeInput: React.FC<PostcodeInputProps> = ({
             disabled={loading}
             className="shrink-0"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MapPin className="h-4 w-4" />
-            )}
+            <MapPin className="h-4 w-4" />
           </Button>
         )}
       </div>

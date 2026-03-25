@@ -69,13 +69,7 @@ const MyComplaints = () => {
 
   if (authLoading) {
     console.log('MyComplaints - Showing loading spinner');
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -158,11 +152,7 @@ const MyComplaints = () => {
             </div>
             
             <div className="p-6">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-                </div>
-              ) : complaints.length === 0 ? (
+              {loading ? null : complaints.length === 0 ? (
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8">
                   <ComplaintEmptyState />
                 </div>

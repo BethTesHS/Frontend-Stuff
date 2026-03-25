@@ -191,12 +191,7 @@ export const InquiriesView = () => {
           </div>
           <ScrollArea className="h-[calc(100vh-280px)]">
             <div className="space-y-2 p-2">
-              {loading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
-                  <p className="text-sm text-muted-foreground mt-2">Loading inquiries...</p>
-                </div>
-              ) : inquiries.length === 0 ? (
+              {loading ? null : inquiries.length === 0 ? (
                 <div className="text-center py-8">
                   <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm font-medium text-foreground">No inquiries yet</p>

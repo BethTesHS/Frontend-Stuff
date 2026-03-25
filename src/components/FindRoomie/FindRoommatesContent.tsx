@@ -427,13 +427,7 @@ export function FindRoommatesContent({ onMessageClick }: FindRoommatesProps) {
             onClick={handleSearch}
             className="bg-slate-800 hover:bg-slate-900 w-full text-white font-semibold h-10 px-4 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
           >
-            {isSearching ? (
-              <RotateCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <RotateCw className="w-4 h-4" /> Update
-              </>
-            )}
+            <RotateCw className="w-4 h-4" /> Update
           </Button>
         </div>
       </Card>

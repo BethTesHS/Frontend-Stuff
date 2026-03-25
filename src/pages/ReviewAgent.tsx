@@ -161,14 +161,7 @@ const ReviewAgent = () => {
                   disabled={isSubmitting || rating === 0}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Submitting...
-                    </>
-                  ) : (
-                    'Submit Review'
-                  )}
+                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </Button>
                 <Button
                   variant="outline"

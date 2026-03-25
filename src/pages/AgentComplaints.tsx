@@ -314,13 +314,7 @@ const AgentComplaints = () => {
   }, [hasAccess]);
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -449,13 +443,7 @@ const AgentComplaints = () => {
   };
 
   if (complaintsLoading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   return (
@@ -836,11 +824,7 @@ const AgentComplaints = () => {
                                   disabled={!noteMessage.trim() || noteSending}
                                   className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs"
                                 >
-                                  {noteSending ? (
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1" />
-                                  ) : (
-                                    <Send className="w-3 h-3 mr-1" />
-                                  )}
+                                  <Send className="w-3 h-3 mr-1" />
                                   Send Message
                                 </Button>
                               </div>
@@ -935,11 +919,7 @@ const AgentComplaints = () => {
               disabled={!scheduleDate || schedulingLoading}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {schedulingLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
+              <Send className="w-4 h-4 mr-2" />
               Confirm & Notify Tenant
             </Button>
           </DialogFooter>

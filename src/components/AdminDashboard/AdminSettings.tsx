@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { adminSettingsApi } from '@/services/adminSettingsApi';
 
 type ValueType = 'String' | 'Number' | 'Boolean' | 'JSON';
 
@@ -26,24 +27,50 @@ const emptyForm = (): Omit<Setting, 'id'> => ({
 });
 
 export function AdminSettings() {
-  const [settings, setSettings] = useState<Setting[]>(initialSettings);
+  const [settings, setSettings] = useState<Setting[]>([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Setting | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [page, setPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-
+  const [filtered, setFiltered] = useState([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [paginated, setPaginated] = useState([]);
   const perPage = 10;
 
-  const filtered = settings.filter(
-    (s) =>
-      s.slug.toLowerCase().includes(search.toLowerCase()) ||
-      s.description.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    const tableData = async () => {
+      const respData = await adminSettingsApi.getSettings();
+      const settingsData: Setting[] = (respData?.data || []).map(
+        (item: any) => ({
+          id: item.id,
+          slug: item.settings_name || item.slug,
+          value: item.settings_value || item.value,
+          description: item.description,
+          type: item.value_type || item.type,
+        }),
+      );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+      setSettings(settingsData);
+    };
+
+    if (settings.length === 0) {
+      tableData();
+    }
+  }, [settings.length]); 
+
+  useEffect(() => {
+    const _filtered = settings.filter(
+      (s) =>
+        s.slug?.toLowerCase().includes(search.toLowerCase()) ||
+        s.description?.toLowerCase().includes(search.toLowerCase()),
+    );
+
+    setFiltered(_filtered);
+    setTotalPages(Math.max(1, Math.ceil(_filtered.length / perPage)));
+    setPaginated(_filtered.slice((page - 1) * perPage, page * perPage));
+  }, [settings, search, page]);
 
   const openAdd = () => {
     setEditing(null);
@@ -53,7 +80,12 @@ export function AdminSettings() {
 
   const openEdit = (setting: Setting) => {
     setEditing(setting);
-    setForm({ slug: setting.slug, value: setting.value, description: setting.description, type: setting.type });
+    setForm({
+      slug: setting.slug,
+      value: typeof setting.value === 'object' ? JSON.stringify(setting.value, null, 2) : String(setting.value),
+      description: setting.description,
+      type: setting.type
+    });
     setModalOpen(true);
   };
 
@@ -63,24 +95,51 @@ export function AdminSettings() {
     setForm(emptyForm());
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.slug.trim() || !form.value.trim()) return;
 
+    let parsedValue: any = form.value;
+    if (form.type === 'JSON') {
+      try { parsedValue = JSON.parse(form.value); }
+      catch { return alert('Invalid JSON format'); }
+    } else if (form.type === 'Boolean') {
+      parsedValue = form.value.toLowerCase() === 'true';
+    } else if (form.type === 'Number') {
+      parsedValue = Number(form.value);
+    }
+
+    const payload = {
+      settings_name: form.slug,
+      settings_value: parsedValue,
+      description: form.description,
+      value_type: form.type
+    };
+
     if (editing) {
-      setSettings((prev) =>
-        prev.map((s) => (s.id === editing.id ? { ...s, ...form } : s))
-      );
+      const res = await adminSettingsApi.updateSetting(editing.id, payload);
+      if (res?.type !== "error") {
+        setSettings([]); // Force re-fetch
+      } else {
+        console.error(res?.message || "Failed to update setting");
+      }
     } else {
-      setSettings((prev) => [
-        ...prev,
-        { id: Date.now().toString(), ...form },
-      ]);
+      const res = await adminSettingsApi.createSetting(payload);
+      if (res?.type !== "error") {
+        setSettings([]); // Force re-fetch
+      } else {
+        console.error(res?.message || "Failed to create setting");
+      }
     }
     closeModal();
   };
 
-  const handleDelete = (id: string) => {
-    setSettings((prev) => prev.filter((s) => s.id !== id));
+  const handleDelete = async (id: string) => {
+    const res = await adminSettingsApi.deleteSetting(id);
+    if (res?.type !== "error") {
+      setSettings((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      console.error(res?.message || "Failed to delete setting");
+    }
     setDeleteConfirm(null);
   };
 
@@ -132,7 +191,11 @@ export function AdminSettings() {
               paginated.map((s) => (
                 <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-6 py-4 font-mono text-gray-800 dark:text-gray-200">{s.slug}</td>
-                  <td className="px-6 py-4 text-gray-700 dark:text-gray-300">{s.value}</td>
+                  <td className="px-6 py-4 text-gray-700 dark:text-gray-300">
+                    <pre style={{ "wordBreak": "break-all", "whiteSpace": "pre-wrap" }}>
+                      {typeof s.value === 'object' ? JSON.stringify(s.value, null, 2) : String(s.value)}
+                    </pre>
+                  </td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.description}</td>
                   <td className="px-6 py-4">
                     <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">

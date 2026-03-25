@@ -124,16 +124,7 @@ const AgentProfile = () => {
   };
 
   if (loading || profileLoading) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-            <p className="text-sm text-muted-foreground">Loading profile...</p>
-          </div>
-        </div>
-      </Layout>
-    );
+    return null;
   }
 
   if (!hasAccess) {
@@ -513,12 +504,7 @@ const AgentProfile = () => {
                       className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300"
                       disabled={submitting}
                     >
-                      {submitting ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
-                          <span>Updating Profile...</span>
-                        </div>
-                      ) : (
+                      {submitting ? 'Updating Profile...' : (
                         profileData && Object.keys(profileData).length > 0 ? 'Update Profile' : 'Complete Profile Setup'
                       )}
                     </Button>

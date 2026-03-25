@@ -22,6 +22,7 @@ interface LoginResponse {
     is_verified: boolean;
     full_name: string;
     role?: string;
+    sub?:string;
   };
   profile?: {
     role: string;
@@ -145,7 +146,7 @@ export interface Notification {
 export interface NotificationListResponse {
   notifications: Notification[];
   current_page: number;
-  per_page: number;
+  limit: number;
   total: number;
   pages: number;
   has_next: boolean;
@@ -341,15 +342,16 @@ const apiRequest = async <T>(
   };
 
   try {
-    console.log(`API Request Details:`);
-    console.log(`URL: ${url}`);
-    console.log(`Method: ${config.method || 'GET'}`);
-    console.log(`Headers:`, config.headers);
-    console.log(`Body:`, config.body);
+    // console.log(`API Request Details:`);
+    // console.log(`URL: ${url}`);
+    // console.log(`Method: ${config.method || 'GET'}`);
+    // console.log(`Headers:`, config.headers);
+    // console.log(`Body:`, config.body);
     
     const response = await fetch(url, config);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    // console.log('Response status:', response.status);
+    // console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    // console.log('Response', response);
     
     // Check if response has content before trying to parse JSON
     let data;
@@ -421,14 +423,14 @@ const apiRequest = async <T>(
 
           tokenStorage.removeItem('refresh_token');
           tokenStorage.removeItem('homedUser');
-          window.location.href = '/login';
+          window.dispatchEvent(new CustomEvent('auth:session-expired'));
           throw new Error('Session expired. Please log in again.');
         } catch (refreshError) {
           console.error('Token refresh error:', refreshError);
           tokenStorage.removeItem('auth_token');
           tokenStorage.removeItem('refresh_token');
           tokenStorage.removeItem('homedUser');
-          window.location.href = '/login';
+          window.dispatchEvent(new CustomEvent('auth:session-expired'));
           throw new Error('Session expired. Please log in again.');
         }
       }
@@ -444,6 +446,12 @@ const apiRequest = async <T>(
       throw new Error(errorMessage);
     }
 
+    // Respect the server's error type — don't override success for Error responses
+    if (data.type === 'Error') {
+      data.success = false;
+    } else if (!('success' in data)) {
+      data.success = true;
+    }
     return data;
   } catch (error) {
     console.error('API request error:', error);
@@ -475,6 +483,7 @@ export const authApi = {
     return apiRequest(API_ENDPOINTS.AUTH.LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+      credentials: "include"
     });
   },
 
@@ -532,11 +541,90 @@ export const authApi = {
   },
 };
 
+function normalizePropertyImages(prop: any): any {
+  if (!prop) return prop;
+  if (prop.images && prop.images.length > 0) return prop;
+  if (prop.primary_image_url) {
+    return { ...prop, images: [prop.primary_image_url] };
+  }
+  return prop;
+}
+
 export const propertyApi = {
-  createProperty: async (propertyData: FormData): Promise<ApiResponse<{ property: any; images: any[]; documents: any[] }>> => {
-    return apiRequest(API_ENDPOINTS.PROPERTIES.CREATE_WITH_FILES, {
+  createProperty: async (propertyData: any): Promise<ApiResponse<{ property: any }>> => {
+    // When FormData is passed, convert to JSON (backend expects JSON) and upload images separately
+    if (propertyData instanceof FormData) {
+      const jsonObj: Record<string, any> = {};
+      const imageFiles: File[] = [];
+
+      // Map camelCase frontend names → snake_case backend names
+      const fieldMap: Record<string, string> = {
+        propertyType: 'property_type',
+        listingType: 'listing_type',
+        property_size: 'square_footage',
+      };
+      const numericFields = new Set(['price', 'bedrooms', 'bathrooms', 'receptions', 'year_built', 'square_footage', 'land_size']);
+      const skipFields = new Set(['management_type', 'documents']);
+
+      for (const [key, value] of propertyData.entries()) {
+        if (value instanceof File) {
+          if (key === 'images') imageFiles.push(value);
+          continue;
+        }
+        if (skipFields.has(key)) continue;
+        const mappedKey = fieldMap[key] || key;
+        if (key === 'features') {
+          try {
+            const parsed = JSON.parse(value as string);
+            // Backend expects Dict[str, Any] — convert array to {feature: true} map
+            jsonObj[mappedKey] = Array.isArray(parsed)
+              ? Object.fromEntries(parsed.map((f: string) => [f, true]))
+              : parsed;
+          } catch { /* skip invalid features */ }
+        } else if (numericFields.has(mappedKey) && value !== '') {
+          const num = Number(value);
+          if (!isNaN(num)) jsonObj[mappedKey] = num;
+        } else {
+          jsonObj[mappedKey] = value;
+        }
+      }
+
+      // Build full address from parts (required by backend)
+      if (!jsonObj.address) {
+        jsonObj.address = [jsonObj.street, jsonObj.city, jsonObj.county, jsonObj.postcode]
+          .filter(Boolean).join(', ');
+      }
+
+      const propertyResponse = await apiRequest<any>(API_ENDPOINTS.PROPERTIES.CREATE, {
+        method: 'POST',
+        body: JSON.stringify(jsonObj),
+      });
+
+      // Upload images after successful property creation
+      if (propertyResponse?.success && propertyResponse?.data?.id && imageFiles.length > 0) {
+        const propertyId = propertyResponse.data.id;
+        for (let i = 0; i < imageFiles.length; i++) {
+          const imgFormData = new FormData();
+          imgFormData.append('property_id', String(propertyId));
+          imgFormData.append('image_id', Math.random().toString(36).slice(2, 14));
+          imgFormData.append('file', imageFiles[i]);
+          imgFormData.append('is_primary', String(i === 0));
+          try {
+            await apiRequest(API_ENDPOINTS.PROPERTY_IMAGE.UPLOAD, {
+              method: 'POST',
+              body: imgFormData,
+              headers: {},
+            });
+          } catch (imgErr) { console.error(`Image upload failed for file ${i}:`, imgErr); }
+        }
+      }
+
+      return propertyResponse;
+    }
+
+    return apiRequest(API_ENDPOINTS.PROPERTIES.CREATE, {
       method: 'POST',
-      body: propertyData,
+      body: JSON.stringify(propertyData),
     });
   },
 
@@ -562,7 +650,45 @@ export const propertyApi = {
     
     const queryString = queryParams.toString();
     const endpoint = queryString ? `${API_ENDPOINTS.PROPERTIES.MY_PROPERTIES}?${queryString}` : API_ENDPOINTS.PROPERTIES.MY_PROPERTIES;
-    return apiRequest(endpoint);
+
+    const raw = await apiRequest<any>(endpoint);
+    if (!raw) return raw;
+
+    if (raw.data && (raw.data.properties || raw.data.pagination)) {
+      return {
+        ...raw,
+        data: {
+          ...raw.data,
+          properties: (raw.data.properties || []).map(normalizePropertyImages),
+        },
+      } as ApiResponse<any>;
+    }
+
+    let properties: any[] = [];
+    let pageinfo: any = undefined;
+
+    if (Array.isArray(raw.data)) {
+      properties = raw.data;
+      pageinfo = (raw as any).pageinfo;
+    } else if (raw.data && Array.isArray(raw.data.data)) {
+      properties = raw.data.data;
+      pageinfo = raw.data.pageinfo || raw.data.pagination;
+    }
+
+    const pagination = pageinfo ? {
+      total: pageinfo.total || pageinfo.row_count || 0,
+      pages: pageinfo.total_pages || pageinfo.pages || 1,
+      page: pageinfo.page || pageinfo.current_page || 1,
+      per_page: pageinfo.limit || pageinfo.per_page || properties.length,
+    } : undefined;
+
+    return {
+      success: raw.success ?? true,
+      data: { properties: properties.map(normalizePropertyImages), pagination },
+      message: raw.message,
+      error: raw.error,
+      errors: raw.errors,
+    } as ApiResponse<any>;
   },
 
   getProperties: async (params: {
@@ -595,8 +721,67 @@ export const propertyApi = {
     if (params.featured) queryParams.set('featured', 'true');
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `${API_ENDPOINTS.PROPERTIES.BASE}?${queryString}` : API_ENDPOINTS.PROPERTIES.BASE;
-    return apiRequest(endpoint);
+    // OpenAPI defines a dedicated list endpoint: GET /property/list
+    const endpoint = queryString ? `${API_ENDPOINTS.PROPERTIES.LIST}?${queryString}` : API_ENDPOINTS.PROPERTIES.LIST;
+
+    // Normalize backend response shapes so UI can always read `data.properties` and `data.pagination`.
+    const raw = await apiRequest<any>(endpoint);
+
+    if (!raw) return raw;
+
+    // If backend already returns the expected shape, normalize images and passthrough
+    if (raw.data && (raw.data.properties || raw.data.pagination)) {
+      return {
+        ...raw,
+        data: {
+          ...raw.data,
+          properties: (raw.data.properties || []).map(normalizePropertyImages),
+        },
+      } as ApiResponse<any>;
+    }
+
+    // Support alternative shapes e.g. { data: [...], pageinfo: {...} } or { data: { data: [...], pageinfo: {...} } }
+    const maybeData = raw.data && (Array.isArray(raw.data) || raw.data.data) ? raw.data : raw;
+
+    let properties: any[] = [];
+    let pageinfo: any = undefined;
+
+    if (maybeData) {
+      if (Array.isArray(maybeData.data)) {
+        properties = maybeData.data;
+        pageinfo = maybeData.pageinfo || maybeData.pageInfo || maybeData.pagination;
+      } else if (Array.isArray(maybeData)) {
+        properties = maybeData as any[];
+        pageinfo = (raw as any).pageinfo || (raw as any).pageInfo || (raw as any).pagination;
+      } else if (Array.isArray(raw.data)) {
+        properties = raw.data as any[];
+        // pageinfo = raw.pageinfo || raw.pagination;
+      } else if (raw.data && Array.isArray(raw.data)) {
+        properties = raw.data as any[];
+      } else if (raw.data && Array.isArray((raw.data as any).data)) {
+        properties = (raw.data as any).data;
+        pageinfo = (raw.data as any).pageinfo || (raw.data as any).pagination;
+      }
+    }
+
+    // Derive normalized pagination object
+    const pagination = pageinfo ? {
+      total: pageinfo.total || pageinfo.total_count || 0,
+      pages: pageinfo.total_pages || pageinfo.pages || pageinfo.pages || 1,
+      page: pageinfo.current_page || pageinfo.page || 1,
+      per_page: pageinfo.page_limit || pageinfo.per_page || pageinfo.limit || properties.length || 0,
+    } : undefined;
+
+    return {
+      success: raw.success ?? true,
+      data: {
+        properties: properties.map(normalizePropertyImages),
+        pagination,
+      },
+      message: raw.message,
+      error: raw.error,
+      errors: raw.errors,
+    } as ApiResponse<any>;
   },
 
   getFeaturedProperties: async (limit: number = 6): Promise<ApiResponse<{
@@ -637,49 +822,134 @@ export const propertyApi = {
     return apiRequest(`${API_ENDPOINTS.PROPERTIES.SEARCH}?${queryString}`);
   },
 
-  getProperty: async (propertyId: number): Promise<ApiResponse<{
+  getProperty: async (propertyId: string | number): Promise<ApiResponse<{
     property: any;
   }>> => {
-    return apiRequest(`${API_ENDPOINTS.PROPERTIES.BASE}/${propertyId}`);
+    // OpenAPI GET /property expects `property_id` as a query parameter
+    const raw = await apiRequest<any>(`${API_ENDPOINTS.PROPERTIES.DETAIL}?property_id=${propertyId}`);
+
+    if (!raw) return raw;
+
+    // Some backends return the property directly inside `data` (e.g. { data: { id: 1, property_id: '...' } })
+    // Normalize to { data: { property: {...} } } so consumers can always read `response.data.property`.
+    if (raw.data && !raw.data.property && (raw.data.id || raw.data.property_id)) {
+      return {
+        success: raw.success ?? true,
+        data: {
+          property: normalizePropertyImages(raw.data),
+        },
+        message: raw.message,
+        error: raw.error,
+        errors: raw.errors,
+      } as ApiResponse<any>;
+    }
+
+    // If backend already returns the expected shape, passthrough with normalization
+    if (raw.data && raw.data.property) {
+      return {
+        ...raw,
+        data: { ...raw.data, property: normalizePropertyImages(raw.data.property) },
+      } as ApiResponse<any>;
+    }
+
+    // Fallback: attempt to extract property from nested shapes
+    const maybeProperty = raw.data && (raw.data.property || raw.data.data) ? (raw.data.property || raw.data.data) : raw.data;
+
+    return {
+      success: raw.success ?? true,
+      data: {
+        property: normalizePropertyImages(maybeProperty),
+      },
+      message: raw.message,
+      error: raw.error,
+      errors: raw.errors,
+    } as ApiResponse<any>;
   },
 
   updateProperty: async (propertyId: number, propertyData: any): Promise<ApiResponse<{
     property: any;
   }>> => {
-    return apiRequest(API_ENDPOINTS.PROPERTIES.UPDATE(propertyId), {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.UPDATE, {
       method: 'PUT',
-      body: JSON.stringify(propertyData),
+      body: JSON.stringify({ ...propertyData, property_id: propertyId }),
     });
   },
 
-  uploadPropertyImages: async (propertyId: number, imageFiles: FileList): Promise<ApiResponse<{
-    images: any[];
-  }>> => {
+  uploadPropertyImage: async (propertyId: number, file: File, options: {
+    imageId?: number;
+    isPrimary?: boolean;
+    altText?: string;
+  } = {}): Promise<ApiResponse<{ image: any }>> => {
+    const imageId = options.imageId !== undefined ? String(options.imageId) : Math.random().toString(36).slice(2, 14);
     const formData = new FormData();
-    Array.from(imageFiles).forEach(file => {
-      formData.append('images', file);
-    });
+    formData.append('property_id', String(propertyId));
+    formData.append('image_id', imageId);
+    formData.append('file', file);
+    if (options.isPrimary !== undefined) formData.append('is_primary', String(options.isPrimary));
+    if (options.altText) formData.append('alt_text', options.altText);
 
-    return apiRequest(API_ENDPOINTS.PROPERTIES.UPLOAD_IMAGES(propertyId), {
+    return apiRequest(API_ENDPOINTS.PROPERTY_IMAGE.UPLOAD, {
       method: 'POST',
       body: formData,
       headers: {},
     });
   },
 
-  setPrimaryImage: async (propertyId: number, imageId: number): Promise<ApiResponse<{
-    image: any;
+  getPropertyImageUploadUrl: async (propertyId: number, filename: string): Promise<ApiResponse<{
+    upload_url: string;
+    image_id: number;
   }>> => {
-    return apiRequest(API_ENDPOINTS.PROPERTIES.SET_PRIMARY_IMAGE(propertyId, imageId), {
+    return apiRequest(`${API_ENDPOINTS.PROPERTY_IMAGE.UPLOAD_URL}?property_id=${propertyId}&filename=${encodeURIComponent(filename)}`);
+  },
+
+  savePropertyImageRecord: async (data: {
+    property_id: number;
+    url: string;
+    is_primary?: boolean;
+    alt_text?: string;
+  }): Promise<ApiResponse<{ image: any }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTY_IMAGE.CREATE, {
       method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 
-  getPropertyImages: async (propertyId: number): Promise<ApiResponse<{
-    images: any[];
-    total_count: number;
-  }>> => {
-    return apiRequest(API_ENDPOINTS.PROPERTIES.IMAGES(propertyId));
+  setPrimaryImage: async (imageId: number): Promise<ApiResponse<{ image: any }>> => {
+    return apiRequest(`${API_ENDPOINTS.PROPERTY_IMAGE.UPDATE}?image_id=${imageId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_primary: true }),
+    });
+  },
+
+  updatePropertyImage: async (imageId: number, data: {
+    is_primary?: boolean;
+    alt_text?: string;
+  }): Promise<ApiResponse<{ image: any }>> => {
+    return apiRequest(`${API_ENDPOINTS.PROPERTY_IMAGE.UPDATE}?image_id=${imageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deletePropertyImage: async (imageId: number): Promise<ApiResponse<void>> => {
+    return apiRequest(`${API_ENDPOINTS.PROPERTY_IMAGE.DELETE}?image_id=${imageId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getPropertyImages: async (params: {
+    propertyId?: number;
+    isPrimary?: boolean;
+    page?: number;
+    perPage?: number;
+  } = {}): Promise<ApiResponse<{ images: any[]; total_count: number }>> => {
+    const q = new URLSearchParams();
+    if (params.propertyId !== undefined) q.set('property_id', String(params.propertyId));
+    if (params.isPrimary !== undefined) q.set('is_primary', String(params.isPrimary));
+    if (params.page) q.set('page', String(params.page));
+    if (params.perPage) q.set('per_page', String(params.perPage));
+    const qs = q.toString();
+    return apiRequest(qs ? `${API_ENDPOINTS.PROPERTY_IMAGE.LIST}?${qs}` : API_ENDPOINTS.PROPERTY_IMAGE.LIST);
   },
 
   getAgentProperties: async (agentId?: string): Promise<ApiResponse<{ properties: any[]; total: number }>> => {
@@ -1089,16 +1359,21 @@ export const findAgentApi = {
 export const notificationApi = {
   getNotifications: async (params: {
     page?: number;
-    per_page?: number;
+    limit?: number;
     type?: string;
     search?: string;
     unread_only?: boolean;
     user_role?: string;
   } = {}): Promise<ApiResponse<NotificationListResponse>> => {
     const queryParams = new URLSearchParams();
+
+    const isAdmin = params.user_role === "admin";
+    const baseEndpoint = isAdmin
+      ? API_ENDPOINTS.ADMIN.ADMIN_BASE
+      : API_ENDPOINTS.NOTIFICATIONS.BASE;
     
     if (params.page) queryParams.set('page', params.page.toString());
-    if (params.per_page) queryParams.set('per_page', params.per_page.toString());
+    if (params.limit) queryParams.set('per_page', params.limit.toString());
     if (params.type && params.type !== 'all') queryParams.set('type', params.type);
     if (params.search) queryParams.set('search', params.search);
     if (params.unread_only) queryParams.set('unread_only', 'true');
@@ -1160,7 +1435,7 @@ export const notificationApi = {
     message: string;
     notification: Notification;
   }>> => {
-    return apiRequest(API_ENDPOINTS.NOTIFICATIONS.BASE, {
+    return apiRequest(API_ENDPOINTS.ADMIN.ADMIN_BASE, {
       method: 'POST',
       body: JSON.stringify(data),
     });

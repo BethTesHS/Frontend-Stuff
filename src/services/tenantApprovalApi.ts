@@ -1,134 +1,160 @@
 import { getAuthToken } from '@/utils/tokenStorage';
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants/apiEndpoints"
 
-const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/tenant-verification';
+export interface PageInfo {
+  current_page: number;
+  total_pages: number;
+  page_limit: number;
+}
+
+export interface ApiResponse<T> {
+  data: T;
+  message: string;
+  pageinfo?: PageInfo;
+  type: string;
+  status: number;
+}
 
 export interface TenantVerificationRequest {
   id: number;
-  verification_method: string;
+  request_id: string;
+  verification_method: "pin" | "manual";
+  status: "pending" | "approved" | "rejected";
   tenant_full_name: string;
   tenant_email?: string;
   tenant_phone?: string;
   property_address?: string;
   property_code?: string;
   agent_landlord_name?: string;
-  agent_landlord_email?: string;
-  agent_landlord_phone?: string;
   monthly_rent?: number;
   security_deposit?: number;
   tenancy_length_months?: number;
   move_in_date?: string;
-  status: 'pending' | 'approved' | 'rejected';
   created_at: string;
-  processed_at?: string;
-  processed_by?: string;
   rejection_reason?: string;
   admin_notes?: string;
-  tenancy_proof_filename?: string;
 }
 
-export interface TenantRequestsResponse {
-  requests: TenantVerificationRequest[];
-  pagination: {
-    page: number;
-    per_page: number;
-    total: number;
-    pages: number;
-    has_next: boolean;
-    has_prev: boolean;
+export interface AgentPin {
+  id: number;
+  pin_code: string;
+  agent_name: string;
+  property_address: string;
+  property_id: number;
+  max_uses: number;
+  current_uses: number;
+  is_active: boolean;
+  expires_at?: string;
+}
+
+const getHeaders = () => {
+  const token = getAuthToken();
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
-}
-
+};
 export const tenantApprovalApi = {
-  async getRequests(status?: string, page: number = 1, perPage: number = 50): Promise<TenantRequestsResponse> {
-    console.log('tenantApprovalApi.getRequests called with:', { status, page, perPage });
+  async validatePin(pin: string): Promise<ApiResponse<{ isValid: boolean; agentName?: string; propertyAddress?: string }>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.VALIDATE_PIN}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    return response.json();
+  },
+
+  
+  async submitRequest(data: any): Promise<ApiResponse<TenantVerificationRequest>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.SUBMIT_REQUEST}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async getMyRequests(page = 1, limit = 10, status?: string): Promise<ApiResponse<TenantVerificationRequest[]>> {
+    const query = new URLSearchParams({ page_no: page.toString(), limit: limit.toString() });
+    if (status) query.append('status', status);
     
-    const token = getAuthToken();
-    console.log('Auth token found:', !!token);
-    if (!token) {
-      console.error('No authentication token found');
-      throw new Error('No authentication token found');
-    }
-
-    const params = new URLSearchParams({
-      page: page.toString(),
-      per_page: perPage.toString(),
-    });
-
-    if (status) {
-      params.append('status', status);
-    }
-
-    console.log('Making API request to:', `${API_BASE_URL}/requests?${params}`);
-
-    const response = await fetch(`${API_BASE_URL}/requests?${params}`, {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.MY_REQUESTS}?${query}`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: getHeaders(),
     });
-
-    console.log('API response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error response:', errorText);
-      throw new Error(`Failed to fetch requests: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('API result:', result);
-    return result.data;
+    return response.json();
   },
 
-  async approveRequest(requestId: number, notes?: string): Promise<{ success: boolean }> {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
 
-    const response = await fetch(`${API_BASE_URL}/approve/${requestId}`, {
+  async approveRequest(requestId: number, notes?: string): Promise<ApiResponse<TenantVerificationRequest>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.APPROVE(requestId)}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ notes: notes || '' }),
+      headers: getHeaders(),
+      body: JSON.stringify({ notes }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Failed to approve request: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result.data;
+    return response.json();
   },
 
-  async rejectRequest(requestId: number, reason: string, notes?: string): Promise<{ success: boolean }> {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/reject/${requestId}`, {
+  async rejectRequest(requestId: number, reason: string, notes?: string): Promise<ApiResponse<TenantVerificationRequest>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.REJECT(requestId)}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        reason: reason || 'Request did not meet verification requirements',
-        notes: notes || '' 
-      }),
+      headers: getHeaders(),
+      body: JSON.stringify({ reason, notes }),
     });
+    return response.json();
+  },
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Failed to reject request: ${response.statusText}`);
-    }
+  async createPin(data: { propertyId: number; maxUses: number; expiresInHours: number }): Promise<ApiResponse<AgentPin>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.CREATE_PIN}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
 
-    const result = await response.json();
-    return result.data;
-  }
+  async getAgentPins(page = 1, limit = 10): Promise<ApiResponse<AgentPin[]>> {
+    const query = new URLSearchParams({ page_no: page.toString(), limit: limit.toString() });
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFICATION.GET_PINS}?${query}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+
+  // --- Admin Specific Functions ---
+  async adminListRequests(page = 1, limit = 10): Promise<ApiResponse<TenantVerificationRequest[]>> {
+    const query = new URLSearchParams({ page_no: page.toString(), limit: limit.toString() });
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TENANT_VERIFICATION.LIST}?${query}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+
+  async adminGetRequest(requestId: number): Promise<ApiResponse<TenantVerificationRequest>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TENANT_VERIFICATION.GET_ITEM(requestId)}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+
+  async adminUpdateRequest(data: { id: number; status?: string; admin_notes?: string; rejection_reason?: string }): Promise<ApiResponse<any>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TENANT_VERIFICATION.UPDATE}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async adminDeleteRequest(requestId: number): Promise<ApiResponse<any>> {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN.TENANT_VERIFICATION.DELETE}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+      body: JSON.stringify({ id: requestId }),
+    });
+    return response.json();
+  },
 };

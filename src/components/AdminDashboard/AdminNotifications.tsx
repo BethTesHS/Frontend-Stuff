@@ -19,7 +19,7 @@ export const AdminNotifications = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [pagination, setPagination] = useState({
     current_page: 1,
-    per_page: 20,
+    limit: 20,
     total: 0,
     pages: 0,
     has_next: false,
@@ -28,7 +28,7 @@ export const AdminNotifications = () => {
   
   // Loading states
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
-  const [markingReadIds, setMarkingReadIds] = useState<Set<string>>(new Set());
+  const [markingReadIds, setMarkingReadIds] = useState<Set<string | number>>(new Set());
 
   // Fetch notifications with useCallback to prevent infinite re-renders
   const fetchNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -41,7 +41,7 @@ export const AdminNotifications = () => {
 
       const response = await notificationApi.getNotifications({
         page,
-        per_page: pagination.per_page,
+        limit: pagination.limit,
         type: filterType,
         search: searchTerm || undefined,
         unread_only: false,
@@ -67,7 +67,7 @@ export const AdminNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.per_page, filterType, searchTerm]);
+  }, [pagination.limit, filterType, searchTerm]);
 
   // Handle initial load and filter/search changes with debouncing to prevent duplicate requests
   useEffect(() => {
@@ -79,13 +79,13 @@ export const AdminNotifications = () => {
   }, [searchTerm, filterType, fetchNotifications]);
 
   // Mark single notification as read
-  const markNotificationAsRead = async (id: string) => {
+  const markNotificationAsRead = async (id: string | number) => {
     if (markingReadIds.has(id)) return;
 
     setMarkingReadIds(prev => new Set([...prev, id]));
 
     try {
-      await markAsRead(id);
+      await markAsRead(id.toString());
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
@@ -180,7 +180,6 @@ export const AdminNotifications = () => {
                 disabled={isMarkingAllRead}
                 className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
               >
-                {isMarkingAllRead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Mark all read ({unreadCount})
               </Button>
             )}
@@ -226,12 +225,7 @@ export const AdminNotifications = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-              {loading && notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
-                  <p className="text-muted-foreground">Loading notifications...</p>
-                </div>
-              ) : notifications.length === 0 ? (
+              {loading && notifications.length === 0 ? null : notifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="text-lg font-medium text-foreground mb-2">No notifications found</h3>
@@ -300,7 +294,6 @@ export const AdminNotifications = () => {
                                 disabled={markingReadIds.has(notification.id)}
                                 className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                               >
-                                {markingReadIds.has(notification.id) && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                                 Mark as read
                               </Button>
                             )}
@@ -318,7 +311,6 @@ export const AdminNotifications = () => {
                         disabled={loading}
                         className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
                       >
-                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Load More
                       </Button>
                     </div>

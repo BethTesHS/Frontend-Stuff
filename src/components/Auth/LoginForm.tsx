@@ -22,11 +22,7 @@ const LoginForm = ({ onSubmit, loading }: LoginFormProps) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#E8F1FD] border-t-[#1E73E8]"></div>
-      </div>
-    );
+    return null;
   }
 
   return (

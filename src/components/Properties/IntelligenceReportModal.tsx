@@ -678,10 +678,7 @@ const IntelligenceReportModal = ({
                 className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-8 py-2.5 rounded-xl gap-2 disabled:opacity-70"
               >
                 {generating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Generating PDF…
-                  </>
+                  'Generating PDF…'
                 ) : (
                   <>
                     <Download className="w-4 h-4" />

@@ -88,12 +88,7 @@ const ScheduledViewingsList = ({ onUpdateStatus, refreshTrigger }: ScheduledView
   const pastViewings = viewings.filter(v => v.status === 'completed' || v.status === 'cancelled');
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-3 text-gray-600">Loading viewings...</span>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -117,7 +112,7 @@ const ScheduledViewingsList = ({ onUpdateStatus, refreshTrigger }: ScheduledView
               onClick={fetchViewings}
               disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>

@@ -25,7 +25,7 @@ const exactPinpointIcon = L.divIcon({
 const ChangeView = ({ center, zoom }: { center: [number, number]; zoom: number }) => {
   const map = useMap();
   useEffect(() => {
-    if (center && center[0] !== 0 && center[1] !== 0) {
+    if (center && !isNaN(center[0]) && !isNaN(center[1]) && center[0] !== 0) {
       map.setView(center, zoom, { animate: true });
     }
   }, [center, zoom, map]);
@@ -43,7 +43,7 @@ const PropertyMarker = ({ property }: { property: Property }) => {
       const postcode = property.address?.postcode || (property as any).postcode;
 
       // 1. Try UK Postcode lookup first
-      if (postcode) {
+      if (postcode && typeof postcode === 'string') {
         try {
           const cleanPostcode = postcode.replace(/\s+/g, '');
           const res = await fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`);
@@ -58,12 +58,15 @@ const PropertyMarker = ({ property }: { property: Property }) => {
         }
       }
 
-      // 2. Fallback to existing coordinates (for international properties like Kenya)
+      // 2. Fallback to existing coordinates (safely parse to ensure numbers)
       const lat = property.latitude || property.address?.coordinates?.lat || (property as any).coordinates?.lat;
       const lng = property.longitude || property.address?.coordinates?.lng || (property as any).coordinates?.lng;
 
-      if (lat && lng) {
-        setPosition([lat, lng]);
+      const numLat = Number(lat);
+      const numLng = Number(lng);
+
+      if (!isNaN(numLat) && !isNaN(numLng) && numLat !== 0) {
+        setPosition([numLat, numLng]);
       }
     };
 
@@ -109,9 +112,14 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
   const [mapCenter, setMapCenter] = useState<[number, number]>([51.5074, -0.1278]); // Default London
 
   useEffect(() => {
-    if (center && center[0] !== 0) {
-      setMapCenter(center);
-      return;
+    // Check for explicit center and safe-parse to numbers
+    if (center && center.length === 2) {
+      const lat = Number(center[0]);
+      const lng = Number(center[1]);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
+        setMapCenter([lat, lng]);
+        return;
+      }
     }
 
     // Auto-center map based on the first property's postcode
@@ -122,10 +130,16 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
       const fallbackCoordinates = () => {
         const lat = p.latitude || p.address?.coordinates?.lat || (p as any).coordinates?.lat;
         const lng = p.longitude || p.address?.coordinates?.lng || (p as any).coordinates?.lng;
-        if (lat && lng) setMapCenter([lat, lng]);
+        
+        const numLat = Number(lat);
+        const numLng = Number(lng);
+        
+        if (!isNaN(numLat) && !isNaN(numLng) && numLat !== 0) {
+          setMapCenter([numLat, numLng]);
+        }
       };
 
-      if (postcode) {
+      if (postcode && typeof postcode === 'string') {
         const cleanPostcode = postcode.replace(/\s+/g, '');
         fetch(`https://api.postcodes.io/postcodes/${cleanPostcode}`)
           .then(res => res.json())

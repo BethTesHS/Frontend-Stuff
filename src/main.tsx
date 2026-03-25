@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -80,15 +80,19 @@ import FindAgency from './pages/FindAgency';
 const queryClient = new QueryClient();
 
 // Loading component
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
-);
+const LoadingScreen: React.FC = () => null;
 
 // Main app router component wrapped with proper error handling
 const AppRouter: React.FC = () => {
   const { isAgencyMode, loading } = useAgency();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = () => navigate('/login', { replace: true });
+    window.addEventListener('auth:session-expired', handler);
+    return () => window.removeEventListener('auth:session-expired', handler);
+  }, [navigate]);
+
   try {
 
     if (loading) {

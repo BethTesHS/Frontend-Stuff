@@ -104,11 +104,6 @@ const PropertyListingChoice = ({
 
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
           <div className="relative p-6 md:p-10">
-            {loading && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
-                <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
-              </div>
-            )}
 
             <div className="flex flex-col items-center text-center mb-10">
               <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-4 transition-colors">

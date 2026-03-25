@@ -214,12 +214,7 @@ const AgentRequestsView = () => {
           </div>
           <ScrollArea className="h-full">
             <div className="space-y-2 p-2">
-              {loading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
-                  <p className="text-sm text-muted-foreground mt-2">Loading requests...</p>
-                </div>
-              ) : requests.length === 0 ? (
+              {loading ? null : requests.length === 0 ? (
                 <div className="text-center py-8">
                   <Home className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm font-medium text-foreground">No requests yet</p>
@@ -429,12 +424,7 @@ const AgentRequestsView = () => {
                               disabled={processing || !agentDetails.name || !agentDetails.email || !agentDetails.phone}
                               className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                             >
-                              {processing ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Processing...
-                                </>
-                              ) : (
+                              {processing ? 'Processing...' : (
                                 <>
                                   <Check className="w-4 h-4 mr-2" />
                                   Confirm & Accept
@@ -475,12 +465,7 @@ const AgentRequestsView = () => {
                       variant="outline"
                       className="flex-1 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
                     >
-                      {processing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
+                      {processing ? 'Processing...' : (
                         <>
                           <X className="w-4 h-4 mr-2" />
                           Decline

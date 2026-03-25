@@ -183,10 +183,12 @@ const ListProperty = ({
         documents.forEach((doc) => formData.append("documents", doc));
 
         if (isEditing) {
-          await propertyApi.updateProperty(defaultValues.id, formData);
+          const updateResp = await propertyApi.updateProperty(defaultValues.id, formData);
+          if (!updateResp?.success) throw new Error(updateResp?.message || 'Failed to update property');
           toast.success("Property updated successfully!");
         } else {
-          await propertyApi.createProperty(formData);
+          const createResp = await propertyApi.createProperty(formData);
+          if (!createResp?.success) throw new Error(createResp?.message || 'Failed to create property');
           toast.success("Property listed successfully!");
         }
 
@@ -336,10 +338,7 @@ const ListProperty = ({
                   disabled={submitting}
                 >
                   {submitting ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="animate-spin h-5 w-5" />
-                      <span>{isEditing ? "Updating..." : "Listing Property..."}</span>
-                    </div>
+                    <span>{isEditing ? "Updating..." : "Listing Property..."}</span>
                   ) : (
                     isEditing 
                       ? "Update Property Listing" 
@@ -355,11 +354,7 @@ const ListProperty = ({
                   disabled={submitting || isSavingDraft}
                   className="w-3/4 sm:w-1/2 py-4border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-500 dark:text-blue-400 dark:bg-transparent dark:hover:bg-blue-900/30 dark:hover:text-blue-300 font-medium transition-all"
                 >
-                  {isSavingDraft ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
+                  <Save className="h-4 w-4 mr-2" />
                   Save as Draft & Exit
                 </Button>
 

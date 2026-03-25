@@ -1,50 +1,141 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserCheck, Mail, Phone, Clock, FileText, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { PENDING_VERIFICATIONS } from '@/constants/mockMessages';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  UserCheck,
+  Mail,
+  Phone,
+  Clock,
+  FileText,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  tenantApprovalApi,
+  TenantVerificationRequest,
+} from "@/services/tenantApprovalApi";
 
 export const AdminVerifications = () => {
   const { toast } = useToast();
-  const [verifications, setVerifications] = useState(PENDING_VERIFICATIONS);
-  const [selectedVerification, setSelectedVerification] = useState<any>(null);
+  const [verifications, setVerifications] = useState<
+    TenantVerificationRequest[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVerification, setSelectedVerification] =
+    useState<TenantVerificationRequest | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReason, setRejectionReason] = useState("");
 
-  const handleReviewVerification = (verification: any) => {
+  const fetchVerifications = async () => {
+    try {
+      setLoading(true);
+      const response = await tenantApprovalApi.adminListRequests(1, 50);
+      if (response.status === 200) {
+        setVerifications(response.data);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load verifications.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVerifications();
+  }, []);
+
+  const handleReviewVerification = (
+    verification: TenantVerificationRequest,
+  ) => {
     setSelectedVerification(verification);
     setReviewDialogOpen(true);
   };
 
-  const handleApproveVerification = (id: string) => {
-    const verification = verifications.find(v => v.id === id);
-    if (!verification) return;
+  const handleApproveVerification = async (id: number) => {
+    try {
+      const response = await tenantApprovalApi.adminUpdateRequest({
+        id,
+        status: "approved",
+        admin_notes: "Approved via admin dashboard",
+      });
 
-    setVerifications(prev => prev.map(v => v.id === id ? { ...v, status: 'approved' } : v));
-    toast({
-      title: "Verification Approved",
-      description: `${verification.name} has been approved as a ${verification.type}.`,
-    });
+      if (response.status === 200) {
+        setVerifications((prev) => prev.filter((v) => v.id !== id));
+        toast({
+          title: "Verification Approved",
+          description: "The request has been successfully approved.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Approval Failed",
+        description: "Could not update the verification status.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRejectVerification = (id: string, reason?: string) => {
-    const verification = verifications.find(v => v.id === id);
-    if (!verification) return;
+  const handleRejectVerification = async (id: number, reason: string) => {
+    if (!reason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setVerifications(prev => prev.map(v => v.id === id ? { ...v, status: 'rejected', rejectionReason: reason } : v));
-    toast({
-      title: "Verification Rejected",
-      description: `${verification.name}'s application has been rejected.`,
-      variant: "destructive"
-    });
-    setRejectionReason('');
+    try {
+      const response = await tenantApprovalApi.adminUpdateRequest({
+        id,
+        status: "rejected",
+        rejection_reason: reason,
+        admin_notes: "Rejected via admin dashboard",
+      });
+
+      if (response.status === 200) {
+        setVerifications((prev) => prev.filter((v) => v.id !== id));
+        toast({
+          title: "Verification Rejected",
+          description: "The applicant has been notified of the rejection.",
+          variant: "destructive",
+        });
+        setRejectionReason("");
+      }
+    } catch (error) {
+      toast({
+        title: "Rejection Failed",
+        description: "Could not update the verification status.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const pendingItems = verifications.filter(v => v.status === 'pending' || v.status === 'review');
+  const pendingItems = verifications.filter((v) => v.status === "pending");
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -55,7 +146,10 @@ export const AdminVerifications = () => {
               <UserCheck className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
               Pending Verifications
             </div>
-            <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">
+            <Badge
+              variant="secondary"
+              className="dark:bg-gray-700 dark:text-gray-200"
+            >
               {pendingItems.length} pending
             </Badge>
           </CardTitle>
@@ -64,44 +158,57 @@ export const AdminVerifications = () => {
           {pendingItems.length === 0 ? (
             <div className="text-center py-12">
               <UserCheck className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No pending verifications</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">All verifications have been processed</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                No pending verifications
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                All verifications have been processed
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {pendingItems.map((verification) => (
-                <div key={verification.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800/30 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow">
+                <div
+                  key={verification.id}
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800/30 hover:shadow-md transition-shadow"
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-3 flex-1">
                       <div className="flex items-center space-x-2">
-                        <Badge variant={verification.type === 'agent' ? 'default' : 'secondary'}>
-                          {verification.type.toUpperCase()}
+                        <Badge
+                          variant="outline"
+                          className="border-blue-200 text-blue-700"
+                        >
+                          {verification.verification_method?.toUpperCase() ||
+                            "REQUEST"}
                         </Badge>
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">{verification.name}</h3>
-                        {verification.status === 'review' && (
-                          <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                            Under Review
-                          </Badge>
-                        )}
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">
+                          {verification.tenant_full_name}
+                        </h3>
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex items-center">
                           <Mail className="w-4 h-4 mr-1" />
-                          {verification.email}
+                          {verification.tenant_email || "N/A"}
                         </div>
                         <div className="flex items-center">
                           <Phone className="w-4 h-4 mr-1" />
-                          {verification.phone}
+                          {verification.tenant_phone || "N/A"}
                         </div>
                         <div className="flex items-center">
                           <Clock className="w-4 h-4 mr-1" />
-                          {verification.submittedAt}
+                          {new Date(
+                            verification.created_at,
+                          ).toLocaleDateString()}
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          Documents: {verification.documents.join(', ')}
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Property:{" "}
+                          {verification.property_address ||
+                            verification.property_code ||
+                            "Generic Request"}
                         </span>
                       </div>
                     </div>
@@ -109,60 +216,52 @@ export const AdminVerifications = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                         onClick={() => handleReviewVerification(verification)}
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Review
+                        <Eye className="w-4 h-4 mr-1" /> Review
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
-                        onClick={() => handleApproveVerification(verification.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() =>
+                          handleApproveVerification(verification.id)
+                        }
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
                       </Button>
+
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button size="sm" variant="destructive">
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
+                            <XCircle className="w-4 h-4 mr-1" /> Reject
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+                        <DialogContent>
                           <DialogHeader>
-                            <DialogTitle className="text-gray-900 dark:text-gray-100">
-                              Reject Verification - {verification.name}
+                            <DialogTitle>
+                              Reject - {verification.tenant_full_name}
                             </DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                Reason for Rejection
-                              </label>
-                              <Textarea
-                                placeholder="Please provide a reason for rejecting this verification..."
-                                value={rejectionReason}
-                                onChange={(e) => setRejectionReason(e.target.value)}
-                                rows={4}
-                                className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
-                              />
-                            </div>
+                            <Textarea
+                              placeholder="Reason for rejection..."
+                              value={rejectionReason}
+                              onChange={(e) =>
+                                setRejectionReason(e.target.value)
+                              }
+                            />
                             <div className="flex justify-end space-x-2">
-                              <DialogTrigger asChild>
-                                <Button variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                                  Cancel
-                                </Button>
-                              </DialogTrigger>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => handleRejectVerification(verification.id, rejectionReason)}
-                                >
-                                  Confirm Rejection
-                                </Button>
-                              </DialogTrigger>
+                              <Button
+                                variant="destructive"
+                                onClick={() =>
+                                  handleRejectVerification(
+                                    verification.id,
+                                    rejectionReason,
+                                  )
+                                }
+                              >
+                                Confirm Rejection
+                              </Button>
                             </div>
                           </div>
                         </DialogContent>
@@ -178,138 +277,60 @@ export const AdminVerifications = () => {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent className="max-w-2xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+        <DialogContent className="max-w-2xl bg-white dark:bg-gray-900">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-gray-100">
-              Review Verification Details
-            </DialogTitle>
+            <DialogTitle>Review Verification Details</DialogTitle>
           </DialogHeader>
           {selectedVerification && (
             <div className="space-y-6">
-              {/* Applicant Information */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                    Applicant Information
-                  </h3>
-                  <Badge variant={selectedVerification.type === 'agent' ? 'default' : 'secondary'}>
-                    {selectedVerification.type.toUpperCase()}
-                  </Badge>
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Tenant Name</p>
+                  <p className="font-medium">
+                    {selectedVerification.tenant_full_name}
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Full Name</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedVerification.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedVerification.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedVerification.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Submitted</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedVerification.submittedAt}</p>
-                  </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Rent Amount</p>
+                  <p className="font-medium">
+                    {selectedVerification.monthly_rent || "N/A"}
+                  </p>
                 </div>
-              </div>
-
-              {/* Documents */}
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Submitted Documents
-                </h3>
-                <div className="space-y-2">
-                  {selectedVerification.documents.map((doc: string, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{doc}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="dark:border-gray-600 dark:text-gray-300"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  ))}
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">
+                    Move-in Date
+                  </p>
+                  <p className="font-medium">
+                    {selectedVerification.move_in_date
+                      ? new Date(
+                          selectedVerification.move_in_date,
+                        ).toLocaleDateString()
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Method</p>
+                  <p className="font-medium capitalize">
+                    {selectedVerification.verification_method}
+                  </p>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end space-x-3 pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => setReviewDialogOpen(false)}
-                  className="dark:border-gray-600 dark:text-gray-300"
                 >
                   Close
                 </Button>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="destructive">
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Reject
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
-                    <DialogHeader>
-                      <DialogTitle className="text-gray-900 dark:text-gray-100">
-                        Reject Verification - {selectedVerification.name}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          Reason for Rejection
-                        </label>
-                        <Textarea
-                          placeholder="Please provide a reason for rejecting this verification..."
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          rows={4}
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                            Cancel
-                          </Button>
-                        </DialogTrigger>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            onClick={() => {
-                              handleRejectVerification(selectedVerification.id, rejectionReason);
-                              setReviewDialogOpen(false);
-                            }}
-                          >
-                            Confirm Rejection
-                          </Button>
-                        </DialogTrigger>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
                 <Button
-                  className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
+                  className="bg-green-600 text-white"
                   onClick={() => {
                     handleApproveVerification(selectedVerification.id);
                     setReviewDialogOpen(false);
                   }}
                 >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Approve
+                  Approve Application
                 </Button>
               </div>
             </div>
