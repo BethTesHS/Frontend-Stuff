@@ -19,7 +19,7 @@ import ExternalTenantReviews from "@/components/ExternalTenant/ExternalTenantRev
 import ExternalTenantMessages from "@/components/Messages/Messages";
 import { ExternalTenantNotificationDropdown } from "@/components/ExternalTenant/ExternalTenantNotificationDropdown";
 import ExternalTenantNotifications from '@/components/ExternalTenant/ExternalTenantNotifications';
-
+import ExternalTenantChecklists from "@/components/ExternalTenant/ExternalTenantChecklists";
 // Placeholder cards for deferred sections
 const PlaceholderSection = ({ title, description }: { title: string; description: string }) => (
   <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-6">
@@ -38,6 +38,7 @@ const TAB_TITLES: Record<string, string> = {
   payments: "Payments",
   maintenance: "Maintenance",
   complaints: "Complaints",
+  checklists: "Checklists",
   support: "Support",
   notifications: "Notifications",
   calendar: "Calendar",
@@ -152,6 +153,8 @@ const ExternalTenantDashboard = () => {
         );
       case "documents":
         return <ExternalTenantDocuments />;
+      case "checklists":
+        return <ExternalTenantChecklists />;
       case "reviews":
         return <ExternalTenantReviews />;
       case "payments":

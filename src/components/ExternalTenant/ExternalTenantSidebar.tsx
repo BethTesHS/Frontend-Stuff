@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   Star,
+  ClipboardCheck
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -56,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Overview", value: "tenancy-overview", icon: Home },
       { title: "Documents", value: "documents", icon: FileText },
+      { title: "Checklists", value: "checklists", icon: ClipboardCheck },
       { title: "Payments", value: "payments", icon: CreditCard },
     ],
   },
