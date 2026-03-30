@@ -16,7 +16,7 @@ export interface User {
 
 export interface Property {
   id: string;
-  property_id?: string;
+  property_id: string;
   title: string;
   description: string;
   price: number;

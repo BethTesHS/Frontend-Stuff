@@ -14,7 +14,7 @@ interface TenantRejectionData {
   reason?: string;
 }
 
-const API_BASE_URL = 'https://homedapp1.azurewebsites.net';
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://api.homeduk.property';
 
 export const sendTenantApprovalEmail = async (data: TenantApprovalData) => {
   try {

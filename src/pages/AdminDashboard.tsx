@@ -16,6 +16,7 @@ import { AdminNotificationDropdown } from '@/components/AdminDashboard/AdminNoti
 import Messages from "@/components/Messages/Messages";
 import { AdminCalendar } from '@/components/AdminDashboard/AdminCalendar';
 import { AdminSettings } from '@/components/AdminDashboard/AdminSettings';
+import { AdminComplaints } from '@/components/AdminDashboard/AdminComplaints';
 
 const AdminDashboard = () => {
   const { isAdminAuthenticated, loading: authLoading } = useAdminGuard();
@@ -69,15 +70,17 @@ const AdminDashboard = () => {
         return <AdminUsers />;
       case "verifications": 
         return <AdminVerifications />;
-      case "messages": 
-        return <Messages />;
+      case "messages":
+        return <Messages supportMode={true} isAdminView={true} />;
       case "tasks": return <AdminTask />;
       case "calendar": return <AdminCalendar />
       case "notifications":
         return <AdminNotifications />;
       case "settings":
         return <AdminSettings />;
-      case "support": 
+      case "complaints":
+        return <AdminComplaints />;
+      case "support":
         return <AdminSupport stats={stats} />;
       default: 
         return <AdminOverview stats={stats} statsLoading={statsLoading} />;

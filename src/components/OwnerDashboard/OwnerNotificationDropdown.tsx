@@ -34,7 +34,7 @@ export const OwnerNotificationDropdown = ({ onShowAll }: OwnerNotificationDropdo
         user_role: 'owner' // Specific to the Owner Role
       });
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

@@ -6,7 +6,7 @@ import { Bell, Search, Calendar, AlertTriangle, CheckCircle, MessageSquare, User
 import { useState, useEffect, useCallback } from 'react';
 import { notificationApi, type Notification } from '@/services/api';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { getAuthToken } from '@/utils/tokenStorage';
+import { getAuthToken, getAdminToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
 export const AdminNotifications = () => {
@@ -32,7 +32,7 @@ export const AdminNotifications = () => {
 
   // Fetch notifications with useCallback to prevent infinite re-renders
   const fetchNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
-    if (!getAuthToken()) {
+    if (!getAdminToken() && !getAuthToken()) {
       setLoading(false);
       return;
     }
@@ -48,18 +48,33 @@ export const AdminNotifications = () => {
         user_role: 'admin' // Force admin role
       });
 
-      if (response.success && response.data) {
-        const { notifications: newNotifications, ...paginationData } = response.data;
-        
+      if (response.success) {
+        // Backend returns data as an array and pagination in pageinfo
+        const newNotifications: Notification[] = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any)?.notifications ?? [];
+
+        const pageinfo = (response as any).pageinfo ?? {};
+        const currentPage = pageinfo.current_page ?? page;
+        const totalPages = pageinfo.total_pages ?? 1;
+        const pageLimit = pageinfo.page_limit ?? pagination.limit;
+
         if (append) {
           setNotifications(prev => [...prev, ...newNotifications]);
         } else {
           setNotifications(newNotifications);
         }
-        
-        setPagination(paginationData);
+
+        setPagination({
+          current_page: currentPage,
+          limit: pageLimit,
+          total: totalPages * pageLimit,
+          pages: totalPages,
+          has_next: currentPage < totalPages,
+          has_prev: currentPage > 1,
+        });
       } else {
-        throw new Error(response.error || 'Failed to fetch notifications');
+        throw new Error((response as any).error || 'Failed to fetch notifications');
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

@@ -45,7 +45,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import MessageDialog from '@/components/Messages/MessageDialog';
 import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
 
-import { propertyApi } from '@/services/api';
+import { propertyApi, impressionApi } from '@/services/api';
 
 // Agent type
 type Agent = {
@@ -118,6 +118,7 @@ const PropertyDetails = () => {
           if (!isNaN(maybe)) numericId = maybe;
         }
 
+
         // If we could parse a numeric id, prefer that. Otherwise pass the raw id (string) to the API.
         const idToFetch = numericId !== null ? (numericId as number) : propertyId;
         const response = await propertyApi.getProperty(idToFetch);
@@ -127,6 +128,10 @@ const PropertyDetails = () => {
 
           const transformedProperty: any = {
             id: p.id?.toString() || String(numericId),
+            // Ensure `property_id` exists for places that expect it (map link, saved lists, etc.)
+            property_id: (p.property_id !== undefined && p.property_id !== null)
+              ? String(p.property_id)
+              : (p.id !== undefined && p.id !== null) ? String(p.id) : String(numericId),
             title: p.title || p.name || '',
             description: p.description || '',
             price: p.price || p.monthly_rent || 0,
@@ -156,6 +161,19 @@ const PropertyDetails = () => {
           };
 
           setProperty(transformedProperty);
+
+          // Record impression (best-effort, non-blocking)
+          const pubId = transformedProperty.property_id || transformedProperty.id;
+          if (pubId) {
+            // Use a stable session key stored in sessionStorage so repeated
+            // page refreshes by the same browser tab count as one session.
+            let sessionKey = sessionStorage.getItem('hm_session_key');
+            if (!sessionKey) {
+              sessionKey = Math.random().toString(36).slice(2) + Date.now().toString(36);
+              sessionStorage.setItem('hm_session_key', sessionKey);
+            }
+            impressionApi.record(String(pubId), sessionKey);
+          }
 
           // images
           const imagesToUse = Array.isArray(p.images) && p.images.length > 0
@@ -265,7 +283,13 @@ const PropertyDetails = () => {
   };
 
   if (localLoading) {
-    return null;
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        </div>
+      </Layout>
+    );
   }
 
   if (!property) {
@@ -536,7 +560,7 @@ const PropertyDetails = () => {
               </CardContent>
             </Card>
 
-            {/* MAP SECTION - Automatically handles postcode fetching now */}
+            {/* MAP SECTION */}
             <Card className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl overflow-hidden">
               <CardHeader className="bg-white border-b border-gray-50 pb-4">
                 <CardTitle className="flex items-center text-xl">
@@ -551,12 +575,9 @@ const PropertyDetails = () => {
                   </p>
                 </div>
                 
-                {/* Wrapper div acts as a clickable preview overlay to disable 
-                  scrolling in the page context and redirect to the full screen map 
-                */}
                 <div 
                   className="rounded-xl overflow-hidden shadow-inner border border-gray-100 relative group cursor-pointer"
-                  onClick={() => navigate(``)}
+                  onClick={() => navigate(`/property/${property.property_id}/map`)}
                 >
                   {/* Click interception overlay */}
                   <div className="absolute inset-0 z-[1000] bg-black/5 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
@@ -702,7 +723,11 @@ const PropertyDetails = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-5 bg-white">
-                    {agentLoading ? null : (
+                    {agentLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                      </div>
+                    ) : (
                       <div className="space-y-5">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-3">

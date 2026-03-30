@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Wrench, Clock, CheckCircle2, ListFilter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Wrench, Clock, CheckCircle2, ListFilter, Loader2 } from 'lucide-react';
 import { ExternalTenantMaintenanceRequestCard } from './ExternalTenantMaintenanceRequestCard';
+import { externalTenantApi } from '@/services/api';
+import { toast } from 'sonner';
 
 type FilterOption = 'all' | 'active' | 'completed';
 
@@ -21,46 +21,36 @@ const filterOptions: { label: string; value: FilterOption; icon: any }[] = [
   { label: 'Completed', value: 'completed', icon: CheckCircle2 },
 ];
 
-const MOCK_MAINTENANCE_REQUESTS: any[] = [
-  {
-    id: 1,
-    tenant_id: 'ext-tenant-001',
-    tenant_name: 'James Davies',
-    tenant_email: 'james.davies@email.com',
-    house_number: '14B, Riverside Court',
-    issue_type: 'Plumbing Issues',
-    description: 'The kitchen sink has been leaking for 4 days. Water is pooling under the cabinet and causing visible damp damage to the unit below.',
-    urgency: 'high',
-    status: 'in_progress',
-    priority: 2,
-    ticket_number: 'TKT-0001',
-    created_at: '2026-02-19T10:30:00.000Z',
-    updated_at: '2026-02-21T14:35:00.000Z',
-    notes: [
-      {
-        id: 101,
-        complaint_id: 1,
-        note: '[MAINTENANCE_SCHEDULE]\n📅 MAINTENANCE SCHEDULED\nDate: 28 Feb 2026\nTime: 10:00 AM\nNotes: Plumber will attend. Please ensure kitchen is accessible.',
-        added_by: 'Agent Sarah M.',
-        created_at: '2026-02-21T14:32:00.000Z',
-      },
-    ],
-  }
-];
 
-export default function ExternalTenantMaintenanceRequests({ onGoToMessages }: ExternalTenantMaintenanceRequestsProps) {
+export default function ExternalTenantMaintenanceRequests({
+  onGoToMessages,
+}: ExternalTenantMaintenanceRequestsProps) {
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterOption>('all');
 
   useEffect(() => {
-    setTimeout(() => {
-      setComplaints(MOCK_MAINTENANCE_REQUESTS);
-      setLoading(false);
-    }, 500);
+    // Maintenance = in-progress complaints (picked up by admin/maintenance)
+    externalTenantApi.getComplaints?.({ status: 'in_progress' })
+      .then((res) => {
+        if (res?.success && res.data) {
+          const list = Array.isArray(res.data)
+            ? res.data
+            : res.data.complaints ?? res.data.data ?? [];
+          setComplaints(
+            list.map((c: any) => ({
+              ...c,
+              issue_type: c.issue_type ?? c.category ?? 'General',
+              urgency: c.urgency ?? c.severity ?? 'low',
+            }))
+          );
+        }
+      })
+      .catch(() => toast.error('Could not load maintenance requests'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const filtered = complaints.filter(c => {
+  const filtered = complaints.filter((c) => {
     if (filter === 'active') return c.status === 'in_progress';
     if (filter === 'completed') return c.status === 'resolved' || c.status === 'closed';
     return true;
@@ -68,62 +58,73 @@ export default function ExternalTenantMaintenanceRequests({ onGoToMessages }: Ex
 
   const counts = {
     all: complaints.length,
-    active: complaints.filter(c => c.status === 'in_progress').length,
-    completed: complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length,
+    active: complaints.filter((c) => c.status === 'in_progress').length,
+    completed: complaints.filter((c) => c.status === 'resolved' || c.status === 'closed').length,
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 flex-wrap">
-        {filterOptions.map(opt => {
+    <div className="space-y-5">
+      {/* Filter toolbar */}
+      <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-1 shadow-sm w-fit">
+        {filterOptions.map((opt) => {
           const Icon = opt.icon;
           const active = filter === opt.value;
           return (
-            <Button
+            <button
               key={opt.value}
-              variant={active ? 'default' : 'outline'}
-              size="sm"
               onClick={() => setFilter(opt.value)}
-              className={`flex items-center gap-1.5 ${
-                active ? 'bg-blue-600 text-white border-none' : ''
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                active
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
               {opt.label}
-              <Badge
-                variant="secondary"
-                className={`ml-1 px-1.5 py-0 text-[10px] ${active ? 'bg-white/20 text-white' : ''}`}
+              <span
+                className={`text-[10px] font-semibold px-1.5 rounded-full ${
+                  active
+                    ? 'bg-white/20 dark:bg-black/20 text-white dark:text-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}
               >
                 {counts[opt.value]}
-              </Badge>
-            </Button>
+              </span>
+            </button>
           );
         })}
       </div>
 
-      <div className="space-y-4">
-        {loading ? null : filtered.length === 0 ? (
-          <div className="bg-card border rounded-xl p-12 text-center">
-            <Wrench className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
-            <h3 className="text-lg font-semibold text-foreground mb-1">No maintenance requests</h3>
-            <p className="text-muted-foreground text-sm">
-              {filter === 'all'
-                ? 'When your complaints are picked up by an agent and scheduled for maintenance, they will appear here.'
-                : filter === 'active'
-                ? 'No active maintenance scheduled at the moment.'
-                : 'No completed maintenance requests yet.'}
-            </p>
-          </div>
-        ) : (
-          filtered.map(complaint => (
-            <ExternalTenantMaintenanceRequestCard 
-              key={complaint.id} 
-              complaint={complaint} 
-              onGoToMessages={onGoToMessages} 
+      {/* List */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-12 text-center shadow-sm">
+          <Wrench className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+            No maintenance requests
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {filter === 'all'
+              ? 'When a complaint is picked up and scheduled for maintenance, it will appear here.'
+              : filter === 'active'
+              ? 'No active maintenance scheduled at the moment.'
+              : 'No completed maintenance requests yet.'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((complaint) => (
+            <ExternalTenantMaintenanceRequestCard
+              key={complaint.id}
+              complaint={complaint}
+              onGoToMessages={onGoToMessages}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

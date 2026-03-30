@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Added useRef
 import { useNavigate } from "react-router-dom";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,7 +25,7 @@ import VerificationStatusCircle from "@/components/TenantDashboard/VerificationS
 import { TenantCalendar } from "@/components/TenantDashboard/TenantCalender";
 import { TenantTenancy } from "@/components/TenantDashboard/TenancyManagement";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 
 const TenantDashboard = () => {
   const { loading, hasAccess, user } = useAuthGuard(['tenant'], false);
@@ -39,32 +39,43 @@ const TenantDashboard = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [isExternalTenantCheck, setIsExternalTenantCheck] = useState(true);
   const { toast } = useToast();
+  const hasCheckedExternal = useRef(false);
 
   useEffect(() => { sessionStorage.setItem('tenantDashboard_tab', activeTab); }, [activeTab]);
 
   useEffect(() => {
     const checkExternalTenant = async () => {
-      if (!hasAccess || loading || !user) return;
+      if (!hasAccess || loading || !user || hasCheckedExternal.current) return;
+      
       try {
         const token = getAuthToken();
-        if (!token) { setIsExternalTenantCheck(false); return; }
+        if (!token) { 
+          setIsExternalTenantCheck(false); 
+          hasCheckedExternal.current = true;
+          return; 
+        }
         const response = await fetch(`${API_BASE_URL}/external-tenant/check-profile`, {
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.data.has_external_profile) {
+          if (data.success && data.data?.has_external_profile && data.data?.profile_complete) {
             navigate('/external-tenant-dashboard', { replace: true });
             return;
           }
         }
-        setIsExternalTenantCheck(false);
       } catch (error) {
+        console.error("External tenant check failed:", error);
+      } finally {
         setIsExternalTenantCheck(false);
+        hasCheckedExternal.current = true;
       }
     };
     checkExternalTenant();
-  }, [hasAccess, loading, user, navigate]);
+  }, [hasAccess, loading, user?.id, navigate]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {

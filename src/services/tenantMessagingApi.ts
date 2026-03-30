@@ -1,7 +1,7 @@
 import { getAuthToken } from '@/utils/tokenStorage';
 
 // Tenant Messaging API Service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://api.homeduk.property';
 
 // HTTP client helper
 const apiRequest = async <T>(

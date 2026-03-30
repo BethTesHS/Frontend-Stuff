@@ -9,7 +9,7 @@ import { Shield, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 const AdminLogin = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ const AdminLogin = () => {
     try {
       const { adminApi } = await import('@/services/adminApi');
       const response = await adminApi.login({
-        email: credentials.username,
+        email: credentials.email,
         password: credentials.password,
         remember_me: false
       });
@@ -73,14 +73,14 @@ const AdminLogin = () => {
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="username" className="text-gray-700">Username</Label>
+              <Label htmlFor="email" className="text-gray-700">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={credentials.username}
-                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                id="email"
+                type="email"
+                value={credentials.email}
+                onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                 className="bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400"
-                placeholder="Enter admin username"
+                placeholder="Enter admin email"
                 required
               />
             </div>

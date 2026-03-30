@@ -10,7 +10,8 @@ import {
   Activity,
   Bell,
   Calendar,
-  Settings
+  Settings,
+  AlertTriangle,
 } from "lucide-react"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
 import { Link } from "react-router-dom"
@@ -37,6 +38,7 @@ export function AdminSidebar({ activeTab, onTabChange, isOpen = true, onClose, i
     { title: "Users", value: "users", icon: Users },
     { title: "Verifications", value: "verifications", icon: UserCheck },
     { title: "Messages", value: "messages", icon: MessageSquare },
+    { title: "Complaints", value: "complaints", icon: AlertTriangle },
     { title: "Task Monitor", value: "tasks", icon: Activity },
     { title: "Calendar", value: "calendar", icon: Calendar },
     { title: "Notifications", value: "notifications", icon: Bell },

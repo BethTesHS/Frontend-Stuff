@@ -18,6 +18,8 @@ import {
   Mail,
   ArrowLeft
 } from 'lucide-react';
+import { ExternalTenantSetupData } from "@/services/api";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExternalTenantFormProps {
   onComplete: () => void;
@@ -50,20 +52,21 @@ interface PropertyFormData {
 const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<PropertyFormData>({
-    propertyAddress: '',
-    postcode: '',
-    propertyType: '',
-    bedrooms: '',
-    bathrooms: '',
-    landlordName: '',
-    landlordEmail: '',
-    landlordPhone: '',
+  const { updateUser } = useAuth();
+  const [formData, setFormData] = useState<any>({
+    propertyAddress: "",
+    postcode: "",
+    propertyType: "flat",
+    bedrooms: "1",
+    bathrooms: "1",
+    landlordName: "",
+    landlordEmail: "",
+    landlordPhone: "",
     moveInDate: undefined,
-    tenancyLength: '',
+    tenancyLength: "1_year",
     monthlyRent: undefined,
     deposit: undefined,
-    additionalInfo: ''
+    additionalInfo: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,31 +86,37 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
       // Import the API
       const { externalTenantApi } = await import('@/services/api');
       
-      // Prepare data for Flask API
-      const setupData = {
-        tenant_type: 'external' as const,
-        role: 'tenant' as const,
-        property_data: {
-          propertyAddress: formData.propertyAddress,
-          postcode: formData.postcode,
-          propertyType: formData.propertyType,
-          bedrooms: parseInt(formData.bedrooms) || 0,
-          bathrooms: parseInt(formData.bathrooms) || 0,
-          landlordName: formData.landlordName,
-          landlordEmail: formData.landlordEmail,
-          landlordPhone: formData.landlordPhone,
-          moveInDate: formData.moveInDate?.toISOString().split('T')[0] || '',
-          tenancyLength: formData.tenancyLength,
-          monthlyRent: formData.monthlyRent || 0,
-          deposit: formData.deposit,
-          additionalInfo: formData.additionalInfo,
-        }
+      // Prepare data for FastApi
+      const setupData: ExternalTenantSetupData = {
+        tenant_type: "external",
+        role: "tenant",
+        propertyAddress: formData.propertyAddress,
+        postcode: formData.postcode,
+        propertyType: formData.propertyType,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        landlordName: formData.landlordName,
+        landlordEmail: formData.landlordEmail,
+        landlordPhone: formData.landlordPhone,
+        moveInDate: formData.moveInDate?.toISOString().split("T")[0] || "",
+        tenancyLength: formData.tenancyLength,
+        monthlyRent: Number(formData.monthlyRent),
+        deposit: formData.deposit ? Number(formData.deposit) : undefined,
+        additionalInfo: formData.additionalInfo,
       };
       
       // Submit to Flask API
       const response = await externalTenantApi.setupProfile(setupData);
-      
+
       if (response.success) {
+
+        updateUser({
+          role: "tenant",
+          profileComplete: true,
+          tenantVerified: true,
+          isPlatformTenant: false,
+        });
+
         toast.success('External tenant profile created successfully!');
         onComplete();
         navigate('/external-tenant-dashboard');

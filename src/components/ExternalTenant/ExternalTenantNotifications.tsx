@@ -21,13 +21,13 @@ export default function ExternalTenantNotifications() {
       setLoading(true);
       const response = await notificationApi.getNotifications({
         page: 1,
-        per_page: 20,
+        limit: 20,
         unread_only: false,
-        user_role: 'external_tenant'
+        user_role: 'external_tenant',
       });
 
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       toast.error('Failed to load notifications');
@@ -39,6 +39,11 @@ export default function ExternalTenantNotifications() {
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Re-fetch when a new notification arrives so the list stays current
+  useEffect(() => {
+    fetchNotifications();
+  }, [unreadCount]);
 
   const markNotificationAsRead = async (id: string) => {
     try {

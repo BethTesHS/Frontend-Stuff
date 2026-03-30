@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PropertyToggle } from '@/components/Properties/PropertyToggle';
 import { EditPropertyDialog } from '@/components/Properties/EditPropertyDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 const BASE_URL = API_BASE_URL.replace('/api', '');
 
 interface Property {

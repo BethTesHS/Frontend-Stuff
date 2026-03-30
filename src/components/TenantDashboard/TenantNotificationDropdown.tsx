@@ -29,12 +29,12 @@ export const TenantNotificationDropdown = ({ onShowAll, userRole = 'tenant' }: T
     try {
       const response = await notificationApi.getNotifications({
         page: 1,
-        per_page: 5,
+        limit: 5,
         unread_only: false,
-        user_role: userRole
+        user_role: userRole,
       });
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -124,14 +124,14 @@ export const TenantNotificationDropdown = ({ onShowAll, userRole = 'tenant' }: T
             )}
           </div>
           <CardContent className="p-0 overflow-y-auto max-h-80">
-            {loading ? null : notifications.length === 0 ? (
+            {loading ? null : (notifications ?? []).length === 0 ? (
               <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                 <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
                 <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {notifications.map((notification) => (
+                {(notifications ?? []).map((notification) => (
                   <div
                     key={notification.id}
                     className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!notification.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}

@@ -1,20 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from "react";
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getAuthToken } from '@/utils/tokenStorage';
+import { playNotificationSound } from '@/hooks/useNotificationSound';
 
 // Backend API URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 // Extract base URL without /api suffix for Socket.IO connection
 const SOCKET_URL = API_BASE_URL.replace('/api', '');
 
 export const useNotificationSocket = (onNewNotification?: (notification: any) => void) => {
   const { user } = useAuth();
+  const callbackRef = useRef(onNewNotification);
+
+  useEffect(() => {
+    callbackRef.current = onNewNotification;
+  }, [onNewNotification]);
 
   useEffect(() => {
     // Skip socket connection if user is not available
-    if (!user) return;
+    if (!user?.id) return;
 
     const token = getAuthToken();
     if (!token) return;
@@ -25,8 +31,8 @@ export const useNotificationSocket = (onNewNotification?: (notification: any) =>
         token: token
       },
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionDelay: 5000,
+      reconnectionAttempts: 3
     });
 
     // Join user's room for targeted notifications
@@ -39,14 +45,14 @@ export const useNotificationSocket = (onNewNotification?: (notification: any) =>
     socket.on('new_notification', (notification) => {
       console.log('New notification received:', notification);
 
-      // Show toast notification
+      playNotificationSound();
+
       toast.success(notification.title, {
         description: notification.message,
         duration: 5000,
       });
 
-      // Call custom handler if provided
-      onNewNotification?.(notification);
+      callbackRef.current?.(notification);
     });
 
     // Listen for notification updates
@@ -71,5 +77,5 @@ export const useNotificationSocket = (onNewNotification?: (notification: any) =>
     return () => {
       socket.disconnect();
     };
-  }, [user, onNewNotification]);
+  }, [user?.id]);
 };

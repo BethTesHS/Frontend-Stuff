@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { notificationApi, type Notification } from '@/services/api';
-import { getAuthToken } from '@/utils/tokenStorage';
+import { getAuthToken, getAdminToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
 interface AdminNotificationDropdownProps {
@@ -23,17 +23,17 @@ export const AdminNotificationDropdown = ({ onShowAll }: AdminNotificationDropdo
 
   const fetchNotifications = async () => {
     if (loading) return;
-    if (!getAuthToken()) return;
+    if (!getAdminToken() && !getAuthToken()) return;
     setLoading(true);
     try {
       const response = await notificationApi.getNotifications({
         page: 1,
-        per_page: 5,
+        limit: 5,
         unread_only: false,
         user_role: 'admin'
       });
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

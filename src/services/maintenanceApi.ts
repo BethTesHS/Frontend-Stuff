@@ -1,7 +1,7 @@
 import { getAuthToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 
 export interface MaintenanceSchedule {
   id?: number;

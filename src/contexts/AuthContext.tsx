@@ -3,7 +3,7 @@ import { authApi } from '@/services/api';
 import { toast } from 'sonner';
 import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken, setHomedUser } from '@/utils/tokenStorage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 
 // Helper function to decode JWT and get expiration time
 const getTokenExpirationTime = (token: string): number | null => {
@@ -44,6 +44,86 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
 }
+
+type TenantInfo = {
+  isPlatformTenant: boolean;
+  tenantVerified: boolean;
+  manualVerificationStatus: 'not_started' | 'pending' | 'verified';
+  redirectPath: string;
+};
+
+/**
+ * Determines whether a tenant is an external or platform tenant and returns
+ * the appropriate user fields + redirect path.  Called after login, SSO login,
+ * and on session restore so the logic lives in exactly one place.
+ */
+const resolveTenantInfo = async (token: string, role: string | undefined): Promise<TenantInfo> => {
+  const platformDefault: TenantInfo = {
+    isPlatformTenant: true,
+    tenantVerified: false,
+    manualVerificationStatus: 'not_started',
+    redirectPath: '/tenant-dashboard',
+  };
+
+  // 1. Check external tenant profile
+  try {
+    const externalRes = await fetch(`${API_BASE_URL}/external-tenant/check-profile`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+
+    if (externalRes.ok) {
+      const externalData = await externalRes.json();
+      if (externalData.success) {
+        const { has_external_profile, profile_complete } = externalData.data;
+
+        if (has_external_profile && profile_complete) {
+          return {
+            isPlatformTenant: false,
+            tenantVerified: true,
+            manualVerificationStatus: 'verified',
+            redirectPath: '/external-tenant-dashboard',
+          };
+        }
+
+        if (has_external_profile) {
+          // Profile exists but incomplete — send back to setup
+          return {
+            isPlatformTenant: false,
+            tenantVerified: false,
+            manualVerificationStatus: "pending",
+            redirectPath: "/external-tenant-dashboard",
+          };
+        }
+      }
+    }
+  } catch {
+    // Network error on external check — fall through to platform check
+  }
+
+  // 2. Not an external tenant — only check platform status when role is already 'tenant'
+  if (role !== 'tenant') return platformDefault;
+
+  try {
+    const dashRes = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+
+    if (dashRes.ok) {
+      const dashData = await dashRes.json();
+      const isActive = dashData.success && dashData.data?.status === 'active';
+      return {
+        isPlatformTenant: true,
+        tenantVerified: isActive,
+        manualVerificationStatus: isActive ? 'verified' : 'not_started',
+        redirectPath: '/tenant-dashboard',
+      };
+    }
+  } catch {
+    // Fall through to default
+  }
+
+  return platformDefault;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -268,67 +348,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 tenantVerified: initialUser?.tenantVerified,
               };
 
-              // Check tenant dashboard status if user is a tenant
-              if (user.role === 'tenant') {
-                try {
-                  // First check external tenant
-                  const externalCheckResponse = await fetch(`${API_BASE_URL}/external-tenant/check-profile`, {
-                    headers: {
-                      'Authorization': `Bearer ${token}`,
-                      'Content-Type': 'application/json'
-                    }
+              // Check tenant dashboard status if user is a tenant (or has no role yet — may be an external tenant)
+              if (user.role === 'tenant' || !user.role) {
+                const { redirectPath, ...tenantFields } = await resolveTenantInfo(token, user.role);
+                // If we found an external profile during initialization, update the role to tenant
+                if (redirectPath === "/external-tenant-dashboard") {
+                  Object.assign(user, {
+                    role: "tenant" as const,
+                    ...tenantFields,
                   });
-
-                  if (externalCheckResponse.ok) {
-                    const externalCheckData = await externalCheckResponse.json();
-                    if (externalCheckData.success) {
-                      const { has_external_profile, profile_complete } = externalCheckData.data;
-
-                      if (has_external_profile && profile_complete) {
-                        // External tenant with complete profile - mark as verified
-                        user.tenantVerified = true;
-                        user.isPlatformTenant = false;
-                        user.manualVerificationStatus = 'verified';
-                      }
-                    }
-                  }
-
-                  // If not external tenant, check internal tenant dashboard (platform tenant)
-                  if (!user.tenantVerified) {
-                    user.isPlatformTenant = true;
-
-                    const dashboardResponse = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                      }
-                    });
-
-                    if (dashboardResponse.ok) {
-                      const dashboardData = await dashboardResponse.json();
-                      if (dashboardData.success && dashboardData.data?.status === 'active') {
-                        // Platform tenant with active property - verified
-                        user.tenantVerified = true;
-                        user.manualVerificationStatus = 'verified';
-                      } else {
-                        // Platform tenant but no active property yet
-                        user.tenantVerified = false;
-                        user.manualVerificationStatus = 'not_started';
-                      }
-                    } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                      // Platform tenant hasn't completed verification yet - allow dashboard access
-                      console.log('Platform tenant not verified yet - allowing dashboard access');
-                      user.tenantVerified = false;
-                      user.manualVerificationStatus = 'not_started';
-                    }
-                  }
-                } catch (error) {
-                  // If checks fail, default to unverified platform tenant
-                  if (user.isPlatformTenant === undefined) {
-                    user.isPlatformTenant = true;
-                    user.tenantVerified = false;
-                    user.manualVerificationStatus = 'not_started';
-                  }
+                } else if (user.role === "tenant") {
+                  Object.assign(user, { ...tenantFields });
                 }
               }
 
@@ -410,182 +440,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         let shouldRedirectTo = '/select-role';
 
-        try {
-          if (user.role === 'tenant') {
-            try {
-              const externalCheckResponse = await fetch(`${API_BASE_URL}/external-tenant/check-profile`, {
-                headers: {
-                  'Authorization': `Bearer ${access_token}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-
-              if (externalCheckResponse.ok) {
-                const externalCheckData = await externalCheckResponse.json();
-
-                if (externalCheckData.success) {
-                  const { has_external_profile, profile_complete } = externalCheckData.data;
-
-                  if (has_external_profile && profile_complete) {
-                    shouldRedirectTo = '/external-tenant-dashboard';
-                    const updatedUser = {
-                      ...user,
-                      tenantVerified: true,
-                      isPlatformTenant: false,
-                      manualVerificationStatus: 'verified' as const
-                    };
-                    setUser(updatedUser);
-                    setHomedUser(updatedUser);
-                  } else if (has_external_profile) {
-                    shouldRedirectTo = '/select-role';
-                  } else {
-                    // Platform tenant - check if they have active property
-                    try {
-                      const dashboardResponse = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
-                        headers: {
-                          'Authorization': `Bearer ${access_token}`,
-                          'Content-Type': 'application/json'
-                        }
-                      });
-
-                      if (dashboardResponse.ok) {
-                        const dashboardData = await dashboardResponse.json();
-
-                        if (dashboardData.success && dashboardData.data?.status === 'active') {
-                          // Verified platform tenant with active property
-                          shouldRedirectTo = '/tenant-dashboard';
-                          const updatedUser = {
-                            ...user,
-                            tenantVerified: true,
-                            isPlatformTenant: true,
-                            manualVerificationStatus: 'verified' as const
-                          };
-                          setUser(updatedUser);
-                          setHomedUser(updatedUser);
-                        } else {
-                          // Platform tenant without verification - still allow dashboard access
-                          shouldRedirectTo = '/tenant-dashboard';
-                          const updatedUser = {
-                            ...user,
-                            tenantVerified: false,
-                            isPlatformTenant: true,
-                            manualVerificationStatus: 'not_started' as const
-                          };
-                          setUser(updatedUser);
-                          setHomedUser(updatedUser);
-                        }
-                      } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                        // Platform tenant not verified yet - allow dashboard access
-                        console.log('Platform tenant not verified yet - allowing dashboard access');
-                        shouldRedirectTo = '/tenant-dashboard';
-                        const updatedUser = {
-                          ...user,
-                          tenantVerified: false,
-                          isPlatformTenant: true,
-                          manualVerificationStatus: 'not_started' as const
-                        };
-                        setUser(updatedUser);
-                        setHomedUser(updatedUser);
-                      }
-                    } catch (internalError) {
-                      // Error checking platform tenant - default to allowing dashboard access
-                      console.log('Platform tenant check error - allowing dashboard access');
-                      shouldRedirectTo = '/tenant-dashboard';
-                      const updatedUser = {
-                        ...user,
-                        tenantVerified: false,
-                        isPlatformTenant: true,
-                        manualVerificationStatus: 'not_started' as const
-                      };
-                      setUser(updatedUser);
-                      setHomedUser(updatedUser);
-                    }
-                  }
-                }
-              } else {
-                // External check failed - assume platform tenant
-                try {
-                  const dashboardResponse = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
-                    headers: {
-                      'Authorization': `Bearer ${access_token}`,
-                      'Content-Type': 'application/json'
-                    }
-                  });
-
-                  if (dashboardResponse.ok) {
-                    const dashboardData = await dashboardResponse.json();
-
-                    if (dashboardData.success && dashboardData.data?.status === 'active') {
-                      shouldRedirectTo = '/tenant-dashboard';
-                      const updatedUser = {
-                        ...user,
-                        tenantVerified: true,
-                        isPlatformTenant: true,
-                        manualVerificationStatus: 'verified' as const
-                      };
-                      setUser(updatedUser);
-                      setHomedUser(updatedUser);
-                    } else {
-                      // Platform tenant without verification - allow dashboard access
-                      shouldRedirectTo = '/tenant-dashboard';
-                      const updatedUser = {
-                        ...user,
-                        tenantVerified: false,
-                        isPlatformTenant: true,
-                        manualVerificationStatus: 'not_started' as const
-                      };
-                      setUser(updatedUser);
-                      setHomedUser(updatedUser);
-                    }
-                  } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                    // Platform tenant not verified - allow dashboard access
-                    console.log('Platform tenant not verified, allowing dashboard access');
-                    shouldRedirectTo = '/tenant-dashboard';
-                    const updatedUser = {
-                      ...user,
-                      tenantVerified: false,
-                      isPlatformTenant: true,
-                      manualVerificationStatus: 'not_started' as const
-                    };
-                    setUser(updatedUser);
-                    setHomedUser(updatedUser);
-                  }
-                } catch (internalError) {
-                  console.log('Internal tenant check error during login:', internalError);
-                  // Default to allowing dashboard access
-                  shouldRedirectTo = '/tenant-dashboard';
-                  const updatedUser = {
-                    ...user,
-                    tenantVerified: false,
-                    isPlatformTenant: true,
-                    manualVerificationStatus: 'not_started' as const
-                  };
-                  setUser(updatedUser);
-                  setHomedUser(updatedUser);
-                }
-              }
-            } catch (externalError) {
-              console.log('External tenant check error during login:', externalError);
-              // Default to allowing dashboard access
-              shouldRedirectTo = '/tenant-dashboard';
-              const updatedUser = {
-                ...user,
-                tenantVerified: false,
-                isPlatformTenant: true,
-                manualVerificationStatus: 'not_started' as const
-              };
-              setUser(updatedUser);
-              setHomedUser(updatedUser);
-            }
-
-          } else if (user.role === 'agent') {
-            shouldRedirectTo = user.profileComplete ? '/agent-dashboard' : '/profile-setup';
-          } else if (user.role === 'owner' || user.role === 'manager') {
-            shouldRedirectTo = user.profileComplete ? '/owner-dashboard' : '/profile-setup';
-          } else if (user.role) {
-            shouldRedirectTo = '/dashboard';
+        if (user.role === 'tenant' || !user.role) {
+          const { redirectPath, ...tenantFields } = await resolveTenantInfo(access_token, user.role);
+          if (redirectPath === '/external-tenant-dashboard') {
+            shouldRedirectTo = redirectPath;
+            const updatedUser = { ...user, role: 'tenant' as const, ...tenantFields };
+            setUser(updatedUser);
+            setHomedUser(updatedUser);
+          } else if (user.role === 'tenant') {
+            shouldRedirectTo = redirectPath;
+            const updatedUser = { ...user, ...tenantFields };
+            setUser(updatedUser);
+            setHomedUser(updatedUser);
           }
-        } catch (error) {
+        } else if (user.role === 'agent') {
+          shouldRedirectTo = user.profileComplete ? '/agent-dashboard' : '/profile-setup';
+        } else if (user.role === 'owner' || user.role === 'manager') {
+          shouldRedirectTo = user.profileComplete ? '/owner-dashboard' : '/profile-setup';
+        } else if (user.role) {
+          shouldRedirectTo = '/dashboard';
         }
 
         localStorage.setItem('login_redirect_path', shouldRedirectTo);
@@ -635,170 +508,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Handle tenant verification checks if needed
       let shouldRedirectTo = '/select-role';
 
-      try {
-        if (user.role === 'tenant') {
-          try {
-            const externalCheckResponse = await fetch(`${API_BASE_URL}/external-tenant/check-profile`, {
-              headers: {
-                'Authorization': `Bearer ${access_token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            if (externalCheckResponse.ok) {
-              const externalCheckData = await externalCheckResponse.json();
-
-              if (externalCheckData.success) {
-                const { has_external_profile, profile_complete } = externalCheckData.data;
-
-                if (has_external_profile && profile_complete) {
-                  shouldRedirectTo = '/external-tenant-dashboard';
-                  const updatedUser = {
-                    ...user,
-                    tenantVerified: true,
-                    isPlatformTenant: false,
-                    manualVerificationStatus: 'verified' as const
-                  };
-                  setUser(updatedUser);
-                  setHomedUser(updatedUser);
-                } else if (has_external_profile) {
-                  shouldRedirectTo = '/select-role';
-                } else {
-                  // Platform tenant - check if they have active property
-                  try {
-                    const dashboardResponse = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
-                      headers: {
-                        'Authorization': `Bearer ${access_token}`,
-                        'Content-Type': 'application/json'
-                      }
-                    });
-
-                    if (dashboardResponse.ok) {
-                      const dashboardData = await dashboardResponse.json();
-
-                      if (dashboardData.success && dashboardData.data?.status === 'active') {
-                        shouldRedirectTo = '/tenant-dashboard';
-                        const updatedUser = {
-                          ...user,
-                          tenantVerified: true,
-                          isPlatformTenant: true,
-                          manualVerificationStatus: 'verified' as const
-                        };
-                        setUser(updatedUser);
-                        setHomedUser(updatedUser);
-                      } else {
-                        shouldRedirectTo = '/tenant-dashboard';
-                        const updatedUser = {
-                          ...user,
-                          tenantVerified: false,
-                          isPlatformTenant: true,
-                          manualVerificationStatus: 'not_started' as const
-                        };
-                        setUser(updatedUser);
-                        setHomedUser(updatedUser);
-                      }
-                    } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                      shouldRedirectTo = '/tenant-dashboard';
-                      const updatedUser = {
-                        ...user,
-                        tenantVerified: false,
-                        isPlatformTenant: true,
-                        manualVerificationStatus: 'not_started' as const
-                      };
-                      setUser(updatedUser);
-                      setHomedUser(updatedUser);
-                    }
-                  } catch (internalError) {
-                    shouldRedirectTo = '/tenant-dashboard';
-                    const updatedUser = {
-                      ...user,
-                      tenantVerified: false,
-                      isPlatformTenant: true,
-                      manualVerificationStatus: 'not_started' as const
-                    };
-                    setUser(updatedUser);
-                    setHomedUser(updatedUser);
-                  }
-                }
-              }
-            } else {
-              // External check failed - assume platform tenant
-              try {
-                const dashboardResponse = await fetch(`${API_BASE_URL}/tenant/dashboard`, {
-                  headers: {
-                    'Authorization': `Bearer ${access_token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-
-                if (dashboardResponse.ok) {
-                  const dashboardData = await dashboardResponse.json();
-
-                  if (dashboardData.success && dashboardData.data?.status === 'active') {
-                    shouldRedirectTo = '/tenant-dashboard';
-                    const updatedUser = {
-                      ...user,
-                      tenantVerified: true,
-                      isPlatformTenant: true,
-                      manualVerificationStatus: 'verified' as const
-                    };
-                    setUser(updatedUser);
-                    setHomedUser(updatedUser);
-                  } else {
-                    shouldRedirectTo = '/tenant-dashboard';
-                    const updatedUser = {
-                      ...user,
-                      tenantVerified: false,
-                      isPlatformTenant: true,
-                      manualVerificationStatus: 'not_started' as const
-                    };
-                    setUser(updatedUser);
-                    setHomedUser(updatedUser);
-                  }
-                } else if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                  shouldRedirectTo = '/tenant-dashboard';
-                  const updatedUser = {
-                    ...user,
-                    tenantVerified: false,
-                    isPlatformTenant: true,
-                    manualVerificationStatus: 'not_started' as const
-                  };
-                  setUser(updatedUser);
-                  setHomedUser(updatedUser);
-                }
-              } catch (internalError) {
-                shouldRedirectTo = '/tenant-dashboard';
-                const updatedUser = {
-                  ...user,
-                  tenantVerified: false,
-                  isPlatformTenant: true,
-                  manualVerificationStatus: 'not_started' as const
-                };
-                setUser(updatedUser);
-                setHomedUser(updatedUser);
-              }
-            }
-          } catch (externalError) {
-            shouldRedirectTo = '/tenant-dashboard';
-            const updatedUser = {
-              ...user,
-              tenantVerified: false,
-              isPlatformTenant: true,
-              manualVerificationStatus: 'not_started' as const
-            };
+      if (user.role === 'tenant' || !user.role) {
+          const { redirectPath, ...tenantFields } = await resolveTenantInfo(access_token, user.role);
+          if (redirectPath === '/external-tenant-dashboard') {
+            shouldRedirectTo = redirectPath;
+            const updatedUser = { ...user, role: 'tenant' as const, ...tenantFields };
+            setUser(updatedUser);
+            setHomedUser(updatedUser);
+          } else if (user.role === 'tenant') {
+            shouldRedirectTo = redirectPath;
+            const updatedUser = { ...user, ...tenantFields };
             setUser(updatedUser);
             setHomedUser(updatedUser);
           }
-
         } else if (user.role === 'agent') {
-          shouldRedirectTo = user.profileComplete ? '/agent-dashboard' : '/profile-setup';
-        } else if (user.role === 'owner' || user.role === 'manager') {
-          shouldRedirectTo = user.profileComplete ? '/owner-dashboard' : '/profile-setup';
-        } else if (user.role) {
-          shouldRedirectTo = '/dashboard';
-        }
-      } catch (error) {
-        console.error('Error during SSO login redirect logic:', error);
+        shouldRedirectTo = user.profileComplete ? '/agent-dashboard' : '/profile-setup';
+      } else if (user.role === 'owner' || user.role === 'manager') {
+        shouldRedirectTo = user.profileComplete ? '/owner-dashboard' : '/profile-setup';
+      } else if (user.role) {
+        shouldRedirectTo = '/dashboard';
       }
 
       localStorage.setItem('login_redirect_path', shouldRedirectTo);
@@ -875,7 +603,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const cleanedUserData: any = {};
     Object.entries(userData).forEach(([key, value]) => {
-      if (value !== "" && value !== undefined && value !== null && value !== false) {
+      if (value !== "" && value !== undefined && value !== null) {
         if (typeof value === 'string' && value.trim() === '') {
           return;
         }

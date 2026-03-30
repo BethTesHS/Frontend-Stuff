@@ -61,6 +61,7 @@ export const isAgencySubdomain = (): boolean => {
       host.includes('heroku.com') ||
       host.includes('azurestaticapps.net') ||
       host.includes('amazonaws.com') ||
+      host.includes('cloudfront.net') ||
       host.includes('127.0.0.1')) {
     return false;
   }
@@ -85,6 +86,7 @@ export const buildAgencyUrl = (slug: string, path: string = ''): string => {
       currentHost.includes('railway.app') ||
       currentHost.includes('heroku.com') ||
       currentHost.includes('amazonaws.com') ||
+      currentHost.includes('cloudfront.net') ||
       currentHost.includes('azurestaticapps.net')) {
     return `${currentProtocol}//${currentHost}${path}?agency=${slug}`;
   }

@@ -1,6 +1,6 @@
-import { getAuthToken } from '@/utils/tokenStorage';
+import { getAuthToken, getAdminToken } from '@/utils/tokenStorage';
 
-const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/external-tenant-complaints';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://api.homeduk.property'}/ext-complaints`;
 
 // API response types
 interface ApiResponse<T = any> {
@@ -107,8 +107,8 @@ const apiRequest = async <T>(
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
-  // Add auth token if available
-  const token = getAuthToken();
+  // Add auth token if available (admin token takes precedence)
+  const token = getAdminToken() || getAuthToken();
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -155,7 +155,7 @@ export const externalTenantComplaintsApi = {
     landlord_notified: boolean;
     confirmation_sent: boolean;
   }>> => {
-    return apiRequest('/submit', {
+    return apiRequest('', {
       method: 'POST',
       body: JSON.stringify(complaintData),
     });
@@ -183,7 +183,7 @@ export const externalTenantComplaintsApi = {
     if (params.issue_type) queryParams.set('issue_type', params.issue_type);
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `/list?${queryString}` : '/list';
+    const endpoint = queryString ? `?${queryString}` : '';
     return apiRequest(endpoint);
   },
 
@@ -206,7 +206,7 @@ export const externalTenantComplaintsApi = {
   addComplaintNote: async (complaintId: number, note: string): Promise<ApiResponse<{
     note: ComplaintNote;
   }>> => {
-    return apiRequest(`/${complaintId}/add-note`, {
+    return apiRequest(`/${complaintId}/notes`, {
       method: 'POST',
       body: JSON.stringify({ note }),
     });
@@ -231,7 +231,7 @@ export const externalTenantComplaintsApi = {
     rating_review: string;
     rated_at: string;
   }>> => {
-    return apiRequest(`/${complaintId}/rate`, {
+    return apiRequest(`/${complaintId}/rating`, {
       method: 'POST',
       body: JSON.stringify({ rating_score, rating_review }),
     });
@@ -239,8 +239,73 @@ export const externalTenantComplaintsApi = {
 
   // Get complaints summary for dashboard
   getDashboardSummary: async (): Promise<ApiResponse<ComplaintDashboardSummary>> => {
-    return apiRequest('/dashboard-summary');
+    return apiRequest('/dashboard');
   },
+};
+
+export interface AdminComplaintStats {
+  total: number;
+  open: number;
+  in_progress: number;
+  resolved: number;
+  closed: number;
+}
+
+// Admin-only complaints API (uses admin token)
+const adminApiRequest = async <T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> => {
+  const BASE = `${import.meta.env.VITE_API_URL || 'http://api.homeduk.property'}`;
+  const url = `${BASE}${endpoint}`;
+  const token = getAdminToken() || getAuthToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const response = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+  return data;
+};
+
+export const adminComplaintsApi = {
+  list: (params: { page?: number; limit?: number; status?: string; severity?: string; search?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.page) q.set('page_no', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.severity && params.severity !== 'all') q.set('severity', params.severity);
+    if (params.search) q.set('search', params.search);
+    const qs = q.toString();
+    return adminApiRequest<{ complaints: ExternalTenantComplaint[]; stats: AdminComplaintStats }>(
+      `/ext-complaints/admin/list${qs ? `?${qs}` : ''}`
+    );
+  },
+
+  getItem: (id: number) =>
+    adminApiRequest<ExternalTenantComplaint & { notes: ComplaintNote[]; status_history: ComplaintStatusHistory[]; images: ComplaintImage[] }>(
+      `/ext-complaints/admin/${id}`
+    ),
+
+  updateStatus: (id: number, payload: { status: string; resolution_description?: string; admin_notes?: string }) =>
+    adminApiRequest<ExternalTenantComplaint>(`/ext-complaints/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  addNote: (id: number, note: string) =>
+    adminApiRequest<ComplaintNote>(`/ext-complaints/${id}/admin-notes`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+
+  remindLandlord: (id: number, custom_message?: string) =>
+    adminApiRequest<{ landlord_email: string; notification_sent_at: string }>(
+      `/ext-complaints/${id}/remind-landlord`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ custom_message: custom_message || null }),
+      }
+    ),
 };
 
 export default externalTenantComplaintsApi;

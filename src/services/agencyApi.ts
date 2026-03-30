@@ -1,6 +1,6 @@
 import { tokenStorage, getAgencyToken, setAgencyToken } from '@/utils/tokenStorage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://api.homeduk.property';
 
 const getAuthHeaders = () => {
   const token = getAgencyToken();

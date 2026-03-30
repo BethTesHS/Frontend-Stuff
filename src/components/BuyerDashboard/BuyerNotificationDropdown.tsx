@@ -34,7 +34,7 @@ export const BuyerNotificationDropdown = ({ onShowAll }: BuyerNotificationDropdo
         user_role: 'buyer'
       });
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

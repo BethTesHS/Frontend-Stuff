@@ -7,7 +7,8 @@ import {
   LogOut,
   X,
   Wrench,
-  Calendar
+  Calendar,
+  MessageSquareQuote,
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Link } from "react-router-dom"

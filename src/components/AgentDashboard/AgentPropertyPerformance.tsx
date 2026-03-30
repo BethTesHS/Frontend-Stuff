@@ -1,13 +1,20 @@
-import { BarChart2, TrendingUp, Eye, MessageSquare, Home, Flame, TrendingDown, Rocket } from "lucide-react"
+import { useEffect, useState } from "react"
+import { BarChart2, TrendingUp, Eye, Home, Flame, TrendingDown, Rocket, RepeatIcon, Lock } from "lucide-react"
+import { impressionApi } from "@/services/api"
 
 interface PropertyRow {
-  id: string
-  name: string
-  location: string
-  views: number
-  enquiries: number
-  impressions: number
-  score: "hot" | "warn" | "rocket" | "neutral"
+  property_id: string
+  title: string
+  price: number
+  total_impressions: number
+  repeated_viewers: number
+}
+
+function calcScore(row: PropertyRow): "hot" | "warn" | "rocket" | "neutral" {
+  if (row.total_impressions >= 50) return "rocket"
+  if (row.total_impressions >= 20) return "hot"
+  if (row.total_impressions > 0) return "neutral"
+  return "warn"
 }
 
 const scoreConfig = {
@@ -41,10 +48,25 @@ const scoreConfig = {
   },
 }
 
-const rows: PropertyRow[] = []
-
 export function AgentPropertyPerformance() {
-  const total = { impressions: 0, views: 0, enquiries: 0 }
+  const [rows, setRows] = useState<PropertyRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    impressionApi.getPerformance().then((res: any) => {
+      if (res?.success && Array.isArray(res.data)) {
+        setRows(res.data)
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const total = rows.reduce(
+    (acc, r) => ({
+      impressions: acc.impressions + r.total_impressions,
+      repeated: acc.repeated + r.repeated_viewers,
+    }),
+    { impressions: 0, repeated: 0 }
+  )
 
   return (
     <div className="space-y-6">
@@ -56,7 +78,7 @@ export function AgentPropertyPerformance() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex items-center space-x-4">
           <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
             <Eye size={20} className="text-blue-500" />
@@ -70,23 +92,12 @@ export function AgentPropertyPerformance() {
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex items-center space-x-4">
           <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-            <TrendingUp size={20} className="text-purple-500" />
+            <RepeatIcon size={20} className="text-purple-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Views</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Repeated Viewers</p>
             <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {total.views.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-            <MessageSquare size={20} className="text-green-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Enquiries</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {total.enquiries.toLocaleString()}
+              {total.repeated.toLocaleString()}
             </p>
           </div>
         </div>
@@ -96,16 +107,20 @@ export function AgentPropertyPerformance() {
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center space-x-2">
           <BarChart2 size={18} className="text-gray-500 dark:text-gray-400" />
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Top Performing Properties</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Impressions by Listing</h2>
         </div>
 
-        {rows.length === 0 && (
+        {loading && (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">Loading performance data…</div>
+        )}
+
+        {!loading && rows.length === 0 && (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-            No performance data available yet. Once your listings receive views and enquiries, they will appear here.
+            No impressions recorded yet. Once visitors view your listings, they will appear here.
           </div>
         )}
 
-        {rows.length > 0 && (
+        {!loading && rows.length > 0 && (
           <>
             {/* Desktop table */}
             <div className="hidden sm:block overflow-x-auto">
@@ -113,37 +128,43 @@ export function AgentPropertyPerformance() {
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Property</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Price</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Impressions</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Views</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Enquiries</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      <span className="flex items-center justify-end gap-1">
+                        Repeated Viewers
+                        <Lock size={11} className="text-gray-400" />
+                      </span>
+                    </th>
                     <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Score</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {rows.map((prop) => {
-                    const cfg = scoreConfig[prop.score]
+                    const score = calcScore(prop)
+                    const cfg = scoreConfig[score]
                     const ScoreIcon = cfg.icon
                     return (
-                      <tr key={prop.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                      <tr key={prop.property_id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                               <Home size={15} className="text-gray-500 dark:text-gray-400" />
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">{prop.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{prop.location}</p>
-                            </div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{prop.title}</p>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right font-medium text-gray-700 dark:text-gray-300">
-                          {prop.impressions.toLocaleString()}
+                        <td className="px-6 py-4 text-right text-gray-700 dark:text-gray-300">
+                          £{prop.price.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-right font-medium text-gray-700 dark:text-gray-300">
-                          {prop.views.toLocaleString()}
+                          {prop.total_impressions.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-right font-medium text-gray-700 dark:text-gray-300">
-                          {prop.enquiries}
+                        <td className="px-6 py-4 text-right">
+                          <span className="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 text-xs italic">
+                            <Lock size={11} />
+                            Switch to Pro
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
@@ -161,18 +182,19 @@ export function AgentPropertyPerformance() {
             {/* Mobile cards */}
             <div className="sm:hidden divide-y divide-gray-100 dark:divide-gray-800">
               {rows.map((prop) => {
-                const cfg = scoreConfig[prop.score]
+                const score = calcScore(prop)
+                const cfg = scoreConfig[score]
                 const ScoreIcon = cfg.icon
                 return (
-                  <div key={prop.id} className="p-4 space-y-3">
+                  <div key={prop.property_id} className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                           <Home size={15} className="text-gray-500 dark:text-gray-400" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">{prop.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{prop.location}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{prop.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">£{prop.price.toLocaleString()}</p>
                         </div>
                       </div>
                       <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
@@ -180,18 +202,16 @@ export function AgentPropertyPerformance() {
                         <span>{cfg.label}</span>
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Impressions</p>
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{prop.impressions.toLocaleString()}</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{prop.total_impressions.toLocaleString()}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Views</p>
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{prop.views.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Enquiries</p>
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{prop.enquiries}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1">
+                          <Lock size={10} /> Repeated Viewers
+                        </p>
+                        <p className="text-xs italic text-gray-400 dark:text-gray-500 mt-0.5">Switch to Pro</p>
                       </div>
                     </div>
                   </div>
@@ -200,6 +220,20 @@ export function AgentPropertyPerformance() {
             </div>
           </>
         )}
+      </div>
+
+      {/* Pro upsell banner */}
+      <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-5 flex items-center justify-between gap-4 bg-gray-50 dark:bg-gray-800/30">
+        <div className="flex items-center gap-3">
+          <Lock size={18} className="text-gray-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Unlock viewer details with Pro</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">See who viewed your listings, how often, and their contact details.</p>
+          </div>
+        </div>
+        <button className="flex-shrink-0 text-xs font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+          Switch to Pro
+        </button>
       </div>
     </div>
   )

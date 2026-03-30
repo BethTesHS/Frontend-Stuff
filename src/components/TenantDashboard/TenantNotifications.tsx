@@ -1,37 +1,48 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Bell, Search, Calendar, AlertTriangle, CheckCircle, MessageSquare, User, Filter, Loader2 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import {
+  Bell, Search, Calendar, AlertTriangle, CheckCircle,
+  MessageSquare, User, Filter, Loader2,
+} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { notificationApi, type Notification } from '@/services/api';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { getAuthToken } from '@/utils/tokenStorage';
 import { toast } from 'sonner';
 
+const PER_PAGE = 20;
+
+interface PaginationState {
+  current_page: number;
+  total: number;
+  pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+const defaultPagination: PaginationState = {
+  current_page: 1,
+  total: 0,
+  pages: 0,
+  has_next: false,
+  has_prev: false,
+};
+
 const NotificationsComponent = ({ user }: { user?: any }) => {
   const { unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  
-  // State management
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [pagination, setPagination] = useState({
-    current_page: 1,
-    per_page: 20,
-    total: 0,
-    pages: 0,
-    has_next: false,
-    has_prev: false
-  });
-  
-  // Loading states
+  const [filterType, setFilterType] = useState('all');
+  const [pagination, setPagination] = useState<PaginationState>(defaultPagination);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [markingReadIds, setMarkingReadIds] = useState<Set<string>>(new Set());
 
-  // Fetch notifications with useCallback to prevent infinite re-renders
-  const fetchNotifications = useCallback(async (page: number = 1, append: boolean = false) => {
+  // Debounce ref so filter/search changes don't fire immediately
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchNotifications = async (page = 1, append = false) => {
     if (!getAuthToken()) {
       setLoading(false);
       return;
@@ -41,287 +52,261 @@ const NotificationsComponent = ({ user }: { user?: any }) => {
 
       const response = await notificationApi.getNotifications({
         page,
-        per_page: pagination.per_page,
-        type: filterType,
-        search: searchTerm || undefined,
+        per_page: PER_PAGE,
+        type: filterType === 'all' ? undefined : filterType,
+        search: searchTerm.trim() || undefined,
         unread_only: false,
-        user_role: user?.role || 'external_tenant' // External tenants have no role
+        user_role: user?.role ?? 'external_tenant',
       });
 
-      if (response.success && response.data) {
-        const { notifications: newNotifications, ...paginationData } = response.data;
-        
-        if (append) {
-          setNotifications(prev => [...prev, ...newNotifications]);
-        } else {
-          setNotifications(newNotifications);
-        }
-        
-        setPagination(paginationData);
-      } else {
-        throw new Error(response.error || 'Failed to fetch notifications');
+      if (response?.success && response.data) {
+        const data = response.data as any;
+        // Handle different possible response shapes safely
+        const fetched: Notification[] = Array.isArray(data.notifications)
+          ? data.notifications
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
+
+        setNotifications((prev) => (append ? [...prev, ...fetched] : fetched));
+
+        setPagination({
+          current_page: data.current_page ?? page,
+          total: data.total ?? fetched.length,
+          pages: data.pages ?? 1,
+          has_next: data.has_next ?? false,
+          has_prev: data.has_prev ?? false,
+        });
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      // Don't toast on every poll failure — only on first load
+      if (!append && notifications.length === 0) {
+        toast.error('Could not load notifications');
+      }
     } finally {
       setLoading(false);
     }
-  }, [pagination.per_page, filterType, searchTerm, user?.role]);
+  };
 
-  // Handle initial load and filter/search changes with debouncing to prevent duplicate requests
+  // Debounced refetch on filter/search change
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchNotifications(1);
-    }, 300); // Debounce search
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchNotifications(1, false);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterType]);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, filterType, fetchNotifications]);
-
-  // Mark single notification as read
   const markNotificationAsRead = async (id: string) => {
     if (markingReadIds.has(id)) return;
-
-    setMarkingReadIds(prev => new Set([...prev, id]));
-
+    setMarkingReadIds((prev) => new Set([...prev, id]));
     try {
       await markAsRead(id);
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
-      toast.success('Notification marked as read');
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      toast.error('Failed to mark notification as read');
+    } catch {
+      toast.error('Failed to mark as read');
     } finally {
-      setMarkingReadIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
+      setMarkingReadIds((prev) => {
+        const s = new Set(prev);
+        s.delete(id);
+        return s;
       });
     }
   };
 
-  // Mark all notifications as read
   const markAllNotificationsAsRead = async () => {
     if (isMarkingAllRead || unreadCount === 0) return;
-
     setIsMarkingAllRead(true);
-
     try {
       await markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      toast.error('Failed to mark all notifications as read');
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch {
+      toast.error('Failed to mark all as read');
     } finally {
       setIsMarkingAllRead(false);
     }
   };
 
-  // Load more notifications
-  const loadMore = () => {
-    if (pagination.has_next && !loading) {
-      fetchNotifications(pagination.current_page + 1, true);
-    }
-  };
-
   const getNotificationIcon = (type: Notification['type']) => {
-    const iconClass = "w-6 h-6 text-gray-600 dark:text-gray-400";
+    const cls = 'w-4 h-4';
     switch (type) {
       case 'booking':
-        return <Calendar className={iconClass} />;
-      case 'complaint':
-        return <AlertTriangle className={iconClass} />;
-      case 'resolved':
-        return <CheckCircle className={iconClass} />;
-      case 'message':
-        return <MessageSquare className={iconClass} />;
       case 'viewing':
-        return <Calendar className={iconClass} />;
-      case 'inquiry':
-        return <MessageSquare className={iconClass} />;
-      case 'contact':
-        return <MessageSquare className={iconClass} />;
-      case 'review':
-        return <CheckCircle className={iconClass} />;
+        return <Calendar className={cls} />;
+      case 'complaint':
+        return <AlertTriangle className={cls} />;
+      case 'resolved':
       case 'approval':
-        return <CheckCircle className={iconClass} />;
+      case 'review':
+        return <CheckCircle className={cls} />;
+      case 'message':
+      case 'inquiry':
+      case 'contact':
+        return <MessageSquare className={cls} />;
       default:
-        return <User className={iconClass} />;
+        return <User className={cls} />;
     }
   };
 
   const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
+    try {
+      const diff = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return '';
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with integrated search and actions */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6">
-          {/* Title Section */}
-          {/* <div className="flex items-center justify-between mb-6"> */}
-
-            <div className="flex items-center space-x-2">
-              {unreadCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={markAllNotificationsAsRead}
-                  disabled={isMarkingAllRead}
-                  className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  Mark all read ({unreadCount})
-                </Button>
-              )}
-            </div>
-          {/* </div> */}
-
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search notifications..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 rounded-md text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
-              >
-                <option value="all">All Types</option>
-                <option value="booking">Bookings</option>
-                <option value="complaint">Complaints</option>
-                <option value="resolved">Resolved</option>
-                <option value="viewing">Viewings</option>
-                <option value="inquiry">Inquiries</option>
-                <option value="general">General</option>
-              </select>
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search notifications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+          />
         </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="flex-1 sm:flex-none px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200"
+          >
+            <option value="all">All types</option>
+            <option value="booking">Bookings</option>
+            <option value="complaint">Complaints</option>
+            <option value="resolved">Resolved</option>
+            <option value="viewing">Viewings</option>
+            <option value="inquiry">Inquiries</option>
+            <option value="general">General</option>
+          </select>
+          {unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={markAllNotificationsAsRead}
+              disabled={isMarkingAllRead}
+              className="whitespace-nowrap text-xs"
+            >
+              {isMarkingAllRead
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : `Mark all read (${unreadCount})`
+              }
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* Notifications List */}
-        <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-800">
-            <CardTitle className="text-lg text-foreground">
-              All Notifications {pagination.total > 0 && `(${pagination.total})`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-              {loading && notifications.length === 0 ? null : notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No notifications found</h3>
-                  <p className="text-muted-foreground">
-                    {searchTerm || filterType !== 'all'
-                      ? 'Try adjusting your search or filter criteria'
-                      : 'You\'re all caught up! New notifications will appear here.'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-6 transition-all hover:bg-gray-50 dark:hover:bg-gray-800 border-l-4 ${
-                        !notification.read
-                          ? 'bg-gray-50 dark:bg-gray-800/50 border-l-gray-500 dark:border-l-gray-600'
-                          : 'border-l-gray-200 dark:border-l-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0 mt-1">
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className={`text-lg font-semibold ${
-                              !notification.read ? 'font-bold text-foreground' : 'text-foreground'
-                            }`}>
-                              {notification.title}
-                            </h3>
-                            <div className="flex items-center space-x-2">
-                              <Badge
-                                variant="secondary"
-                                className="capitalize bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                              >
-                                {notification.priority}
-                              </Badge>
-                              {!notification.read && (
-                                <div className="w-2 h-2 rounded-full bg-gray-600 dark:bg-gray-500"></div>
-                              )}
-                            </div>
-                          </div>
-                          <p className={`mb-3 ${
-                            !notification.read ? 'font-medium text-foreground' : 'text-muted-foreground'
-                          }`}>
-                            {notification.message}
-                          </p>
-                          {notification.description && (
-                            <p className={`text-sm mb-4 ${
-                              !notification.read ? 'font-medium text-foreground' : 'text-muted-foreground'
-                            }`}>
-                              {notification.description}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimeAgo(notification.created_at)}
-                            </span>
-                            {!notification.read && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => markNotificationAsRead(notification.id)}
-                                disabled={markingReadIds.has(notification.id)}
-                                className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                              >
-                                Mark as read
-                              </Button>
-                            )}
-                          </div>
-                        </div>
+      {/* List */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+        {loading && notifications.length === 0 ? (
+          <div className="p-12 flex justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="p-12 text-center">
+            <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+            <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+              No notifications
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {searchTerm || filterType !== 'all'
+                ? 'Try adjusting the search or filter.'
+                : "You're all caught up!"}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {notifications.map((n) => (
+              <div
+                key={n.id}
+                className={`px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                  !n.read ? 'bg-gray-50/70 dark:bg-gray-800/30' : ''
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex-shrink-0 size-8 rounded-lg flex items-center justify-center mt-0.5 ${
+                      !n.read
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {getNotificationIcon(n.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <p
+                        className={`text-sm font-semibold ${
+                          !n.read
+                            ? 'text-gray-900 dark:text-gray-100'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {n.title}
+                      </p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-gray-400">
+                          {formatTimeAgo(n.created_at)}
+                        </span>
+                        {!n.read && (
+                          <span className="size-2 rounded-full bg-blue-500 flex-shrink-0" />
+                        )}
                       </div>
                     </div>
-                  ))}
-
-                  {pagination.has_next && (
-                    <div className="p-4 text-center border-t border-gray-200 dark:border-gray-800">
-                      <Button
-                        variant="outline"
-                        onClick={loadMore}
-                        disabled={loading}
-                        className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    <p
+                      className={`text-xs mt-0.5 ${
+                        !n.read
+                          ? 'text-gray-700 dark:text-gray-300'
+                          : 'text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {n.message}
+                    </p>
+                    {!n.read && (
+                      <button
+                        onClick={() => markNotificationAsRead(n.id)}
+                        disabled={markingReadIds.has(n.id)}
+                        className="mt-1.5 text-xs text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
                       >
-                        Load More
-                      </Button>
-                    </div>
-                  )}
+                        {markingReadIds.has(n.id) ? 'Marking…' : 'Mark as read'}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+
+            {pagination.has_next && (
+              <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 text-center">
+                <button
+                  onClick={() =>
+                    fetchNotifications(pagination.current_page + 1, true)
+                  }
+                  disabled={loading}
+                  className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Load more'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

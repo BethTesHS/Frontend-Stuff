@@ -5,7 +5,6 @@ import {
   Camera,
   Layout,
   ArrowRight,
-  Loader2,
   TrendingDown,
   CheckCircle2,
 } from "lucide-react";
@@ -16,6 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { propertyApi } from "@/services/api";
+import { toast } from "sonner";
 
 interface PropertyImprovementModalProps {
   property: any | null;
@@ -31,32 +32,39 @@ export const PropertyImprovementModal = ({
   onFix,
 }: PropertyImprovementModalProps) => {
   const [analyzing, setAnalyzing] = useState(true);
+  const [analysisData, setAnalysisData] = useState<any | null>(null);
 
   useEffect(() => {
     if (open && property) {
       setAnalyzing(true);
-      const timer = setTimeout(() => setAnalyzing(false), 1500);
-      return () => clearTimeout(timer);
+      setAnalysisData(null);
+      const propertyId = property.property_id || String(property.id);
+      propertyApi.getPropertyAnalysis(propertyId)
+        .then((res) => {
+          if (res.success && res.data) {
+            setAnalysisData(res.data);
+          }
+        })
+        .catch(() => {
+          toast.error("Could not load analysis data");
+        })
+        .finally(() => setAnalyzing(false));
     }
   }, [open, property]);
 
   if (!property) return null;
 
-  // --- DYNAMIC DATA CALCULATIONS ---
-  const photoCount = property.images?.length || 0;
-  const documentCount = property.documents?.length || 0;
-
-  // Updated: Changed default fallback to GBP
   const currency = property.currency || "GBP";
   const currentPrice = Number(property.price) || 0;
 
-  const marketAvg = currentPrice * 0.93;
-  const priceDiffPercentage = 7;
-
-  const recMin = currentPrice * 0.92;
-  const recMax = currentPrice * 0.95;
-
-  const simulatedCTR = photoCount < 3 ? 2.4 : photoCount < 6 ? 3.8 : 5.2;
+  // Use real data from API when available, fall back to client-side estimates
+  const photoCount = analysisData?.photo_count ?? (property.images?.length || 0);
+  const documentCount = analysisData?.document_count ?? (property.documents?.length || 0);
+  const marketAvg = analysisData?.market_avg_price ?? (currentPrice * 0.93);
+  const priceDiffPercentage = analysisData?.price_diff_percentage ?? 7;
+  const recMin = analysisData?.recommended_min ?? (currentPrice * 0.92);
+  const recMax = analysisData?.recommended_max ?? (currentPrice * 0.95);
+  const simulatedCTR = analysisData?.avg_ctr ?? (photoCount < 3 ? 2.4 : photoCount < 6 ? 3.8 : 5.2);
 
   // Updated: Changed locale to en-GB for proper UK formatting (£)
   const formatPrice = (val: number) =>

@@ -10,8 +10,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!loading && hasAccess && user?.role) {
-      console.log('Dashboard - Redirecting based on user role:', user.role);
-      console.log('Dashboard - User tenantType:', (user as any)?.tenantType);
+      console.log('Dashboard - Redirecting based on user role:', user.role, '| isPlatformTenant:', user.isPlatformTenant);
 
       // Redirect to role-specific dashboard
       switch (user.role) {
@@ -25,12 +24,12 @@ const Dashboard = () => {
           navigate('/buyer-dashboard');
           break;
         case 'tenant':
-          // Check if this is an external tenant
-          if ((user as any)?.tenantType === 'external') {
+          // isPlatformTenant=false means external tenant; true or undefined means platform tenant
+          if (user.isPlatformTenant === false) {
             console.log('Dashboard - External tenant detected, redirecting to external dashboard');
             navigate('/external-tenant-dashboard');
           } else {
-            console.log('Dashboard - Internal tenant, redirecting to tenant dashboard');
+            console.log('Dashboard - Platform tenant, redirecting to tenant dashboard');
             navigate('/tenant-dashboard');
           }
           break;

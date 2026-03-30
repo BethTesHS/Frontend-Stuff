@@ -1,7 +1,7 @@
 import { TenantVerificationData, PinValidationResponse } from '@/types/tenant-verification';
 import { getAuthToken } from '@/utils/tokenStorage';
 
-const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api/tenant';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://api.homeduk.property'}/tenant`;
 
 export const tenantVerificationApi = {
   async checkClaimStatus(data: { access_code?: string; pin_code?: string; full_address?: string }): Promise<{ success: boolean; data?: any; error?: string }> {

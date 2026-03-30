@@ -60,6 +60,9 @@ export const AdminUsers = () => {
            joinedDate: u.created_at
              ? new Date(u.created_at).toLocaleDateString()
              : "N/A",
+           lastActive: u.last_login
+             ? new Date(u.last_login).toLocaleDateString()
+             : "Never",
          };
        });
 
@@ -327,7 +330,7 @@ export const AdminUsers = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-gray-500 dark:text-gray-500">Joined</p>
                             <p className="font-medium text-gray-900 dark:text-gray-100">{user.joinedDate}</p>
@@ -337,15 +340,9 @@ export const AdminUsers = () => {
                             <p className="font-medium text-gray-900 dark:text-gray-100">{user.lastActive}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500 dark:text-gray-500">Properties</p>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{user.properties}</p>
+                            <p className="text-gray-500 dark:text-gray-500">Status</p>
+                            <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">{user.status}</p>
                           </div>
-                          {user.suspendedUntil && (
-                            <div>
-                              <p className="text-gray-500 dark:text-gray-500">Suspended Until</p>
-                              <p className="font-medium text-red-600 dark:text-red-400">{user.suspendedUntil}</p>
-                            </div>
-                          )}
                         </div>
 
                         {user.suspensionReason && (

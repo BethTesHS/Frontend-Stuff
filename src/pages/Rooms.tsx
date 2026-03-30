@@ -158,23 +158,61 @@ const Rooms = () => {
     setSearchParams(params, { replace: true });
   }, [filters, searchLocation, priceRange, currentPage, setSearchParams]);
 
-  // Load rooms from API
+  // Load rooms from API (server-side list)
   useEffect(() => {
     const loadRooms = async () => {
       setLoading(true);
       try {
-        const response = await spareRoomApi.getSpareRooms();
-        // Convert SpareRoomData to Room format if needed
-        const convertedRooms = (response || [])
-          .filter(room => room && room.id) // Filter out invalid rooms
-          .map(room => ({
+        // Build API params similar to Properties page
+        const params: Record<string, any> = {
+          page: currentPage,
+          per_page: roomsPerPage,
+        };
+
+        if (searchLocation) params.location = searchLocation;
+        if (filters.min_rent) params.min_rent = filters.min_rent;
+        if (filters.max_rent) params.max_rent = filters.max_rent;
+        if (filters.room_type && filters.room_type.length > 0) params.room_type = filters.room_type;
+        if (filters.furnished) params.furnished = true;
+        if (filters.bills_included) params.bills_included = true;
+        if (filters.available_from) params.available_from = filters.available_from;
+        if (filters.preferences?.gender) params.gender = filters.preferences.gender;
+        if (filters.preferences?.smoking) params.smoking = true;
+        if (filters.preferences?.pets) params.pets = true;
+
+        const response = await spareRoomApi.getSpareRooms(undefined, params);
+
+        // Normalize response which may be array or object with pagination
+        let roomsList: any[] = [];
+        let pagination: any = null;
+
+        if (Array.isArray(response)) {
+          roomsList = response;
+        } else if (response && response.spare_rooms) {
+          roomsList = response.spare_rooms;
+          pagination = response.pagination || response.data?.pagination;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          roomsList = response.data;
+        } else if (response && response.data && Array.isArray(response.data.spare_rooms)) {
+          roomsList = response.data.spare_rooms;
+          pagination = response.data.pagination;
+        } else if (response && response.data && response.data.spare_rooms) {
+          roomsList = response.data.spare_rooms;
+          pagination = response.data.pagination;
+        } else if (response && response.length) {
+          roomsList = response;
+        }
+
+        const convertedRooms = (roomsList || [])
+          .filter((room: any) => room && room.id)
+          .map((room: any) => ({
             id: typeof room.id === 'string' ? room.id : String(room.id || ''),
             title: room.title || '',
             description: room.description || '',
             rent: room.rent || 0,
             deposit: room.deposit || 0,
             available_from: room.available_from || new Date().toISOString().split('T')[0],
-            property_address: room.property_address || '',
+            property_address: room.property_address || room.address || '',
             room_type: room.room_type || 'single',
             size_sqft: room.size_sqft || 0,
             furnished: room.furnished ?? false,
@@ -201,19 +239,29 @@ const Rooms = () => {
             created_at: room.created_at || new Date().toISOString(),
             updated_at: room.updated_at || new Date().toISOString()
           }));
+
         setRooms(convertedRooms);
-        setTotalCount(convertedRooms.length);
+
+        // Use server pagination if available, otherwise fallback to local counts
+        if (pagination) {
+          setTotalCount(pagination.total || convertedRooms.length);
+          setTotalPages(pagination.pages || Math.ceil((pagination.total || convertedRooms.length) / roomsPerPage));
+        } else {
+          setTotalCount(convertedRooms.length);
+          setTotalPages(Math.ceil(convertedRooms.length / roomsPerPage));
+        }
       } catch (error) {
         console.error('Error loading rooms:', error);
         setRooms([]);
         setTotalCount(0);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
     loadRooms();
-  }, []);
+  }, [searchLocation, filters, currentPage]);
 
   // Apply filters and pagination
   useEffect(() => {

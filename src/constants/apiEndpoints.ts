@@ -27,7 +27,9 @@ export const API_ENDPOINTS = {
     FEATURED: '/property/featured',
     SEARCH: '/property/search',
     DRAFT: '/property/draft',
-    MARKET_COMPARISON: (id: number) => `/property/${id}/market-comparison`,
+    MARKET_COMPARISON: (id: string) => `/property/${id}/market-comparison`,
+    ANALYSIS: (id: string) => `/property/${id}/analysis`,
+    BOOST: (id: string) => `/property/${id}/boost`,
     UPDATE: '/property',
     STATUS: (id: string) => `/property/${id}/status`,
     AGENT_STATS: '/agent/stats',
@@ -83,14 +85,45 @@ export const API_ENDPOINTS = {
 
   // External Tenant endpoints
   EXTERNAL_TENANT: {
-    BASE: '/api/external-tenant',
-    SETUP: '/api/external-tenant/setup',
-    PROFILE: '/api/external-tenant/profile',
-    UPDATE: '/api/external-tenant/update',
-    CHECK_PROFILE: '/api/external-tenant/check-profile',
-    DASHBOARD: '/api/external-tenant/dashboard',
+    BASE: '/external_tenant', 
+    SETUP: '/external_tenant/setup',
+    PROFILE: '/external_tenant/profile',
+    UPDATE: '/external_tenant/update',
+    CHECK_PROFILE: '/external_tenant/check_profile',
+    DASHBOARD: '/external_tenant/dashboard',
     DASHBOARD_SUMMARY: '/api/external-tenant/dashboard/summary',
     RESEND_WELCOME: '/api/external-tenant/resend-welcome',
+    // Complaints / maintenance
+    COMPLAINTS: '/ext-complaints',
+    COMPLAINT_DETAIL: (id: number) => `/ext-complaints/${id}`,
+    // Calendar
+    CALENDAR_EVENTS: '/ext-calendar/events',
+    CALENDAR_EVENT: (id: number) => `/ext-calendar/events/${id}`,
+    // Documents
+    DOCUMENTS: '/ext-documents',
+    DOCUMENT: (id: number) => `/ext-documents/${id}`,
+    // History
+    HISTORY: '/ext-history',
+  },
+
+  // Admin Messaging (support chat)
+  ADMIN_MESSAGING: {
+    CONVERSATIONS: '/admin-messaging/conversations',
+    MESSAGES: (id: number) => `/admin-messaging/conversations/${id}/messages`,
+    CLOSE: (id: number) => `/admin-messaging/conversations/${id}/close`,
+    REOPEN: (id: number) => `/admin-messaging/conversations/${id}/reopen`,
+    UNREAD_COUNT: '/admin-messaging/unread-count',
+  },
+
+  // Messaging Endpoints
+  MESSAGING: {
+    CONVERSATIONS: '/messaging/conversations',
+    MESSAGES: (conversationId: number) => `/messaging/conversations/${conversationId}/messages`,
+    SEND: '/messaging/send',
+    REPLY: (conversationId: number) => `/messaging/conversations/${conversationId}/messages`, 
+    CLOSE: (conversationId: number) => `/messaging/conversations/${conversationId}/close`,
+    REOPEN: (conversationId: number) => `/messaging/conversations/${conversationId}/reopen`,
+    UNREAD_COUNT: '/messaging/unread-count',
   },
 
   // Owner Dashboard endpoints
@@ -107,6 +140,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     PROFILE: '/admin/me',
     STATS: '/admin/stats',
+    CALENDAR_EVENTS: '/calendar_event/list',
     LOGOUT: '/admin_session/logout',
     SESSIONS: '/admin_session/list',
     REVOKE_SESSION: (sessionId: string) => `/admin_session?admin_session_id=${sessionId}`,
@@ -153,6 +187,12 @@ export const API_ENDPOINTS = {
     REJECT: (id: number) => `/tenant_verification/reject/${id}`,
     CREATE_PIN: '/tenant_verification/pins/create',
     GET_PINS: '/tenant_verification/pins',
+
+    // New endpoints for the new tenant verification functional requirements by Ravi
+    UPLOAD_DOCUMENT: '/tenant_verification/upload-document',
+    CHECK_STATUS: '/tenant_verification/status',
+    DELETE_DOCUMENT: (documentId: string) => `/tenant_verification/document/${documentId}`,
+    HISTORY: '/tenant_verification/history',
   },
 
   BUYER: {
@@ -188,6 +228,12 @@ export const API_ENDPOINTS = {
 
   // Universal chat endpoint (for all user types)
   CHAT: '/api/buyer/chat',
+
+  // Property Impression endpoints
+  IMPRESSIONS: {
+    RECORD: '/property/impression',
+    PERFORMANCE: '/property/impressions/performance',
+  },
 
   // Postcode endpoints
   POSTCODE: {

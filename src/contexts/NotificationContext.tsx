@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { notificationApi, type Notification } from '@/services/api';
 import { useAuth } from './AuthContext';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
+import { getAdminToken } from '@/utils/tokenStorage';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -26,7 +27,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }
 
   // Refresh unread count
-  const refreshUnreadCount = async () => {
+  const refreshUnreadCount = useCallback(async () => {
     // Skip if backend is known to be unavailable
     if (!backendAvailable) {
       return;
@@ -44,8 +45,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // setBackendAvailable(false);
       // setUnreadCount(0); // Reset count when backend is unavailable
     }
-  };
-
+  }, [backendAvailable]);
   // Mark notification as read
   const markAsRead = async (notificationId: string | number) => {
     try {
@@ -85,14 +85,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useNotificationSocket(handleNewNotification);
 
-  // Initial unread count fetch - only when user changes
+  // Initial unread count fetch - for regular users OR admin sessions
   useEffect(() => {
-    if (user) {
+    if (user?.id || getAdminToken()) {
       refreshUnreadCount();
     } else {
-      setUnreadCount(0); // Reset count on logout
+      setUnreadCount(0);
     }
-  }, [user]);
+  }, [user?.id, refreshUnreadCount]);
 
   return (
     <NotificationContext.Provider value={{

@@ -248,27 +248,18 @@ class AdminApiService {
     );
 
     if (!response.ok) {
-      console.error("Stats API Error:", {
-        status: response.status,
-        statusText: response.statusText,
-        url: `${API_BASE_URL}${API_ENDPOINTS.ADMIN.STATS}`,
-      });
-
-      try {
-        const errorData = await response.json();
-        console.error("Stats error details:", errorData);
-        throw new Error(
-          errorData.error?.message ||
-            errorData.message ||
-            "Failed to get stats",
-        );
-      } catch (jsonError) {
-        // If JSON parsing fails, throw a simpler error
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      throw new Error(`HTTP ${response.status}: Failed to get stats`);
     }
 
-    return response.json();
+    const result = await response.json();
+    // Backend returns SendResponse format: { data: {...}, status, type }
+    const statsData = result.data ?? result.stats ?? result;
+    return {
+      success: result.type === 'Success' || result.status === 200,
+      stats: statsData,
+      recent_activity: result.recent_activity ?? { recent_logins: 0, today_logins: 0 },
+      generated_at: result.generated_at ?? new Date().toISOString(),
+    };
   }
   
   async getSystemHealth(): Promise<HealthStatus> {
@@ -776,24 +767,21 @@ class AdminApiService {
       `${API_BASE_URL}${API_ENDPOINTS.ADMIN.SUSPEND_USER(userId)}`,
       {
         method: "POST",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          suspension_type: suspensionType,
-          suspension_reason: suspensionReason,
-          suspended_until: suspendedUntil,
-        }),
+        headers: this.getAuthHeaders(),
       },
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to suspend user");
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.message || "Failed to suspend user");
     }
 
-    return response.json();
+    const result = await response.json();
+    return {
+      success: result.type === 'Success' || result.status === 200,
+      message: result.message ?? "User suspended successfully.",
+      user: result.data?.user ?? result.data ?? null,
+    };
   }
 
   async unsuspendUser(userId: string): Promise<{
@@ -810,11 +798,16 @@ class AdminApiService {
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to unsuspend user");
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.message || "Failed to unsuspend user");
     }
 
-    return response.json();
+    const result = await response.json();
+    return {
+      success: result.type === 'Success' || result.status === 200,
+      message: result.message ?? "User unsuspended successfully.",
+      user: result.data?.user ?? result.data ?? null,
+    };
   }
 
   // TASK MANAGEMENT ENDPOINTS

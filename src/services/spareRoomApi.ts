@@ -1,6 +1,6 @@
 import { getAuthToken } from '@/utils/tokenStorage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://api.homeduk.property';
 
 export interface SpareRoomData {
   id?: number;
@@ -123,15 +123,47 @@ class SpareRoomApiService {
     return this.requestFormData(endpoint, formData);
   }
 
-  async getSpareRooms(userId?: string) {
+  /**
+   * Fetch spare rooms.
+   * - If `userId` is provided we fetch the authenticated user's spare rooms.
+   * - Otherwise we fetch the public list from the public API endpoint.
+   * Accepts optional `params` to be encoded as query string for server-side filtering/pagination.
+   */
+  async getSpareRooms(userId?: string, params?: Record<string, any>) {
     if (userId) {
       const response = await this.request('/api/spare-rooms/my-spare-rooms');
-      // Handle backend response format: { success: true, data: { spare_rooms: [], pagination: {} } }
       return response?.data?.spare_rooms || response?.spare_rooms || response?.data || [];
     }
-    const response = await this.request('/api/spare-rooms/');
-    // Handle backend response format: { success: true, data: { spare_rooms: [], pagination: {} } }
-    return response?.data?.spare_rooms || response?.spare_rooms || response?.data || [];
+
+    // Build query string from params
+    const query = params ? `?${new URLSearchParams(Object.entries(params).reduce((acc, [k, v]) => {
+      if (v === undefined || v === null) return acc;
+      // arrays should be appended as repeated params
+      if (Array.isArray(v)) {
+        v.forEach(item => acc.push([k, String(item)]));
+      } else {
+        acc.push([k, String(v)]);
+      }
+      return acc;
+    }, [] as [string, string][]).map(
+        ([a, b]) => `${encodeURIComponent(a)}=${encodeURIComponent(b)}`
+      ).join('&'))}` : '';
+
+    // Use public API host for the rooms listing if available; fall back to configured API base
+    const publicUrl = 'http://api.homeduk.property/spare_room/list';
+    const url = publicUrl + query;
+
+    // Fetch the public list directly (no auth headers expected)
+    const response = await fetch(url, { method: 'GET' });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+
+    // Handle multiple possible response shapes
+    // e.g. { success: true, data: { spare_rooms: [], pagination: {} } } or { spare_rooms: [] }
+    return data?.data?.spare_rooms || data?.spare_rooms || data?.data || data || [];
   }
 
   async getSpareRoom(id: number) {

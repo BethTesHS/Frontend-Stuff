@@ -9,7 +9,7 @@ import { findAgentApi } from '@/services/api';
 import { toast } from 'sonner';
 
 // Backend API URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 // Extract base URL without /api suffix for image URLs
 const BASE_URL = API_BASE_URL.replace('/api', '');
 

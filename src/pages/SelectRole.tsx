@@ -13,7 +13,7 @@ import TenantVerification from '@/components/TenantVerification/TenantVerificati
 import ExternalTenantForm from '@/components/TenantVerification/ExternalTenantForm';
 import { profileApi } from '@/services/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net';
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://api.homeduk.property';
 
 const SelectRole = () => {
   const { user, isAuthenticated, updateUser, loading: authLoading } = useAuth();

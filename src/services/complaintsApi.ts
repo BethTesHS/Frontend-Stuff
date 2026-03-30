@@ -1,6 +1,6 @@
 import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken } from '@/utils/tokenStorage';
 
-const API_BASE_URL = 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 
 
 interface ApiResponse<T = any> {

@@ -34,7 +34,7 @@ export const AgentNotificationDropdown = ({ onShowAll }: AgentNotificationDropdo
         user_role: 'agent' // Specific to the Agent Role
       });
       if (response.success && response.data) {
-        setNotifications(response.data.notifications);
+        setNotifications(Array.isArray(response.data) ? response.data : (response.data?.notifications ?? []));
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

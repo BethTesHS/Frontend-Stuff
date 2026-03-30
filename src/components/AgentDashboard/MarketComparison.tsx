@@ -43,38 +43,13 @@ export const MarketComparisonModal = ({
 
       setLoading(true);
       try {
-          // const res = await propertyApi.getPropertyMarketComparison(property.id);
-          await new Promise((resolve) => setTimeout(resolve, 1000)); 
-
-          const mockData = {
-            success: true,
-            data: {
-              avgPrice: property.price * 0.95,
-              avgRent: property.price * 1.05,
-              marketTrend: "increasing",
-              similarPropertiesCount: 12,
-            },
-          };
-          if (mockData.success) { 
-            setComparisonData({
-              area_name: "Downtown",
-              comparable_count: mockData.data.similarPropertiesCount,
-              metrics: {
-                impressions: {
-                  current: Math.floor(Math.random() * 1000) + 500,
-                  market_avg: Math.floor(Math.random() * 1000) + 500,
-                },
-                views: {
-                  current: Math.floor(Math.random() * 200) + 50,
-                  market_avg: Math.floor(Math.random() * 200) + 50,
-                },
-                enquiries: {
-                  current: Math.floor(Math.random() * 20) + 5,
-                  market_avg: Math.floor(Math.random() * 20) + 5,
-                },
-              },
-            });
-        }
+          const res = await propertyApi.getPropertyMarketComparison(property.property_id || String(property.id));
+          if (res.success && res.data) {
+            setComparisonData(res.data);
+          } else {
+            toast.error(res.message || "Could not fetch market data");
+            onClose();
+          }
       } catch (err) {
         toast.error("Could not fetch market data");
         onClose();

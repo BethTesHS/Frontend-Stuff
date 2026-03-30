@@ -1,6 +1,6 @@
 // services/api.ts
 import { API_BASE_URL, API_ENDPOINTS } from '../constants/apiEndpoints';
-import { tokenStorage, getAuthToken, setAuthToken, getRefreshToken, setRefreshToken } from '@/utils/tokenStorage';
+import { tokenStorage, getAuthToken, getAdminToken, setAuthToken, getRefreshToken, setRefreshToken } from '@/utils/tokenStorage';
 
 // API response types
 interface ApiResponse<T = any> {
@@ -213,23 +213,29 @@ export interface ExternalTenantProfile {
 }
 
 export interface ExternalTenantSetupData {
-  tenant_type: 'external';
-  role: 'tenant';
-  property_data: {
-    propertyAddress: string;
-    postcode: string;
-    propertyType: string;
-    bedrooms: number;
-    bathrooms: number;
-    landlordName: string;
-    landlordEmail: string;
-    landlordPhone?: string;
-    moveInDate: string;
-    tenancyLength: string;
-    monthlyRent: number;
-    deposit?: number;
-    additionalInfo?: string;
-  };
+  tenant_type: "external";
+  role: "tenant";
+  propertyAddress: string;
+  postcode: string;
+  propertyType:
+    | "house"
+    | "flat"
+    | "apartment"
+    | "studio"
+    | "room"
+    | "bungalow"
+    | "maisonette"
+    | "other";
+  bedrooms: "1" | "2" | "3" | "4" | "5" | "6+" | "studio";
+  bathrooms: "1" | "2" | "3" | "4" | "5+";
+  landlordName: string;
+  landlordEmail: string;
+  landlordPhone?: string;
+  moveInDate: string;
+  tenancyLength: "6_months" | "1_year" | "2_years" | "periodic" | "other";
+  monthlyRent: number;
+  deposit?: number;
+  additionalInfo?: string;
 }
 
 export interface ExternalTenantDashboardData {
@@ -326,7 +332,7 @@ const apiRequest = async <T>(
   ];
 
   const isPublicEndpoint = publicEndpoints.includes(endpoint);
-  const token = getAuthToken();
+  const token = getAuthToken() || getAdminToken();
 
   if (token && !isPublicEndpoint) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -1131,17 +1137,47 @@ closeTenancy: async (tenancyId: string): Promise<ApiResponse<{ message: string }
     method: 'POST',
   });
   },
-getPropertyMarketComparison: async (propertyId: number): Promise<ApiResponse<{
-    property_id: number;
+getPropertyMarketComparison: async (propertyId: string): Promise<ApiResponse<{
+    property_id: string;
     metrics: {
-      impressions: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
-      views: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
-      enquiries: { current: number; market_avg: number; status: 'above' | 'below' | 'on_par' };
+      impressions: { current: number; market_avg: number };
+      views: { current: number; market_avg: number };
+      enquiries: { current: number; market_avg: number };
     };
     area_name: string;
     comparable_count: number;
   }>> => {
     return apiRequest(API_ENDPOINTS.PROPERTIES.MARKET_COMPARISON(propertyId));
+  },
+
+  getPropertyAnalysis: async (propertyId: string): Promise<ApiResponse<{
+    property_id: string;
+    market_avg_price: number;
+    price_diff_percentage: number;
+    recommended_min: number;
+    recommended_max: number;
+    photo_count: number;
+    document_count: number;
+    avg_ctr: number;
+    comparable_count: number;
+  }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.ANALYSIS(propertyId));
+  },
+
+  boostProperty: async (propertyId: string, plan: string): Promise<ApiResponse<{
+    boost_id: string;
+    property_id: string;
+    plan: string;
+    amount: number;
+    duration_days: number;
+    status: string;
+    start_date: string;
+    end_date: string;
+  }>> => {
+    return apiRequest(API_ENDPOINTS.PROPERTIES.BOOST(propertyId), {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    });
   },
 };
 
@@ -1371,17 +1407,16 @@ export const notificationApi = {
     const baseEndpoint = isAdmin
       ? API_ENDPOINTS.ADMIN.ADMIN_BASE
       : API_ENDPOINTS.NOTIFICATIONS.BASE;
-    
-    if (params.page) queryParams.set('page', params.page.toString());
-    if (params.limit) queryParams.set('per_page', params.limit.toString());
+
+    if (params.page) queryParams.set('page_no', params.page.toString());
+    if (params.limit) queryParams.set('limit', params.limit.toString());
     if (params.type && params.type !== 'all') queryParams.set('type', params.type);
-    if (params.search) queryParams.set('search', params.search);
-    if (params.unread_only) queryParams.set('unread_only', 'true');
-    if (params.user_role) queryParams.set('user_role', params.user_role);
+    if (!isAdmin && params.search) queryParams.set('search', params.search);
+    if (!isAdmin && params.unread_only) queryParams.set('unread_only', 'true');
 
     const queryString = queryParams.toString();
-    const endpoint = queryString ? `${API_ENDPOINTS.NOTIFICATIONS.BASE}?${queryString}` : API_ENDPOINTS.NOTIFICATIONS.BASE;
-    
+    const endpoint = queryString ? `${baseEndpoint}?${queryString}` : baseEndpoint;
+
     return apiRequest(endpoint);
   },
 
@@ -1398,12 +1433,12 @@ export const notificationApi = {
     });
   },
 
-  markAllAsRead: async (): Promise<ApiResponse<{ 
-    message: string; 
-    marked_count: number; 
+  markAllAsRead: async (): Promise<ApiResponse<{
+    message: string;
+    marked_count: number;
   }>> => {
     return apiRequest(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ, {
-      method: 'PUT',
+      method: 'POST',
     });
   },
 
@@ -1543,6 +1578,100 @@ export const externalTenantApi = {
     return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.RESEND_WELCOME, {
       method: 'POST',
     });
+  },
+
+  // ── Complaints & maintenance ──────────────────────────────────────────────
+
+  getComplaints: async (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    issue_type?: string;
+  } = {}): Promise<ApiResponse<any>> => {
+    const q = new URLSearchParams();
+    if (params.page) q.set('page_no', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.status) q.set('status', params.status);
+    if (params.issue_type) q.set('issue_type', params.issue_type);
+    const qs = q.toString();
+    return apiRequest(qs ? `${API_ENDPOINTS.EXTERNAL_TENANT.COMPLAINTS}?${qs}` : API_ENDPOINTS.EXTERNAL_TENANT.COMPLAINTS);
+  },
+
+  getMaintenanceRequests: async (): Promise<ApiResponse<any>> => {
+    // Maintenance = complaints with status in_progress (picked up by admin)
+    return apiRequest(`${API_ENDPOINTS.EXTERNAL_TENANT.COMPLAINTS}?status=in_progress`);
+  },
+
+  submitComplaint: async (data: {
+    subject: string;
+    description: string;
+    category: string;
+    severity?: string;
+  }): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.COMPLAINTS, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // ── Calendar events ───────────────────────────────────────────────────────
+
+  getCalendarEvents: async (): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.CALENDAR_EVENTS);
+  },
+
+  createCalendarEvent: async (data: {
+    title: string;
+    description?: string;
+    start_time: string;
+    end_time: string;
+    event_type?: string;
+    location?: string;
+    is_all_day?: boolean;
+  }): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.CALENDAR_EVENTS, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCalendarEvent: async (id: number): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.CALENDAR_EVENT(id), {
+      method: 'DELETE',
+    });
+  },
+
+  // ── Documents ─────────────────────────────────────────────────────────────
+
+  getDocuments: async (): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.DOCUMENTS);
+  },
+
+  uploadDocument: async (data: {
+    title: string;
+    description?: string;
+    document_type: 'tenancy_agreement' | 'council_tax' | 'other';
+    file_url?: string; 
+    file_name?: string;
+    file_size?: number;
+    file_type?: string;
+  }): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.DOCUMENTS, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteDocument: async (id: number): Promise<ApiResponse<any>> => {
+    return apiRequest(API_ENDPOINTS.EXTERNAL_TENANT.DOCUMENT(id), {
+      method: 'DELETE',
+    });
+  },
+
+  // ── History ───────────────────────────────────────────────────────────────
+
+  getHistory: async (limit = 50): Promise<ApiResponse<any>> => {
+    return apiRequest(`${API_ENDPOINTS.EXTERNAL_TENANT.HISTORY}?limit=${limit}`);
   },
 };
 
@@ -1759,3 +1888,20 @@ export const ownerDashboardApi = {
 };
 
 export default authApi;
+
+export const impressionApi = {
+  record: async (propertyId: string, sessionKey?: string): Promise<void> => {
+    try {
+      await apiRequest(API_ENDPOINTS.IMPRESSIONS.RECORD, {
+        method: 'POST',
+        body: JSON.stringify({ property_id: propertyId, session_key: sessionKey ?? null }),
+      });
+    } catch {
+      // Impression recording is best-effort; never block the UI
+    }
+  },
+
+  getPerformance: async (): Promise<any> => {
+    return apiRequest(API_ENDPOINTS.IMPRESSIONS.PERFORMANCE);
+  },
+};

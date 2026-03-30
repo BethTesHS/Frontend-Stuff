@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       // Proxy API requests to the backend - these should start with /api or be specific endpoints
       '/api': {
-        target: 'https://homedapp1.azurewebsites.net', // Azure backend URL
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       }

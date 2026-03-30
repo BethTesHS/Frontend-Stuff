@@ -10,7 +10,7 @@ import { UploadCloud, Trash2, Star, X, Loader2 } from 'lucide-react';
 import { propertyApi } from '@/services/api';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://homedapp1.azurewebsites.net/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://api.homeduk.property';
 const BASE_URL = API_BASE_URL.replace('/api', '');
 
 const PROPERTY_TYPES = ['detached', 'semi-detached', 'terraced', 'flat', 'bungalow', 'cottage', 'studio', 'other'];

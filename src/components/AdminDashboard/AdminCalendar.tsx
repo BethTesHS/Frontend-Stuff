@@ -1,43 +1,54 @@
 import { useState, useEffect, useMemo } from "react";
 import { FileBarChart } from "lucide-react";
 import { SharedCalendar } from "@/components/Calendar/SharedCalendar";
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants/apiEndpoints";
+import { getAdminToken } from "@/utils/tokenStorage";
 
 export const AdminCalendar = () => {
-  // 1. Temporary Mock Data
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate an API call
-    const loadMockData = () => {
-      setLoading(true);
-      setTimeout(() => {
-        const mockEvents = [
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const token = getAdminToken();
+        const response = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.ADMIN.CALENDAR_EVENTS}?limit=100`,
           {
-            id: 1,
-            title: "Viewing: Apartment 4B",
-            date: "2026-02-23",
-            status: "scheduled",
-            type: "viewing",
-          },
-          {
-            id: 2,
-            title: "Maintenance Check",
-            date: "2026-02-25",
-            status: "pending",
-            type: "maintenance",
-          },
-        ];
-        setEvents(mockEvents);
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+        if (!response.ok) throw new Error("Failed to load calendar events");
+        const result = await response.json();
+        const raw: any[] = Array.isArray(result.data) ? result.data : [];
+        setEvents(
+          raw.map((e) => ({
+            id: e.id,
+            title: e.title,
+            // SharedCalendar expects a `date` string (YYYY-MM-DD)
+            date: e.start_time ? e.start_time.split("T")[0] : e.date,
+            status: e.status,
+            type: e.event_type,
+            start_time: e.start_time,
+            end_time: e.end_time,
+            location: e.location,
+          }))
+        );
+      } catch {
+        setEvents([]);
+      } finally {
         setLoading(false);
-      }, 800);
+      }
     };
 
-    loadMockData();
+    fetchEvents();
   }, []);
-  const processedEvents = useMemo(() => {
-    return events;
-  }, [events]);
+
+  const processedEvents = useMemo(() => events, [events]);
 
   return (
     <SharedCalendar

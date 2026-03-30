@@ -136,10 +136,21 @@ export const BoostListingModal = ({ open, onClose }: BoostListingModalProps) => 
 
   const handlePayment = async () => {
     if (!validateCard()) return;
+    if (!selectedProperty || !selectedPlan) return;
     setProcessing(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setProcessing(false);
-    setStep('success');
+    try {
+      const propertyId = (selectedProperty as any).property_id || String(selectedProperty.id);
+      const res = await propertyApi.boostProperty(propertyId, selectedPlan.id);
+      if (res.success) {
+        setStep('success');
+      } else {
+        toast.error(res.message || 'Boost failed. Please try again.');
+      }
+    } catch {
+      toast.error('Payment failed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const stepIndex = ['property', 'plan', 'payment'].indexOf(step);
