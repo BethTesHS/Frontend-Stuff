@@ -225,15 +225,50 @@ export const externalTenantComplaintsApi = {
     });
   },
 
-  // Rate the resolution of a complaint
-  rateComplaintResolution: async (complaintId: number, rating_score: number, rating_review?: string): Promise<ApiResponse<{
+  // Upload any file (image or video) for a complaint
+  uploadComplaintFile: async (complaintId: number, file: File): Promise<ApiResponse<{
+    image: ComplaintImage;
+  }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return apiRequest(`/${complaintId}/upload-file`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  // Rate the resolution of a complaint (includes landlord/agent rating)
+  rateComplaintResolution: async (
+    complaintId: number,
+    payload: {
+      rating_score: number;
+      rating_review?: string;
+      aspects?: Record<string, number>;
+      landlord_rating_score?: number;
+      landlord_rating_review?: string;
+    }
+  ): Promise<ApiResponse<{
     rating_score: number;
     rating_review: string;
-    rated_at: string;
+    landlord_rating_score: number | null;
+    landlord_rating_review: string | null;
   }>> => {
     return apiRequest(`/${complaintId}/rating`, {
       method: 'POST',
-      body: JSON.stringify({ rating_score, rating_review }),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Tenant: update own complaint status (in_progress | resolved)
+  updateComplaintStatus: async (
+    complaintId: number,
+    status: 'in_progress' | 'resolved',
+    resolution_note?: string,
+  ): Promise<ApiResponse<ExternalTenantComplaint>> => {
+    return apiRequest(`/${complaintId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, resolution_note }),
     });
   },
 
@@ -304,6 +339,38 @@ export const adminComplaintsApi = {
       {
         method: 'POST',
         body: JSON.stringify({ custom_message: custom_message || null }),
+      }
+    ),
+};
+
+// Landlord token-based API (no auth required)
+const landlordApiRequest = async <T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> => {
+  const BASE = `${import.meta.env.VITE_API_URL || 'http://api.homeduk.property'}`;
+  const url = `${BASE}${endpoint}`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const response = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || data.message || `HTTP ${response.status}`);
+  return data;
+};
+
+export const landlordComplaintApi = {
+  getComplaint: (token: string) =>
+    landlordApiRequest<ExternalTenantComplaint & {
+      images: ComplaintImage[];
+      status_history: ComplaintStatusHistory[];
+      can_update: boolean;
+    }>(`/ext-complaints/landlord/${token}`),
+
+  updateStatus: (token: string, status: 'in_progress' | 'resolved') =>
+    landlordApiRequest<ExternalTenantComplaint>(
+      `/ext-complaints/landlord/${token}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       }
     ),
 };

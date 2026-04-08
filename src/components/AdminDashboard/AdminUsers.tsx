@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Users, CheckCircle, UserX, Search, UserMinus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, CheckCircle, UserX, Search, UserMinus, ChevronLeft, ChevronRight, Phone, Mail, Shield, ShieldCheck, Calendar, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -156,31 +156,18 @@ export const AdminUsers = () => {
     }
   };
 
-  if (usersLoading) {
-    return null;
-  }
-
   const activeUsersCount = users.filter(u => u.status === 'active').length;
   const suspendedUsersCount = users.filter(u => u.status === 'suspended_temp' || u.status === 'suspended_perm').length;
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'agent': return 'default';
-      case 'owner': return 'secondary';
-      case 'buyer': return 'outline';
-      case 'tenant': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
   const getStatusBadge = (user: any) => {
     if (user.status === 'active') {
-      return <Badge className="bg-green-600 dark:bg-green-700">Active</Badge>;
+      return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400 border-green-200 dark:border-green-800">Active</Badge>;
     } else if (user.status === 'suspended_temp') {
       return <Badge variant="destructive">Suspended (Temp)</Badge>;
     } else if (user.status === 'suspended_perm') {
       return <Badge className="bg-red-900 dark:bg-red-950">Suspended (Perm)</Badge>;
     }
+    return <Badge variant="outline" className="text-gray-500">Inactive</Badge>;
   };
 
   return (
@@ -296,93 +283,132 @@ export const AdminUsers = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {users.length === 0 ? (
+            {usersLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : users.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-gray-400">No users found</p>
                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Try adjusting your search or filters</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {users.map((user) => (
                   <div
                     key={user.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800/30 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow"
+                    className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/40 hover:bg-white dark:hover:bg-gray-800/70 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      {/* User Info */}
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-lg">
-                              {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h3 className="font-semibold text-gray-800 dark:text-gray-200">{user.name}</h3>
-                              <Badge variant={getRoleBadgeColor(user.role)}>
-                                {user.role.toUpperCase()}
+                      {/* Left: Avatar + core info */}
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-11 h-11 shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          {/* Name row + badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{user.name}</h3>
+                            {user.is_admin && (
+                              <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800 text-xs px-1.5 py-0">
+                                <Shield className="w-3 h-3 mr-0.5 inline" />Admin
                               </Badge>
-                              {getStatusBadge(user)}
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{user.email}</p>
+                            )}
+                            {user.role_name && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0 dark:border-gray-600 dark:text-gray-300">
+                                {user.role_name}
+                              </Badge>
+                            )}
+                            {user.is_verified ? (
+                              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-xs px-1.5 py-0">
+                                <ShieldCheck className="w-3 h-3 mr-0.5 inline" />Verified
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                                Unverified
+                              </Badge>
+                            )}
+                            {getStatusBadge(user)}
                           </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500 dark:text-gray-500">Joined</p>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{user.joinedDate}</p>
+                          {/* Contact info */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />{user.email}
+                            </span>
+                            {user.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />{user.phone}
+                              </span>
+                            )}
                           </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-gray-500">Last Active</p>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{user.lastActive}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500 dark:text-gray-500">Status</p>
-                            <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">{user.status}</p>
-                          </div>
-                        </div>
 
-                        {user.suspensionReason && (
-                            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                              <p className="text-sm text-red-800 dark:text-red-300">
+                          {/* Dates */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />Joined {user.joinedDate}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />Last active {user.lastActive}
+                            </span>
+                            <span className="text-gray-300 dark:text-gray-600 font-mono text-[10px]">ID: {user.auth_id || user.id}</span>
+                          </div>
+
+                          {user.suspensionReason && (
+                            <div className="mt-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                              <p className="text-xs text-red-700 dark:text-red-300">
                                 <strong>Suspension Reason:</strong> {user.suspensionReason}
                               </p>
                             </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1.5 shrink-0">
                         {user.status === 'active' ? (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="dark:border-gray-600 dark:text-gray-300"
+                              className="text-xs h-7 dark:border-gray-600 dark:text-gray-300"
                               onClick={() => handleSuspendUser(user, 'temp')}
                             >
-                              <UserMinus className="w-4 h-4 mr-1" />
+                              <UserMinus className="w-3 h-3 mr-1" />
                               Suspend Temp
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
+                              className="text-xs h-7"
                               onClick={() => handleSuspendUser(user, 'perm')}
                             >
-                              <UserX className="w-4 h-4 mr-1" />
+                              <UserX className="w-3 h-3 mr-1" />
                               Suspend Perm
                             </Button>
                           </>
                         ) : (
                           <Button
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
+                            className="text-xs h-7 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
                             onClick={() => handleUnsuspendUser(user.id)}
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
+                            <CheckCircle className="w-3 h-3 mr-1" />
                             Unsuspend
                           </Button>
                         )}

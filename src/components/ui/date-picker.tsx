@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-  date?: Date
-  onDateChange: (date: Date | undefined) => void
-  placeholder?: string
-  disabled?: boolean
-  className?: string
+  date?: Date;
+  onDateChange: (date: Date | undefined) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  disablePast?: boolean;
 }
 
 export function DatePicker({ 
@@ -24,7 +25,8 @@ export function DatePicker({
   onDateChange, 
   placeholder = "Pick a date",
   disabled,
-  className 
+  className,
+  disablePast = false,
 }: DatePickerProps) {
   return (
     <Popover>
@@ -34,7 +36,7 @@ export function DatePicker({
           className={cn(
             "justify-start text-left font-normal",
             !date && "text-muted-foreground",
-            className
+            className,
           )}
           disabled={disabled}
         >
@@ -49,9 +51,9 @@ export function DatePicker({
           onSelect={onDateChange}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
-          disabled={(date) => date < new Date()}
+          disabled={disablePast ? (date) => date < new Date() : undefined}
         />
       </PopoverContent>
     </Popover>
-  )
+  );
 }

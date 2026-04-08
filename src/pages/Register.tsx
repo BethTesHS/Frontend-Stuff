@@ -5,6 +5,7 @@ import { Mail, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout/Layout';
 import { handleGoogleAuth } from '@/services/googleAuth';
+import TermsAndConditionsModal from '@/components/Auth/TermsAndConditionsModal';
 
 const Register = () => {
   const { register, loginWithSSO } = useAuth();
@@ -21,12 +22,19 @@ const Register = () => {
   const [pageLoading, setPageLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isTermsModalOpen, setTermsModalOpen] = useState(false);
+  const [isTermsAgreed, setTermsAgreed] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match.');
+      return;
+    }
+
+    if (!isTermsAgreed) {
+      toast.error('You must agree to the Terms & Conditions.');
       return;
     }
 
@@ -235,12 +243,32 @@ const Register = () => {
                 </div>
               </div>
 
+              {/* Terms and Conditions */}
+              <div className="flex items-center">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={isTermsAgreed}
+                  onChange={(e) => setTermsAgreed(e.target.checked)}
+                  className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+                  I agree to the Terms & Condtitions and{' '}
+                  <button
+                    type="button"
+                    onClick={() => setTermsModalOpen(true)}
+                    className="font-medium text-red-600 hover:underline"
+                  >
+                     Privacy Policy
+                  </button>
+                </label>
+              </div>
+
               {/* Continue Button */}
               <button
                 type="submit"
-                
-                disabled={loading}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold h-12 rounded-lg transition-all duration-300"
+                disabled={loading || !isTermsAgreed}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold h-12 rounded-lg transition-all duration-300 disabled:bg-red-400 disabled:cursor-not-allowed"
               >
                 {loading ? 'Creating account...' : 'Sign up'}
               </button>
@@ -294,6 +322,11 @@ const Register = () => {
           </div>
         </div>
       </div>
+      <TermsAndConditionsModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setTermsModalOpen(false)}
+        onAgree={() => setTermsAgreed(true)}
+      />
     </Layout>
   );
 };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,14 @@ import {
 } from 'lucide-react';
 import { ExternalTenantSetupData } from "@/services/api";
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { postcodeApi } from '@/services/postcodeApi';
 
 interface ExternalTenantFormProps {
   onComplete: () => void;
@@ -68,7 +76,37 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
     deposit: undefined,
     additionalInfo: "",
   });
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const addressTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const fetchAddressSuggestions = async (input: string) => {
+    // Only search if we have a postcode and at least 1 character typed in address
+    if (!formData.postcode || input.length < 1) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const response = await postcodeApi.getAddressesByPostcode(formData.postcode);
+    if (response.success && response.data) {
+      // Filter based on what user is typing locally for better UX
+      const filtered = response.data.filter((addr: string) => 
+        addr.toLowerCase().includes(input.toLowerCase())
+      );
+      setAddressSuggestions(filtered);
+      setShowAddressDropdown(filtered.length > 0);
+    }
+  };
+
+  const handleAddressChange = (value: string) => {
+    setFormData({ ...formData, propertyAddress: value });
+
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+
+    addressTimeoutRef.current = setTimeout(() => {
+      fetchAddressSuggestions(value);
+    }, 300);
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -160,18 +198,45 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
             {/* Property Information */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 relative">
                   <Label htmlFor="propertyAddress" className="text-sm font-medium">
                     Property Address *
                   </Label>
-                  <Input
-                    id="propertyAddress"
-                    placeholder="e.g., 12 King's Road, London"
-                    value={formData.propertyAddress}
-                    onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
-                    className="mt-1"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="propertyAddress"
+                      placeholder={formData.postcode ? "Start typing your address..." : "Enter postcode first"}
+                      value={formData.propertyAddress}
+                      onChange={(e) => handleAddressChange(e.target.value)}
+                      onFocus={() => {
+                        if (addressSuggestions.length > 0) setShowAddressDropdown(true);
+                        else if (formData.postcode) fetchAddressSuggestions(formData.propertyAddress);
+                      }}
+                      onBlur={() => setTimeout(() => setShowAddressDropdown(false), 200)}
+                      className="mt-1"
+                      autoComplete="off"
+                      required
+                    />
+                    
+                    {showAddressDropdown && addressSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {addressSuggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm flex items-center gap-2"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setFormData({ ...formData, propertyAddress: suggestion });
+                              setShowAddressDropdown(false);
+                            }}
+                          >
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            {suggestion}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div>
@@ -182,7 +247,17 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
                     id="postcode"
                     placeholder="e.g., SW3 4NT"
                     value={formData.postcode}
-                    onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, postcode: val });
+                      // If user changes postcode, clear existing address and suggestions
+                      setAddressSuggestions([]); 
+                    }}
+                    onBlur={() => {
+                      if (formData.postcode.length >= 3) {
+                        fetchAddressSuggestions(formData.propertyAddress);
+                      }
+                    }}     
                     className="mt-1"
                     required
                   />
@@ -192,13 +267,21 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
                   <Label htmlFor="propertyType" className="text-sm font-medium">
                     Property Type
                   </Label>
-                  <Input
-                    id="propertyType"
-                    placeholder="e.g., Flat, House, Studio"
-                    value={formData.propertyType}
-                    onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
-                    className="mt-1"
-                  />
+                  <Select 
+                    value={formData.propertyType} 
+                    onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
+                  >
+                    <SelectTrigger className="mt-1 bg-background border-input">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="house">House</SelectItem>
+                      <SelectItem value="room">Room</SelectItem>
+                      <SelectItem value="flat">Flat</SelectItem>
+                      <SelectItem value="bungalow">Bungalow</SelectItem>
+                      <SelectItem value="maisonette">Maisonette</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
@@ -300,6 +383,7 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
                     onDateChange={(date) => setFormData({ ...formData, moveInDate: date })}
                     placeholder="Select move-in date"
                     className="mt-1 w-full"
+                    disablePast={false}
                   />
                 </div>
                 
@@ -319,12 +403,12 @@ const ExternalTenantForm = ({ onComplete, onBack }: ExternalTenantFormProps) => 
                 <div>
                   <Label htmlFor="monthlyRent" className="text-sm font-medium flex items-center gap-1">
                     <PoundSterling className="h-3 w-3" />
-                    Monthly Rent *
+                    Monthly/Weekly Rent *
                   </Label>
                   <CurrencyInput
                     value={formData.monthlyRent}
                     onChange={(value) => setFormData({ ...formData, monthlyRent: value })}
-                    placeholder="Enter monthly rent"
+                    placeholder="Enter monthly/weekly rent"
                     className="mt-1"
                   />
                 </div>

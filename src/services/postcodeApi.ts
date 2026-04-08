@@ -119,6 +119,16 @@ class PostcodeApiService {
       return { success: false, error: error instanceof Error ? error.message : 'Locations autocomplete failed' };
     }
   }
+
+  async getAddressesByPostcode(postcode: string): Promise<AutocompleteResult> {
+  try {
+    const result = await this.get<any>('/postcode/addresses', { postcode });
+    const items: string[] = result?.data?.data ?? [];
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, data: [] };
+  }
+}
 }
 
 export const postcodeApi = new PostcodeApiService();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Eye, EyeOff } from 'lucide-react';
@@ -30,7 +30,7 @@ const Login = () => {
       const redirectPath = localStorage.getItem('login_redirect_path') || '/select-role';
       localStorage.removeItem('login_redirect_path');
 
-      navigate(redirectPath);
+      navigate(redirectPath, { replace: true });
     } catch (error: any) {
       const errorMessage = error.message || 'Invalid credentials. Please try again.';
 
@@ -62,7 +62,7 @@ const Login = () => {
         const redirectPath = localStorage.getItem('login_redirect_path') || '/select-role';
         localStorage.removeItem('login_redirect_path');
 
-        navigate(redirectPath);
+        navigate(redirectPath, { replace: true });
       }
     } catch (error: any) {
       toast.error(error.message || 'Google login failed. Please try again.');

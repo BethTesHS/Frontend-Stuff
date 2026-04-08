@@ -28,6 +28,8 @@ const SelectRole = () => {
   const [selectedTenantType, setSelectedTenantType] = useState('');
   const [showBuyerIntentSelection, setShowBuyerIntentSelection] = useState(false);
   const [selectedBuyerIntent, setSelectedBuyerIntent] = useState<'buy' | 'rent' | 'find_roommate' | ''>('');
+  const [hasPin, setHasPin] = useState<"yes" | "no" | "">("");
+  const [pinCode, setPinCode] = useState("");
 
   useEffect(() => {
     console.log('SelectRole: Component mounted');
@@ -106,11 +108,19 @@ const SelectRole = () => {
 
   const roleOptions = [
     {
+      value: 'tenant',
+      label: 'Tenant',
+      description: 'Searching for a rental property',
+      icon: Home,
+      color: 'text-orange-600',
+    },
+    {
       value: 'buyer',
       label: 'Home Seeker',
       description: 'Looking to buy, rent or find a roommate',
       icon: Users,
       color: 'text-blue-600',
+      disabled: true,
     },
     {
       value: 'owner',
@@ -118,6 +128,7 @@ const SelectRole = () => {
       description: 'Managing or selling your property',
       icon: Home,
       color: 'text-green-600',
+      disabled: true,
     },
     {
       value: 'agent',
@@ -125,13 +136,7 @@ const SelectRole = () => {
       description: 'Assisting clients in real estate transactions',
       icon: User,
       color: 'text-purple-600',
-    },
-    {
-      value: 'tenant',
-      label: 'Tenant',
-      description: 'Searching for a rental property',
-      icon: Home,
-      color: 'text-orange-600',
+      disabled: true,
     },
   ];
 
@@ -398,80 +403,82 @@ const SelectRole = () => {
     return (
       <Layout showFooter={false}>
         <div className="min-h-screen bg-white px-4 sm:px-10 md:px-40 flex justify-center py-5">
-          <div className="max-w-[960px] w-full">
-            <div className="flex flex-wrap justify-between gap-3 p-4">
-              <p className="text-foreground tracking-light text-2xl sm:text-[32px] font-bold leading-tight min-w-0">
+          <div className="max-w-[600px] w-full mt-10">
+            <div className="p-4 mb-6">
+              <p className="text-foreground tracking-tight text-2xl sm:text-[32px] font-bold leading-tight">
                 Tell us about your tenancy
               </p>
+              <p className="text-muted-foreground mt-2">
+                We need a few details to set up your dashboard.
+              </p>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-              <div 
-                onClick={() => {
-                  console.log('External tenant card clicked');
-                  handleTenantTypeSelection('external');
-                }}
-                className={`flex flex-col gap-3 rounded-lg border p-6 cursor-pointer transition-all hover:bg-accent hover:shadow-md min-h-[160px] ${
-                  selectedTenantType === 'external' 
-                    ? 'border-primary ring-2 ring-primary bg-primary/5' 
-                    : 'border-border bg-card'
-                }`}
-              >
-                <div className="text-blue-600">
-                  <Home size={24} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h2 className="text-foreground text-base font-bold leading-tight">
-                    External Tenant
-                  </h2>
-                  <p className="text-muted-foreground text-sm font-normal leading-normal">
-                    I'm renting a property not listed on this platform and want help managing my tenancy
-                  </p>
-                </div>
-              </div>
-              
-              <div 
-                onClick={() => {
-                  console.log('Platform tenant card clicked');
-                  handleTenantTypeSelection('internal');
-                }}
-                className={`flex flex-col gap-3 rounded-lg border p-6 cursor-pointer transition-all hover:bg-accent hover:shadow-md min-h-[160px] ${
-                  selectedTenantType === 'internal' 
-                    ? 'border-primary ring-2 ring-primary bg-primary/5' 
-                    : 'border-border bg-card'
-                }`}
-              >
-                <div className="text-green-600">
-                  <Home size={24} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <h2 className="text-foreground text-base font-bold leading-tight">
-                    Platform Tenant
-                  </h2>
-                  <p className="text-muted-foreground text-sm font-normal leading-normal">
-                    I found and rented my property through this platform
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-between p-4 gap-4">
-              <Button
-                variant="outline"
-                onClick={handleBackToRoleSelection}
-                className="w-full sm:w-auto min-w-[200px]"
-              >
-                Back to Role Selection
-              </Button>
-              
-              {selectedTenantType && (
-                <Button
-                  onClick={handleTenantTypeContinue}
-                  className="w-full sm:w-auto min-w-[200px]"
+
+            <div className="space-y-8 p-4">
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  (Optional) Do you have Agent, Agency or Landlord's Pin?
+                  <span className="block text-xs font-normal text-muted-foreground mt-1">
+                    This pin only belongs to homeduk.com properties.
+                  </span>
+                </Label>
+
+                <RadioGroup
+                  value={hasPin}
+                  onValueChange={(val: "yes" | "no") => {
+                    setHasPin(val);
+                    setSelectedTenantType(
+                      val === "yes" ? "internal" : "external",
+                    );
+                  }}
+                  className="flex gap-4"
                 >
-                  Continue
-                </Button>
+                  <div className="flex items-center space-x-2 border rounded-md px-4 py-3 flex-1 cursor-pointer hover:bg-blue-100">
+                    <RadioGroupItem value="yes" id="yes" />
+                    <Label htmlFor="yes" className="cursor-pointer flex-1">
+                      Yes, I have one
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 border rounded-md px-4 py-3 flex-1 cursor-pointer hover:bg-blue-100">
+                    <RadioGroupItem value="no" id="no" />
+                    <Label htmlFor="no" className="cursor-pointer flex-1">
+                      No, I don't
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              {hasPin === "yes" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label htmlFor="pin">Enter Pin Code</Label>
+                  <input
+                    id="pin"
+                    type="text"
+                    placeholder="e.g. HD-1234"
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
               )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between p-4 gap-4 mt-6">
+              <Button
+                variant="ghost"
+                onClick={handleBackToRoleSelection}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                Back
+              </Button>
+
+              <Button
+                onClick={handleTenantTypeContinue}
+                disabled={!hasPin || (hasPin === "yes" && !pinCode)}
+                className={`w-full sm:w-auto min-w-[200px] order-1 sm:order-2 transition-all shadow-lg ${
+                  hasPin ? "bg-primary scale-105" : ""
+                }`}
+              >
+                {loading ? "Processing..." : "Continue"}
+              </Button>
             </div>
           </div>
         </div>
@@ -531,7 +538,7 @@ const SelectRole = () => {
                   </div>
                   <div className="flex flex-col gap-2">
                     <h2 className="text-foreground text-base font-bold leading-tight">{option.label}</h2>
-                    <p className="text-muted-foreground text-sm font-normal leading-normal">{option.description}</p>
+                    <p className="text-muted-foreground hover:text-foreground text-sm font-normal leading-normal">{option.description}</p>
                   </div>
                 </div>
               ))}
@@ -596,28 +603,51 @@ const SelectRole = () => {
           <form onSubmit={handleSubmit}>
             <RadioGroup value={selectedRole} onValueChange={setSelectedRole}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4">
-                {roleOptions.map((option) => (
-                  <div key={option.value}>
-                    <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
-                    <Label htmlFor={option.value} className="cursor-pointer">
-                       <div className={`flex flex-1 gap-3 rounded-lg border border-border bg-card p-4 flex-col transition-all hover:bg-accent hover:shadow-md ${
-                         selectedRole === option.value ? 'ring-2 ring-primary bg-primary/5' : ''
-                       }`}>
-                        <div className={option.color}>
-                          <option.icon size={24} />
+                {roleOptions.map((option) => {
+                  const isDisabled = option.disabled;
+                  return (
+                    <div key={option.value} className="relative">
+                      <RadioGroupItem
+                        value={option.value}
+                        id={option.value}
+                        className="sr-only"
+                        disabled={isDisabled}
+                      />
+                      <Label
+                        htmlFor={option.value}
+                        className={`block relative ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <div
+                          className={`group flex flex-1 gap-3 rounded-lg border border-border bg-card p-4 flex-col transition-all min-h-[140px]
+                          ${
+                            isDisabled
+                              ? "opacity-60 bg-gray-50/50 grayscale-[0.3]"
+                              : "hover:bg-accent hover:shadow-md hover:text-foreground"
+                          } 
+                          ${selectedRole === option.value ? "ring-2 ring-primary bg-primary/5" : ""}
+                        `}
+                        >
+                          {isDisabled && (
+                            <span className="absolute top-2 right-2 text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider border border-slate-300">
+                              Coming Soon
+                            </span>
+                          )}
+                          <div className={option.color}>
+                            <option.icon size={24} />
+                          </div>
+                          <div className="flex flex-col gap-1 mt-auto">
+                            <h2 className="text-foreground text-base font-bold leading-tight">
+                              {option.label}
+                            </h2>
+                            <p className="text-muted-foreground group-hover:text-foreground text-xs font-normal leading-normal">
+                              {option.description}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <h2 className="text-foreground text-base font-bold leading-tight">
-                            {option.label}
-                          </h2>
-                          <p className="text-muted-foreground text-sm font-normal leading-normal">
-                            {option.description}
-                          </p>
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-                ))}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </RadioGroup>
             

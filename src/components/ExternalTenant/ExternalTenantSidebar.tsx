@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   Star,
-  ClipboardCheck
+  ClipboardCheck,
+  DoorOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -58,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: "Overview", value: "tenancy-overview", icon: Home },
       { title: "Documents", value: "documents", icon: FileText },
       { title: "Checklists", value: "checklists", icon: ClipboardCheck },
+      { title: "EoT", value: "end-of-tenancy", icon: DoorOpen },
       { title: "Payments", value: "payments", icon: CreditCard },
     ],
   },
@@ -195,19 +197,18 @@ export default function ExternalTenantSidebar({
       </div>
 
       {/* Navigation groups */}
-      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+      <div className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {NAV_GROUPS.map((group) => {
           const isGroupOpen = openGroups[group.label] ?? true;
           const GroupIcon = group.icon;
 
           if (isCollapsed) {
-            // In collapsed mode just show icons, no groups
             return group.items.map((item) => (
               <button
                 key={item.value}
                 onClick={() => handleTabClick(item.value)}
                 title={item.title}
-                className={`w-full flex justify-center p-3 rounded-lg transition-all ${
+                className={`w-full flex justify-center p-3 transition-all ${
                   activeTab === item.value
                     ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400"
@@ -223,7 +224,7 @@ export default function ExternalTenantSidebar({
               {/* Group header */}
               <button
                 onClick={() => toggleGroup(group.label)}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/30"
+                className="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30"
               >
                 <div className="flex items-center gap-2">
                   <GroupIcon size={13} />
@@ -236,24 +237,24 @@ export default function ExternalTenantSidebar({
                 )}
               </button>
 
-              {/* Group items */}
+              {/* Group items — wall-to-wall */}
               {isGroupOpen && (
-                <div className="mt-0.5 space-y-0.5 pl-2">
+                <div className="space-y-0">
                   {group.items.map((item) => (
                     <button
                       key={item.value}
                       onClick={() => handleTabClick(item.value)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                      className={`w-full flex items-center gap-3 px-5 py-2.5 transition-all text-sm font-medium border-l-2 ${
                         activeTab === item.value
-                          ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300"
+                          ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-emerald-500"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-transparent"
                       }`}
                     >
                       <item.icon
                         size={16}
                         className={
                           activeTab === item.value
-                            ? "text-gray-900 dark:text-gray-100"
+                            ? "text-emerald-600 dark:text-emerald-400"
                             : "text-gray-500 dark:text-gray-400"
                         }
                       />

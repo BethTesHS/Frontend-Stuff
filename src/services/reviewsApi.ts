@@ -23,6 +23,9 @@ export interface PlatformReview {
   status: string;
   is_verified: boolean;
   created_at?: string;
+  // For complaint_handling reviews
+  context_id?: number | null;
+  context_type?: string | null;
 }
 
 export interface PlatformRatingsResponse {

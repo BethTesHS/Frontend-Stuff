@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { playNotificationSound } from '@/hooks/useNotificationSound';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { 
-  AlertTriangle, 
+import {
+  AlertTriangle,
   Droplets,
   Zap,
   Thermometer,
@@ -31,8 +31,10 @@ import {
 } from "@/components/ui/dialog";
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useAuth } from '@/contexts/AuthContext';
 import { complaintsApi } from '@/services/complaintsApi';
 import { externalTenantComplaintsApi } from '@/services/externalTenantComplaintsApi';
+import { externalTenantApi } from '@/services/api';
 
 // Sub-components
 import { DetailsStep } from '@/components/ExternalTenant/ComplaintFormSubComponents/DetailsStep';
@@ -48,10 +50,12 @@ interface SubmitComplaintProps {
 const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitComplaintProps) => {
   const { loading: authLoading, hasAccess } = useAuthGuard(['tenant'], true);
   const { refreshUnreadCount } = useNotifications();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [ticketNumber, setTicketNumber] = useState('');
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [formData, setFormData] = useState({
     tenantName: '',
     tenantEmail: '',
@@ -59,9 +63,8 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
     issueType: '',
     description: '',
     urgency: 'medium',
-    image: null as File | null,
+    attachments: [] as File[],
   });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const issueTypes = [
     { value: 'Plumbing Issues', icon: Droplets, color: 'text-blue-500' },
@@ -82,25 +85,48 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
     { value: 'urgent', label: 'Urgent', icon: Flame, color: 'text-red-600', description: 'Emergency situation' },
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, image: file });
-      const reader = new FileReader();
-      reader.onload = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+  // Fetch profile data to pre-fill the form when modal opens
+  useEffect(() => {
+    if (!isExternalTenant || !isOpen) return;
+
+    const prefillFromProfile = async () => {
+      try {
+        const res = await externalTenantApi.getProfile();
+        if (res.data?.external_tenant_profile) {
+          const profile = res.data.external_tenant_profile;
+          const addr = profile.property_address || '';
+          // Extract house number from address (first number or whole address if short)
+          const houseNumMatch = addr.match(/^(\d+[a-zA-Z]?)/);
+          const houseNumber = houseNumMatch ? houseNumMatch[1] : addr;
+
+          setFormData(prev => ({
+            ...prev,
+            tenantName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+            tenantEmail: user?.email || '',
+            houseNumber,
+          }));
+          setProfileLoaded(true);
+        }
+      } catch {
+        // Profile fetch failed — user will fill in manually
+      }
+    };
+
+    prefillFromProfile();
+  }, [isExternalTenant, isOpen]);
+
+  const handleFilesAdd = (newFiles: File[]) => {
+    setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newFiles] }));
   };
 
-  const removeImage = () => {
-    setFormData({ ...formData, image: null });
-    setImagePreview(null);
+  const removeAttachment = (index: number) => {
+    setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }));
   };
 
   const handleNext = () => {
     if (currentStep === 1) {
-      if (!formData.tenantName || !formData.tenantEmail || !formData.houseNumber || 
-          !formData.issueType || !formData.description) {
+      const missingBasic = !profileLoaded && (!formData.tenantName || !formData.tenantEmail || !formData.houseNumber);
+      if (missingBasic || !formData.issueType || !formData.description) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -131,6 +157,17 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
           ticket = response.data.ticket_number;
           complaintId = response.data.complaint?.id;
         }
+
+        // Upload all attachments (images + videos)
+        if (complaintId && formData.attachments.length > 0) {
+          for (const file of formData.attachments) {
+            try {
+              await externalTenantComplaintsApi.uploadComplaintFile(complaintId, file);
+            } catch (uploadErr) {
+              console.error('Failed to upload attachment:', uploadErr);
+            }
+          }
+        }
       } else {
         const response = await complaintsApi.createComplaint({
           tenantName: formData.tenantName,
@@ -145,17 +182,18 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
           ticket = (response.data as any).ticket_number ?? '';
           complaintId = (response.data as any).id;
         }
-      }
 
-      if (ticket) {
-        setTicketNumber(ticket);
-        if (formData.image && complaintId) {
+        if (complaintId && formData.attachments.length > 0) {
           try {
-            await complaintsApi.uploadComplaintImage(complaintId, formData.image);
+            await complaintsApi.uploadComplaintImage(complaintId, formData.attachments[0]);
           } catch (imageError) {
             console.error('Failed to upload image:', imageError);
           }
         }
+      }
+
+      if (ticket) {
+        setTicketNumber(ticket);
 
         // Play notification sound and show orange banner at top
         playNotificationSound();
@@ -186,8 +224,8 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
 
   return (
     <>
-      <Dialog 
-        open={isOpen} 
+      <Dialog
+        open={isOpen}
         onOpenChange={(open) => !loading && !open && onClose()}
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none bg-white dark:bg-slate-950">
@@ -216,20 +254,21 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
           <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-white dark:bg-slate-950">
             <form onSubmit={handleSubmit} className="space-y-8">
               {currentStep === 1 && (
-                <DetailsStep 
-                  formData={formData} 
+                <DetailsStep
+                  formData={formData}
                   setFormData={setFormData}
                   issueTypes={issueTypes}
                   urgencyLevels={urgencyLevels}
-                  imagePreview={imagePreview}
-                  handleImageUpload={handleImageUpload}
-                  removeImage={removeImage}
+                  attachments={formData.attachments}
+                  handleFilesAdd={handleFilesAdd}
+                  removeAttachment={removeAttachment}
+                  profileLoaded={profileLoaded}
                 />
               )}
               {currentStep === 2 && (
-                <ReviewStep 
+                <ReviewStep
                   formData={formData}
-                  imagePreview={imagePreview}
+                  attachments={formData.attachments}
                   getSelectedIssueType={getSelectedIssueType}
                   getSelectedUrgencyLevel={getSelectedUrgencyLevel}
                 />
@@ -238,37 +277,37 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
 
               {/* Action Buttons */}
               <div className="pt-6 border-t dark:border-slate-800 flex items-center justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handlePrevious} 
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevious}
                   disabled={currentStep === 1 || loading}
                 >
                   Previous
                 </Button>
 
                 <div className="flex space-x-3">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     onClick={onClose}
                     disabled={loading}
                   >
                     Cancel
                   </Button>
-                  
+
                   {currentStep < 3 ? (
-                    <Button 
-                      type="button" 
-                      onClick={handleNext} 
+                    <Button
+                      type="button"
+                      onClick={handleNext}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white px-8"
                     >
                       Next Step
                     </Button>
                   ) : (
-                    <Button 
-                      type="submit" 
-                      disabled={loading} 
+                    <Button
+                      type="submit"
+                      disabled={loading}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 shadow-lg"
                     >
                       {loading ? (
@@ -287,7 +326,7 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
           </div>
         </DialogContent>
       </Dialog>
-      {/* Success Dialog (Nested or Separate) */}
+      {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={() => {}}>
         <DialogContent className="max-w-md">
           <div className="flex flex-col items-center space-y-4 text-center p-4">
@@ -306,8 +345,8 @@ const SubmitComplaint = ({ isOpen, onClose, isExternalTenant = false }: SubmitCo
               onClick={() => {
                 setShowSuccessDialog(false);
                 setCurrentStep(1);
-                setFormData({ tenantName: '', tenantEmail: '', houseNumber: '', issueType: '', description: '', urgency: 'medium', image: null });
-                setImagePreview(null);
+                setFormData({ tenantName: '', tenantEmail: '', houseNumber: '', issueType: '', description: '', urgency: 'medium', attachments: [] });
+                setProfileLoaded(false);
                 onClose();
               }}
               className="w-full bg-emerald-600 hover:bg-emerald-700"

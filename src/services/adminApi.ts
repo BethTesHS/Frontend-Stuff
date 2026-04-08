@@ -739,7 +739,7 @@ class AdminApiService {
 
     const result = await response.json();
     console.log("[AdminAPI] Users data received:", result);
-    if (result.status === 200 || result.type === "Success") {
+    if (result.status === 200 || result.type === "Success" || Array.isArray(result.data)) {
       const pageInfo = result.pageinfo || result.page_info || result.pageInfo;
       return {
         success: true,

@@ -1,16 +1,20 @@
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Film, Image as ImageIcon } from 'lucide-react';
 
 interface ReviewStepProps {
   formData: any;
-  imagePreview: string | null;
+  attachments: File[];
   getSelectedIssueType: () => any;
   getSelectedUrgencyLevel: () => any;
 }
 
+function isVideo(file: File): boolean {
+  return file.type.startsWith('video/');
+}
+
 export const ReviewStep = ({
   formData,
-  imagePreview,
+  attachments,
   getSelectedIssueType,
   getSelectedUrgencyLevel
 }: ReviewStepProps) => {
@@ -74,10 +78,34 @@ export const ReviewStep = ({
               )}
             </div>
           </div>
-          {imagePreview && (
+
+          {/* Attachments preview */}
+          {attachments.length > 0 && (
             <div>
-              <p className="text-sm text-gray-600 mb-2">Uploaded Image</p>
-              <img src={imagePreview} alt="Complaint" className="max-w-sm h-32 object-cover rounded-lg" />
+              <p className="text-sm text-gray-600 mb-3">
+                Attachments ({attachments.length} file{attachments.length !== 1 ? 's' : ''})
+              </p>
+              <div className="space-y-2">
+                {attachments.map((file, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    {isVideo(file) ? (
+                      <div className="w-16 h-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Film className="w-6 h-6 text-purple-500" />
+                      </div>
+                    ) : (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                      <p className="text-xs text-gray-500">{isVideo(file) ? 'Video' : 'Image'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

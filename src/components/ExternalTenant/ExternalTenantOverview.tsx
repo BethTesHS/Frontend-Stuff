@@ -11,11 +11,23 @@ export const ExternalTenantOverview = ({ user, setActiveTab, navigate, dashboard
   const [recentComplaints, setRecentComplaints] = useState<any[]>([]);
   const [recentMaintenance, setRecentMaintenance] = useState<any[]>([]);
   const [lastMessage, setLastMessage] = useState<any>(null);
+  const [profileAddress, setProfileAddress] = useState<string | null>(null);
+  const [checklistProgress, setChecklistProgress] = useState({ preDone: 0, preTotal: 29, postDone: 0, postTotal: 13 });
 
   useEffect(() => {
     const loadRecent = async () => {
       try {
         const { externalTenantApi } = await import('@/services/api');
+
+        const profileRes = await externalTenantApi.getProfile();
+        if (profileRes?.success && profileRes.data) {
+        const p = profileRes.data?.external_tenant_profile ?? (profileRes.data as any);
+        
+        if (p?.property_address) {
+          setProfileAddress(p.property_address);
+        }
+      }
+
         const [complaintsRes, maintenanceRes] = await Promise.all([
           externalTenantApi.getComplaints?.().catch(() => ({ success: false, data: null })),
           externalTenantApi.getMaintenanceRequests?.().catch(() => ({ success: false, data: null })),
@@ -33,11 +45,51 @@ export const ExternalTenantOverview = ({ user, setActiveTab, navigate, dashboard
       }
     };
     loadRecent();
+
+    const loadChecklists = () => {
+      try {
+        const saved = localStorage.getItem("tenant_checklist_progress");
+        if (saved) {
+          const checkedItems = JSON.parse(saved);
+          let preDone = 0;
+          let postDone = 0;
+          
+          const PRE_TENANCY_TITLES = [
+            "How to Rent Guide", "Energy Performance Certificate (EPC)", "Gas Safety Certificate (CP12)", "Electrical Safety Certificate (EICR)", "Deposit Protection Certificate", "Tenancy Agreement (AST)",
+            "Property Licence", "Right to Rent Check", "Client Money Protection",
+            "Rent & Deposits", "Property Alarms", "Inventory & Check-In Report", "Landlord Contact & Keys",
+            "Upload pictures so we can verify things (Pre-Tenancy)"
+          ];
+          const POST_TENANCY_TITLES = [
+            "Maintenance & Repairs", "Ongoing Compliance Updates", "Rent & Default Fees",
+            "Check-Out Report", "Deposit Return Summary", "Utility & Key Handover",
+            "Upload pictures so we can verify things (Post-Tenancy)"
+          ];
+
+          Object.keys(checkedItems).forEach(key => {
+            if (checkedItems[key]) {
+              const title = key.substring(0, key.lastIndexOf('-'));
+              if (PRE_TENANCY_TITLES.includes(title)) {
+                preDone++;
+              } else if (POST_TENANCY_TITLES.includes(title)) {
+                postDone++;
+              }
+            }
+          });
+          setChecklistProgress({ preDone, preTotal: 30, postDone, postTotal: 14 });
+        }
+      } catch(e) {}
+    };
+    loadChecklists();
   }, []);
 
   const tenancy = dashboardData?.tenancy;
   const property = dashboardData?.property_summary;
-  const address = property?.address || dashboardData?.property_summary?.address || null;
+  const address =
+    property?.address ||
+    dashboardData?.property_summary?.address ||
+    profileAddress ||
+    null;
 
   const rentStatus: 'paid' | 'due' | 'unknown' = tenancy?.rent_status ?? 'unknown';
   const nextPaymentDate = tenancy?.next_payment_date ?? null;
@@ -114,6 +166,101 @@ export const ExternalTenantOverview = ({ user, setActiveTab, navigate, dashboard
           </button>
         </div>
       </section>
+
+      {/* ── Checklist Progress ── */}
+      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-blue-500" />
+            Checklist Progress
+          </h2>
+          <button
+            onClick={() => setActiveTab('checklists')}
+            className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1 transition-colors"
+          >
+            View all <ArrowRight size={13} />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pre-Tenancy & Move-In</span>
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{checklistProgress.preDone} / {checklistProgress.preTotal}</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-1">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-500" 
+                style={{ width: `${Math.round((checklistProgress.preDone / checklistProgress.preTotal) * 100)}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{Math.round((checklistProgress.preDone / checklistProgress.preTotal) * 100)}% completed</p>
+          </div>
+          
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">During & Post-Tenancy</span>
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{checklistProgress.postDone} / {checklistProgress.postTotal}</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-1">
+              <div 
+                className="bg-indigo-500 h-2 rounded-full transition-all duration-500" 
+                style={{ width: `${checklistProgress.postTotal > 0 ? Math.round((checklistProgress.postDone / checklistProgress.postTotal) * 100) : 0}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{checklistProgress.postTotal > 0 ? Math.round((checklistProgress.postDone / checklistProgress.postTotal) * 100) : 0}% completed</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Key Requirements ── */}
+      {/* <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-4">
+          <FileText size={16} className="text-indigo-500" />
+          Key Requirements
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-5">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">Pre-tenancy checklist</h3>
+            <ul className="space-y-2.5">
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Guide to rent</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>EPC certificate</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Tenancy agreement</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Upload pictures so we can verify things</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-5">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">Post tenancy checklist</h3>
+            <ul className="space-y-2.5">
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Pictures</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Email confirmations (Notice)</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <CheckCircle2 size={16} className="text-gray-300 mt-0.5" />
+                <span>Upload pictures so we can verify things</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section> */}
 
       {/* ── Quick Actions ── */}
       <section>

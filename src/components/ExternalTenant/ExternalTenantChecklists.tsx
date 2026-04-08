@@ -16,7 +16,10 @@ import {
   Wrench,
   RefreshCcw,
   ReceiptText,
-  Circle
+  Circle,
+  Camera,
+  Upload,
+  X
 } from "lucide-react";
 
 // Define a unique key for local storage
@@ -109,6 +112,75 @@ export default function ExternalTenantChecklists() {
       </div>
     </div>
   );
+
+  const ImageUploadItem = ({ title, icon: Icon, description, checklistItem }: any) => {
+    const [images, setImages] = useState<string[]>([]);
+    // Using title as base key for checking
+    const itemId = `${title}-0`;
+    const isChecked = checkedItems[itemId] || false;
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        const filesArray = Array.from(e.target.files);
+        const newImages = filesArray.map(file => URL.createObjectURL(file));
+        setImages(prev => [...prev, ...newImages]);
+      }
+    };
+    
+    const removeImage = (index: number) => {
+      setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex gap-4 transition-all hover:shadow-md col-span-1 md:col-span-2">
+        <div className={`p-3 rounded-full h-fit flex-shrink-0 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+             <h4 className="font-bold text-gray-900 dark:text-white">{title}</h4>
+          </div>
+          {description && <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{description}</p>}
+          
+          <div className="flex flex-wrap gap-4 mb-4">
+            {images.map((src: string, idx: number) => (
+              <div key={idx} className="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
+                <img src={src} alt="Uploaded" className="w-full h-full object-cover" />
+                <button onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-gray-900/60 hover:bg-red-500 text-white rounded-full p-1.5 shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-800/80 transition-colors">
+              <Upload className="w-8 h-8 text-gray-400 mb-2" />
+              <span className="text-xs text-gray-500 font-medium">Add Photo</span>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+
+          <ul className="space-y-2 mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <li 
+              onClick={() => toggleCheck(itemId)}
+              className="flex items-start gap-2.5 text-sm cursor-pointer group"
+            >
+              <button className="mt-0.5 flex-shrink-0 focus:outline-none transition-colors">
+                {isChecked ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Circle className="w-4 h-4 text-gray-300 group-hover:text-blue-400 dark:text-gray-500" />
+                )}
+              </button>
+              <span 
+                className={`transition-all duration-200 ${isChecked ? 'text-gray-400 line-through dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                {checklistItem}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
@@ -281,6 +353,15 @@ export default function ExternalTenantChecklists() {
                 ]} 
               />
             </Section>
+
+            <Section title="Property Condition Verification" description="Document the condition of the property at move-in.">
+              <ImageUploadItem 
+                title="Upload pictures so we can verify things (Pre-Tenancy)" 
+                icon={Camera} 
+                description="Take clear photos of all rooms, appliances, and any existing damage. These will serve as proof of the property's condition at move-in."
+                checklistItem="I've uploaded all necessary pre-tenancy photos."
+              />
+            </Section>
           </div>
         )}
 
@@ -343,6 +424,15 @@ export default function ExternalTenantChecklists() {
                   "Take final meter readings when moving out.",
                   "Return all keys to the landlord or letting agent."
                 ]} 
+              />
+            </Section>
+
+            <Section title="Property Condition Verification" description="Document the condition of the property at move-out.">
+              <ImageUploadItem 
+                title="Upload pictures so we can verify things (Post-Tenancy)" 
+                icon={Camera} 
+                description="Take photos showing the property has been cleaned and returned in its original condition. Capture everything including meter readings."
+                checklistItem="I've uploaded all necessary post-tenancy photos."
               />
             </Section>
             

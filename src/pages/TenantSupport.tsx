@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from '@/components/Auth/AuthModal';
 import { useState } from 'react';
 import heroImage from '@/assets/tenancy-hero.jpg';
+import TenantRentingGuide from '@/components/Support/TenantRentingGuide';
 
 const TenantSupport = () => {
   const { isAuthenticated } = useAuth();
@@ -93,6 +94,13 @@ const TenantSupport = () => {
                 </Card>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Renting Guide Section */}
+        <section className="py-16 px-4 bg-background">
+          <div className="max-w-6xl mx-auto">
+            <TenantRentingGuide />
           </div>
         </section>
 
